@@ -17,6 +17,18 @@ let leftDownKey = 'z';
 let rightUpKey = 'p';
 let rightDownKey = 'l';
 
+//variables holding the values from the controllers
+let player1Movement;
+let player1Name;
+let player1MoveMultiplier = 1;
+
+let player2Movement;
+let player2Name;
+let player2MoveMultiplier = 1;
+
+//toggle debug with spacebar
+let drawBleDebug = false;
+
 function preload() {
   //song = loadSound("pa5a.wav");
   //song2 = loadSound("pongblipa4.wav");
@@ -28,10 +40,34 @@ function setup() {
     puck = new Puck();
     left = new Paddle(true);
     right = new Paddle(false);
+
+  textSize(16);
+  textAlign(CENTER, CENTER);
+  
+  // Create and setup BLE controller
+  bleController = new BLEController();
+  bleController.debug = drawBleDebug ;  // Set to false to hide debug info
+  bleController.setup();
+
+  //set the movement multiplier for each player
+  //we could adjust these to make it easier or harder for each player
+  //negative numbers will reverse the direction of the paddle
+  bleController.setPlayer1Multiplier(player1MoveMultiplier);  
+  bleController.setPlayer2Multiplier(player2MoveMultiplier); 
 }
 
 function draw() {
     background(0);
+
+    //get current bleData
+    //get current player names
+  player1Name = bleController.player1Name;
+  player2Name = bleController.player2Name;
+  
+  
+  // Get movement values for game logic
+  player1Movement = bleController.getPlayer1Movement();
+  player2Movement = bleController.getPlayer2Movement();
     
     puck.checkPaddleRight(right);
     puck.checkPaddleLeft(left);
@@ -49,6 +85,15 @@ function draw() {
     textSize(32);
     text(leftscore, 32, 40);
     text(rightscore, width-64, 40);
+
+// Draw debug information if enabled
+textSize(16);
+bleController.drawDebug();
+
+
+
+
+
 }
 
 
@@ -71,5 +116,10 @@ function keyPressed() {
         right.move(-10);
     } else if (key == rightDownKey) {
         right.move(10);
+    }
+    //toggle debug with spacebar
+    if (key == ' ') {
+        drawBleDebug = !drawBleDebug;
+        bleController.debug = drawBleDebug;
     }
 }

@@ -7,6 +7,10 @@ class BLEController {
     this.player1Name = "";
     this.player2Name = "";
     this.debug = false;
+    
+    // Add movement multipliers (default to 1)
+    this.player1Multiplier = 1;
+    this.player2Multiplier = 1;
 
     this.serviceUuid = "19b10010-e8f2-537e-4f6c-d104768a1214";
     this.characteristicUuid = "19b10011-e8f2-537e-4f6c-d104768a1214";
@@ -23,7 +27,7 @@ class BLEController {
     window.addEventListener('resize', () => this.updateButtonPositions());
   }
 
-createButtons() {
+  createButtons() {
     // Wait for next frame to ensure canvas exists
     requestAnimationFrame(() => {
         this.p1Button = createButton('Connect Player 1');
@@ -37,7 +41,7 @@ createButtons() {
         
         this.updateButtonPositions();
     });
-}
+  }
 
   updateButtonPositions() {
     const canvasRect = document.querySelector('canvas').getBoundingClientRect();
@@ -78,6 +82,30 @@ createButtons() {
       }
     `;
     document.head.appendChild(style);
+  }
+
+  setPlayer1Multiplier(multiplier) {
+    this.player1Multiplier = multiplier;
+  }
+
+  setPlayer2Multiplier(multiplier) {
+    this.player2Multiplier = multiplier;
+  }
+
+  getPlayer1Movement() {
+    return this.player1Movement * this.player1Multiplier;
+  }
+
+  getPlayer2Movement() {
+    return this.player2Movement * this.player2Multiplier;
+  }
+
+  getRawPlayer1Movement() {
+    return this.player1Movement;
+  }
+
+  getRawPlayer2Movement() {
+    return this.player2Movement;
   }
 
   handleButtonClick(player) {
@@ -163,21 +191,21 @@ createButtons() {
     }
   }
 
-drawDebug() {
+  drawDebug() {
     if (!this.debug) return;
     
-    // Connection status and device names (unchanged)
+    // Connection status and device names
     text(`Player 1: ${this.player1Connected ? 'Connected' : 'Disconnected'}`, width/4, 30);
     text(`Player 2: ${this.player2Connected ? 'Connected' : 'Disconnected'}`, 3*width/4, 30);
     text(`Device: ${this.player1Name}`, width/4, 60);
     text(`Device: ${this.player2Name}`, 3*width/4, 60);
     
     // Enhanced movement display for each player
-    this.drawPlayerDebug(this.player1Movement, width/4, 90);
-    this.drawPlayerDebug(this.player2Movement, 3*width/4, 90);
+    this.drawPlayerDebug(this.player1Movement, this.player1Multiplier, width/4, 90);
+    this.drawPlayerDebug(this.player2Movement, this.player2Multiplier, 3*width/4, 90);
   }
 
-  drawPlayerDebug(movement, x, baseY) {
+  drawPlayerDebug(movement, multiplier, x, baseY) {
     // Movement value (-1, 0, 1)
     text(`Movement: ${movement}`, x, baseY);
     
@@ -188,10 +216,14 @@ drawDebug() {
     // Movement direction text
     let directionText = movement === -1 ? "Up" : movement === 1 ? "Down" : "Stop";
     text(`Direction: ${directionText}`, x, baseY + 60);
+
+    // Show multiplier and actual movement value
+    text(`Multiplier: ${multiplier}`, x, baseY + 90);
+    text(`Actual Movement: ${movement * multiplier}`, x, baseY + 120);
     
     // Visual indicator
     push();
-    translate(x, baseY + 90);
+    translate(x, baseY + 150);
     if (movement === 0) {
       // Draw dot for stop
       fill(100);
@@ -206,14 +238,6 @@ drawDebug() {
       }
     }
     pop();
-  }
-
-  getPlayer1Movement() {
-    return this.player1Movement;
-  }
-
-  getPlayer2Movement() {
-    return this.player2Movement;
   }
 
   isPlayer1Connected() {
