@@ -20,11 +20,11 @@ let rightDownKey = 'l';
 //variables holding the values from the controllers
 let player1Movement;
 let player1Name;
-let player1MoveMultiplier = 1;
+let player1MoveMultiplier = 10;
 
 let player2Movement;
 let player2Name;
-let player2MoveMultiplier = 1;
+let player2MoveMultiplier = 10;
 
 //toggle debug with spacebar
 let drawBleDebug = false;
