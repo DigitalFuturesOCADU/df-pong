@@ -67,8 +67,10 @@ function draw() {
   
   // Get movement values for game logic
   player1Movement = bleController.getPlayer1Movement();
+  left.move(player1Movement)
+
   player2Movement = bleController.getPlayer2Movement();
-    
+  right.move(player2Movement);  
     puck.checkPaddleRight(right);
     puck.checkPaddleLeft(left);
 
