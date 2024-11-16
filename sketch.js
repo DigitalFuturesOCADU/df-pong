@@ -82,10 +82,23 @@ function draw() {
     puck.edges();
     puck.show();
     
+
+    textAlign(LEFT, CENTER);
     fill(255);
     textSize(32);
     text(leftscore, 32, 40);
-    text(rightscore, width-64, 40);
+    textAlign(RIGHT, CENTER);   
+    text(rightscore, width-32, 40); 
+    
+
+    textSize(60);
+    fill(255, 255, 255, 127);
+    textAlign(CENTER, CENTER);
+    text(player1Name, width/4, height/2);
+
+    //should be 3/4 of the way across the screen
+
+    text(player2Name, (3 * width) / 4, height / 2);
 
 // Draw debug information if enabled
 textSize(16);
