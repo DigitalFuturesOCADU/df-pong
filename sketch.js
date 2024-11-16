@@ -35,7 +35,7 @@ function preload() {
 }
 
 function setup() {
-    createCanvas(600, 400);
+    createCanvas(1200, 800);
     ding = loadSound("ding.mp3");
     puck = new Puck();
     left = new Paddle(true);
