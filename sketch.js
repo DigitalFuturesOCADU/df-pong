@@ -49,11 +49,9 @@ function setup() {
   bleController.debug = drawBleDebug ;  // Set to false to hide debug info
   bleController.setup();
 
-  //set the movement multiplier for each player
-  //we could adjust these to make it easier or harder for each player
-  //negative numbers will reverse the direction of the paddle
-  bleController.setPlayer1Multiplier(player1MoveMultiplier);  
-  bleController.setPlayer2Multiplier(player2MoveMultiplier); 
+// Get already-multiplied movement values
+   player1Movement = bleController.getPlayer1Movement();
+   player2Movement = bleController.getPlayer2Movement();
 }
 
 function draw() {
@@ -67,6 +65,7 @@ function draw() {
   
   // Get movement values for game logic
   player1Movement = bleController.getPlayer1Movement();
+  console.log("player1Movement: " + player1Movement);
   left.move(player1Movement)
 
   player2Movement = bleController.getPlayer2Movement();
@@ -91,7 +90,7 @@ function draw() {
 // Draw debug information if enabled
 textSize(16);
 bleController.drawDebug();
-
+ 
 
 
 

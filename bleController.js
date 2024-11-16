@@ -6,29 +6,31 @@ class BLEController {
     this.player2Movement = 0;
     this.player1Name = "";
     this.player2Name = "";
-    this.debug = false;
-    
-    // Add movement multipliers (default to 1)
-    this.player1Multiplier = 1;
-    this.player2Multiplier = 1;
+    this._debug = false;
 
     this.serviceUuid = "19b10010-e8f2-537e-4f6c-d104768a1214";
     this.characteristicUuid = "19b10011-e8f2-537e-4f6c-d104768a1214";
     
     this.myBLE1 = new p5ble();
     this.myBLE2 = new p5ble();
+
+    // Initialize multipliers from localStorage
+    this.player1MoveMultiplier = parseInt(localStorage.getItem('player1Multiplier')) || 10;
+    this.player2MoveMultiplier = parseInt(localStorage.getItem('player2Multiplier')) || 10;
   }
 
   setup() {
     this.createButtons();
+    this.createSliders();
     this.setupButtonStyles();
     
-    // Handle window resize for responsive button placement
-    window.addEventListener('resize', () => this.updateButtonPositions());
+    window.addEventListener('resize', () => {
+      this.updateButtonPositions();
+      this.updateSliderPositions();
+    });
   }
 
   createButtons() {
-    // Wait for next frame to ensure canvas exists
     requestAnimationFrame(() => {
         this.p1Button = createButton('Connect Player 1');
         this.p2Button = createButton('Connect Player 2');
@@ -40,6 +42,40 @@ class BLEController {
         this.p2Button.class('p2-button');
         
         this.updateButtonPositions();
+    });
+  }
+
+  createSliders() {
+    requestAnimationFrame(() => {
+      // Create sliders with stored values
+      this.p1Slider = createSlider(1, 100, this.player1MoveMultiplier);
+      this.p2Slider = createSlider(1, 100, this.player2MoveMultiplier);
+      
+      // Add labels
+      this.p1Label = createElement('div', 'P1 Speed: ' + this.player1MoveMultiplier);
+      this.p2Label = createElement('div', 'P2 Speed: ' + this.player2MoveMultiplier);
+      
+      // Style the containers
+      this.p1Slider.class('debug-slider');
+      this.p2Slider.class('debug-slider');
+      this.p1Label.class('slider-label');
+      this.p2Label.class('slider-label');
+      
+      // Add event listeners
+      this.p1Slider.input(() => {
+        this.player1MoveMultiplier = this.p1Slider.value();
+        this.p1Label.html('P1 Speed: ' + this.player1MoveMultiplier);
+        localStorage.setItem('player1Multiplier', this.player1MoveMultiplier);
+      });
+      
+      this.p2Slider.input(() => {
+        this.player2MoveMultiplier = this.p2Slider.value();
+        this.p2Label.html('P2 Speed: ' + this.player2MoveMultiplier);
+        localStorage.setItem('player2Multiplier', this.player2MoveMultiplier);
+      });
+      
+      this.updateSliderVisibility();
+      this.updateSliderPositions();
     });
   }
 
@@ -63,6 +99,37 @@ class BLEController {
     );
   }
 
+  updateSliderPositions() {
+    if (!this.p1Slider || !this.p2Slider) return;
+    
+    const canvasRect = document.querySelector('canvas').getBoundingClientRect();
+    const buttonPadding = 20;
+    const sliderPadding = 60;
+    
+    // Position sliders and labels below buttons
+    const bottomY = canvasRect.bottom + buttonPadding + sliderPadding;
+    
+    // Player 1 slider (left side)
+    this.p1Slider.position(
+      canvasRect.left + (canvasRect.width * 0.25) - (this.p1Slider.width / 2),
+      bottomY
+    );
+    this.p1Label.position(
+      canvasRect.left + (canvasRect.width * 0.25) - (this.p1Slider.width / 2),
+      bottomY - 20
+    );
+    
+    // Player 2 slider (right side)
+    this.p2Slider.position(
+      canvasRect.left + (canvasRect.width * 0.75) - (this.p2Slider.width / 2),
+      bottomY
+    );
+    this.p2Label.position(
+      canvasRect.left + (canvasRect.width * 0.75) - (this.p2Slider.width / 2),
+      bottomY - 20
+    );
+  }
+
   setupButtonStyles() {
     let style = document.createElement('style');
     style.textContent = `
@@ -80,32 +147,18 @@ class BLEController {
       .connected {
         background-color: #00ff00 !important;
       }
+      .debug-slider {
+        position: fixed;
+        width: 150px;
+      }
+      .slider-label {
+        position: fixed;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        color: #333;
+      }
     `;
     document.head.appendChild(style);
-  }
-
-  setPlayer1Multiplier(multiplier) {
-    this.player1Multiplier = multiplier;
-  }
-
-  setPlayer2Multiplier(multiplier) {
-    this.player2Multiplier = multiplier;
-  }
-
-  getPlayer1Movement() {
-    return this.player1Movement * this.player1Multiplier;
-  }
-
-  getPlayer2Movement() {
-    return this.player2Movement * this.player2Multiplier;
-  }
-
-  getRawPlayer1Movement() {
-    return this.player1Movement;
-  }
-
-  getRawPlayer2Movement() {
-    return this.player2Movement;
   }
 
   handleButtonClick(player) {
@@ -201,43 +254,69 @@ class BLEController {
     text(`Device: ${this.player2Name}`, 3*width/4, 60);
     
     // Enhanced movement display for each player
-    this.drawPlayerDebug(this.player1Movement, this.player1Multiplier, width/4, 90);
-    this.drawPlayerDebug(this.player2Movement, this.player2Multiplier, 3*width/4, 90);
+    this.drawPlayerDebug(this.player1Movement, width/4, 90);
+    this.drawPlayerDebug(this.player2Movement, 3*width/4, 90);
   }
 
-  drawPlayerDebug(movement, multiplier, x, baseY) {
-    // Movement value (-1, 0, 1)
-    text(`Movement: ${movement}`, x, baseY);
-    
-    // Raw received value
-    let rawValue = movement === -1 ? 1 : movement === 1 ? 2 : 0;
-    text(`Raw value: ${rawValue}`, x, baseY + 30);
-    
-    // Movement direction text
-    let directionText = movement === -1 ? "Up" : movement === 1 ? "Down" : "Stop";
-    text(`Direction: ${directionText}`, x, baseY + 60);
+  drawPlayerDebug(movement, x, baseY) {
+    // Show both raw and multiplied movement values
+    const multiplier = movement === this.player1Movement ? this.player1MoveMultiplier : this.player2MoveMultiplier;
+    const multipliedMovement = movement === 0 ? 0 : movement * multiplier;
 
-    // Show multiplier and actual movement value
-    text(`Multiplier: ${multiplier}`, x, baseY + 90);
-    text(`Actual Movement: ${movement * multiplier}`, x, baseY + 120);
+    text(`Raw Movement: ${movement}`, x, baseY);
+    text(`Multiplier: ${multiplier}`, x, baseY + 30);
+    text(`Final Movement: ${multipliedMovement}`, x, baseY + 60);
     
     // Visual indicator
     push();
-    translate(x, baseY + 150);
+    translate(x, baseY + 90);
     if (movement === 0) {
-      // Draw dot for stop
       fill(100);
       circle(0, 0, 10);
     } else {
-      // Draw arrow for movement
-      fill(0);
+      fill(255);
       if (movement === -1) {
-        triangle(-5, 5, 5, 5, 0, -5);  // Up arrow
+        triangle(-5, 5, 5, 5, 0, -5);
       } else {
-        triangle(-5, -5, 5, -5, 0, 5); // Down arrow
+        triangle(-5, -5, 5, -5, 0, 5);
       }
     }
     pop();
+  }
+
+  getPlayer1Movement() {
+    return this.player1Movement === 0 ? 0 : this.player1Movement * this.player1MoveMultiplier;
+  }
+
+  getPlayer2Movement() {
+    return this.player2Movement === 0 ? 0 : this.player2Movement * this.player2MoveMultiplier;
+  }
+
+  getPlayer1Multiplier() {
+    return this.player1MoveMultiplier;
+  }
+
+  getPlayer2Multiplier() {
+    return this.player2MoveMultiplier;
+  }
+
+  updateSliderVisibility() {
+    if (!this.p1Slider || !this.p2Slider) return;
+    
+    const display = this.debug ? 'block' : 'none';
+    this.p1Slider.style('display', display);
+    this.p2Slider.style('display', display);
+    this.p1Label.style('display', display);
+    this.p2Label.style('display', display);
+  }
+
+  set debug(value) {
+    this._debug = value;
+    this.updateSliderVisibility();
+  }
+
+  get debug() {
+    return this._debug;
   }
 
   isPlayer1Connected() {
