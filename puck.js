@@ -1,33 +1,36 @@
 class Puck {
     constructor() {
-        this.x = width/2;
-        this.y = height/2;
+        this.x = width / 2;
+        this.y = height / 2;
         this.xspeed = 0;
         this.yspeed = 0;
         this.r = 12;
         this.speedMultiplier = 1.0;
-        this.speedIncrement = 0.15; // 10% increase per hit
-        this.baseSpeed = 5;
-        
+        this.speedIncrement = 0.15;
+
+        // Read baseSpeed from local storage, default to 5 if not set
+        this.baseSpeed = parseInt(localStorage.getItem('puckBaseSpeed')) || 5;
+
         // Create speed control elements
         this.speedSlider = createSlider(1, 20, this.baseSpeed);
         this.speedLabel = createElement('div', 'Puck Speed: ' + this.baseSpeed);
-        
+
         // Style elements
         this.speedSlider.class('debug-slider');
         this.speedLabel.class('slider-label');
-        this.speedLabel.style('color', '#ffffff'); // Add white text color
-        
+        this.speedLabel.style('color', '#ffffff');
+
         // Add event listener
         this.speedSlider.input(() => {
             this.baseSpeed = this.speedSlider.value();
+            localStorage.setItem('puckBaseSpeed', this.baseSpeed); // Save to local storage
             this.speedLabel.html('Puck Speed: ' + this.baseSpeed);
         });
-        
+
         // Initially hide controls
         this.setDebug(false);
         this.updatePosition();
-        
+
         this.reset();
     }
     

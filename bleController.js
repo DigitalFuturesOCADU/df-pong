@@ -47,8 +47,8 @@ class BLEController {
 
   createSliders() {
     requestAnimationFrame(() => {
-      this.p1Slider = createSlider(1, 100, this.player1MoveMultiplier);
-      this.p2Slider = createSlider(1, 100, this.player2MoveMultiplier);
+      this.p1Slider = createSlider(-100, 100, this.player1MoveMultiplier);
+      this.p2Slider = createSlider(-100, 100, this.player2MoveMultiplier);
       this.pointsSlider = createSlider(1, 21, this.pointsToWin);
       
       this.p1Label = createElement('div', 'P1 Speed: ' + this.player1MoveMultiplier);
@@ -161,11 +161,11 @@ class BLEController {
         transition: all 0.3s ease;
       }
       .p1-button, .p2-button {
-        background-color: #4CAF50;
+        background-color: #ea08f1 ;
         color: white;
       }
       .connected {
-        background-color: #f44336 !important;
+        background-color: #838383 !important;
       }
       .debug-slider {
         position: fixed;
