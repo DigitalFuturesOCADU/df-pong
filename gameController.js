@@ -53,11 +53,11 @@ class GameController {
         push();
         textAlign(CENTER, CENTER);
         fill(255);
-
+        let bigText = 220;
         switch(this.currentState) {
             case this.STATE.WAITING:
-                textSize(64);
-                text("DF PONG", width/2, height/2 - 50);
+                textSize(bigText);
+                text("DF PONG", width/2, height/2 - (bigText/2));
                 textSize(32);
                 text("Press SPACE to Start Game", width/2, height/2 + 50);
                 break;

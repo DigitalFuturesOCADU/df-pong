@@ -119,7 +119,7 @@ function draw() {
     }
 
     // Always show player names
-    textSize(60);
+    textSize(40);
     fill(255, 255, 255, 127);
     textAlign(CENTER, CENTER);
     text(player1Name, width/4, height/2);
