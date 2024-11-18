@@ -4,8 +4,8 @@ class BLEController {
     this.player2Connected = false;
     this.player1Movement = 0;
     this.player2Movement = 0;
-    this.player1Name = "";
-    this.player2Name = "";
+    this.player1Name = "A = UP, Z = DOWN";
+    this.player2Name = "P = UP, L = DOWN";
     this._debug = false;
 
     this.serviceUuid = "19b10010-e8f2-537e-4f6c-d104768a1214";

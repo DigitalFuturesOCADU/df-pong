@@ -157,6 +157,7 @@ function keyPressed() {
     if (key == 'd') {
         drawBleDebug = !drawBleDebug;
         bleController.debug = drawBleDebug;
+        puck.setDebug(drawBleDebug);
     }
     if (keyCode === ENTER) {
         if (gameController.currentState === gameController.STATE.WAITING ||

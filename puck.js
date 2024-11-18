@@ -5,8 +5,50 @@ class Puck {
         this.xspeed = 0;
         this.yspeed = 0;
         this.r = 12;
+        this.speedMultiplier = 1.0;
+        this.speedIncrement = 0.15; // 10% increase per hit
+        this.baseSpeed = 5;
+        
+        // Create speed control elements
+        this.speedSlider = createSlider(1, 20, this.baseSpeed);
+        this.speedLabel = createElement('div', 'Puck Speed: ' + this.baseSpeed);
+        
+        // Style elements
+        this.speedSlider.class('debug-slider');
+        this.speedLabel.class('slider-label');
+        this.speedLabel.style('color', '#ffffff'); // Add white text color
+        
+        // Add event listener
+        this.speedSlider.input(() => {
+            this.baseSpeed = this.speedSlider.value();
+            this.speedLabel.html('Puck Speed: ' + this.baseSpeed);
+        });
+        
+        // Initially hide controls
+        this.setDebug(false);
+        this.updatePosition();
         
         this.reset();
+    }
+    
+    setDebug(show) {
+        const display = show ? 'block' : 'none';
+        this.speedSlider.style('display', display);
+        this.speedLabel.style('display', display);
+    }
+    
+    updatePosition() {
+        const canvasRect = document.querySelector('canvas').getBoundingClientRect();
+        const padding = 20;
+        
+        this.speedSlider.position(
+            canvasRect.left + padding,
+            canvasRect.top + padding
+        );
+        this.speedLabel.position(
+            canvasRect.left + padding,
+            canvasRect.top + padding - 20
+        );
     }
     
     checkPaddleLeft(p) {
@@ -18,9 +60,10 @@ class Puck {
                 let diff = this.y - (p.y - p.h/2);
                 let rad = radians(45);
                 let angle = map(diff, 0, p.h, -rad, rad);
-                this.xspeed = 5 * cos(angle);
-                this.yspeed = 5 * sin(angle);
+                this.xspeed = this.baseSpeed * this.speedMultiplier * cos(angle);
+                this.yspeed = this.baseSpeed * this.speedMultiplier * sin(angle);
                 this.x = p.x + p.w/2 + this.r;
+                this.speedMultiplier += this.speedIncrement;
             }
             
         }
@@ -33,9 +76,10 @@ class Puck {
             if (this.x < p.x) {
                 let diff = this.y - (p.y - p.h/2);
                 let angle = map(diff, 0, p.h, radians(225), radians(135));
-                this.xspeed = 5 * cos(angle);
-                this.yspeed = 5 * sin(angle);
+                this.xspeed = this.baseSpeed * this.speedMultiplier * cos(angle);
+                this.yspeed = this.baseSpeed * this.speedMultiplier * sin(angle);
                 this.x = p.x - p.w/2 - this.r;
+                this.speedMultiplier += this.speedIncrement;
             }
         }
     }
@@ -48,9 +92,10 @@ class Puck {
     reset() {
         this.x = width/2;
         this.y = height/2;
+        this.speedMultiplier = 1.0;
         let angle = random(-PI/4, PI/4);
-        this.xspeed = 5 * Math.cos(angle);
-        this.yspeed = 5 * Math.sin(angle);
+        this.xspeed = this.baseSpeed * cos(angle);
+        this.yspeed = this.baseSpeed * sin(angle);
         
         if (random(1) < 0.5) {
             this.xspeed *= -1;
