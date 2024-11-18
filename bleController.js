@@ -172,7 +172,7 @@ class BLEController {
       }
       .slider-label {
         position: fixed;
-        color: white;
+        color: black; /* Set text color to black */
       }
     `;
     document.head.appendChild(style);
