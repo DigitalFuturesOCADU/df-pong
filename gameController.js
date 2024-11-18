@@ -59,21 +59,21 @@ class GameController {
                 textSize(64);
                 text("DF PONG", width/2, height/2 - 50);
                 textSize(32);
-                text("Press ENTER to Start Game", width/2, height/2 + 50);
+                text("Press SPACE to Start Game", width/2, height/2 + 50);
                 break;
 
             case this.STATE.PAUSED:
                 textSize(64);
                 text("GAME PAUSED", width/2, height/2);
                 textSize(32);
-                text("Press ENTER to Resume", width/2, height/2 + 50);
+                text("Press SPACE to Resume, ENTER to RESET", width/2, height/2 + 50);
                 break;
 
             case this.STATE.WON:
                 textSize(64);
                 text(this.winner + " WINS!", width/2, height/2);
                 textSize(32);
-                text("Press SPACE to Play Again", width/2, height/2 + 50);
+                text("Press ENTER to Play Again", width/2, height/2 + 50);
                 break;
         }
         pop();

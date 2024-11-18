@@ -192,10 +192,13 @@ class BLEController {
 
   handleButtonClick(player) {
     const isConnected = player === 1 ? this.player1Connected : this.player2Connected;
+    const button = player === 1 ? this.p1Button : this.p2Button;
     
     if (!isConnected) {
+      button.html('Connecting...');
       this.connectToBle(player);
     } else {
+      button.html(`Connect Player ${player}`);
       this.disconnectBle(player);
     }
   }
@@ -208,9 +211,12 @@ class BLEController {
 
   connectToBle(player) {
     const ble = player === 1 ? this.myBLE1 : this.myBLE2;
+    const button = player === 1 ? this.p1Button : this.p2Button;
+
     ble.connect(this.serviceUuid, (error, characteristics) => {
       if (error) {
         console.log('Error: ', error);
+        button.html(`Connect Player ${player}`);
         return;
       }
       
@@ -220,6 +226,7 @@ class BLEController {
         this.player1Connected = true;
         this.player1Name = ble.device.name || "Player 1";
         this.p1Button.addClass('connected');
+        this.p1Button.html('Disconnect Player 1');
         ble.startNotifications(characteristic, (data) => {
           this.handleMovementData(1, data);
         });
@@ -227,6 +234,7 @@ class BLEController {
         this.player2Connected = true;
         this.player2Name = ble.device.name || "Player 2";
         this.p2Button.addClass('connected');
+        this.p2Button.html('Disconnect Player 2');
         ble.startNotifications(characteristic, (data) => {
           this.handleMovementData(2, data);
         });
@@ -262,10 +270,12 @@ class BLEController {
       this.player1Connected = false;
       this.player1Movement = 0;
       this.p1Button.removeClass('connected');
+      this.p1Button.html('Connect Player 1');
     } else {
       this.player2Connected = false;
       this.player2Movement = 0;
       this.p2Button.removeClass('connected');
+      this.p2Button.html('Connect Player 2');
     }
   }
 

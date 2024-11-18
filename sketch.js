@@ -140,11 +140,9 @@ function keyReleased() {
 
 function keyPressed() {
     console.log(key);
-    //if (key == 'A') {
-  if (key == leftUpKey) {
+    if (key == leftUpKey) {
         left.move(-10);
-    //} else if (key == 'Z') {
-      } else if (key == leftDownKey) {
+    } else if (key == leftDownKey) {
         left.move(10);
     }
 
@@ -153,22 +151,29 @@ function keyPressed() {
     } else if (key == rightDownKey) {
         right.move(10);
     }
-    //toggle debug with spacebar
+
+    // Toggle debug with 'd' key
     if (key == 'd') {
         drawBleDebug = !drawBleDebug;
         bleController.debug = drawBleDebug;
         puck.setDebug(drawBleDebug);
     }
-    if (keyCode === ENTER) {
-        if (gameController.currentState === gameController.STATE.WAITING ||
-            gameController.currentState === gameController.STATE.PAUSED) {
+
+    // Handle game states with SPACE and ENTER
+    if (key === ' ') {
+        // Space handles pause/resume during gameplay
+        if (gameController.currentState === gameController.STATE.PLAYING) {
+            gameController.pauseGame();
+        } else if (gameController.currentState === gameController.STATE.PAUSED || 
+                   gameController.currentState === gameController.STATE.WAITING) {
             gameController.resumeGame();
         }
-    } else if (key === ' ') {
-        if (gameController.currentState === gameController.STATE.WON) {
+    } else if (keyCode === ENTER) {
+        // Enter handles reset after win or during pause
+        if (gameController.currentState === gameController.STATE.WON ||
+            gameController.currentState === gameController.STATE.PAUSED) {
             gameController.resetGame();
             puck.reset();
         }
     }
-
 }
