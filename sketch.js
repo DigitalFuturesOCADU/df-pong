@@ -57,7 +57,7 @@ function setup() {
    player2Movement = bleController.getPlayer2Movement();
 
 //setup the game controller
-   gameController = new GameController(pointsToWin);
+   gameController = new GameController(bleController.getPointsToWin());
    //intialize the game 
    gameController.startGame();
    
@@ -74,6 +74,9 @@ function draw() {
     player2Name = bleController.player2Name;
     player1Movement = bleController.getPlayer1Movement();
     player2Movement = bleController.getPlayer2Movement();
+
+    // Update points to win if changed
+    gameController.winningScore = bleController.getPointsToWin();
 
     if (gameController.isPlaying) {
         // Game logic only runs when playing
