@@ -190,31 +190,36 @@ class BLEController {
 
   connectToBle(player) {
     const ble = player === 1 ? this.myBLE1 : this.myBLE2;
+
     ble.connect(this.serviceUuid, (error, characteristics) => {
-      if (error) {
-        console.log('Error:', error);
-        return;
-      }
-      
-      const characteristic = characteristics[0];
-      
-      if (player === 1) {
-        this.player1Connected = true;
-        this.player1Name = ble.device.name || "Player 1";
-        this.p1Button.addClass('connected');
-        this.p1Button.html('Disconnect Player 1');
-        ble.startNotifications(characteristic, (data) => {
-          this.handleMovementData(1, data);
-        });
-      } else {
-        this.player2Connected = true;
-        this.player2Name = ble.device.name || "Player 2";
-        this.p2Button.addClass('connected');
-        this.p2Button.html('Disconnect Player 2');
-        ble.startNotifications(characteristic, (data) => {
-          this.handleMovementData(2, data);
-        });
-      }
+        if (error) {
+            console.log('Error:', error);
+            return;
+        }
+
+        // Find the desired characteristic by UUID
+        const characteristic = characteristics.find(c => c.uuid === this.characteristicUuid);
+
+        if (!characteristic) {
+            console.log('Characteristic not found');
+            return;
+        }
+
+        if (player === 1) {
+            this.player1Connected = true;
+            this.player1Name = ble.device.name || "Player 1 Device";
+            this.p1Button.addClass('connected');
+            this.p1Button.html('Disconnect Player 1');
+            ble.startNotifications(characteristic, this.handleMovementData.bind(this, 1));
+        } else {
+            this.player2Connected = true;
+            this.player2Name = ble.device.name || "Player 2 Device";
+            this.p2Button.addClass('connected');
+            this.p2Button.html('Disconnect Player 2');
+            ble.startNotifications(characteristic, this.handleMovementData.bind(this, 2));
+        }
+
+        ble.onDisconnected(() => this.handleDisconnect(player));
     });
   }
 
