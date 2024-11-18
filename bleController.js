@@ -14,7 +14,6 @@ class BLEController {
     this.myBLE1 = new p5ble();
     this.myBLE2 = new p5ble();
 
-    // Initialize values from localStorage
     this.player1MoveMultiplier = parseInt(localStorage.getItem('player1Multiplier')) || 10;
     this.player2MoveMultiplier = parseInt(localStorage.getItem('player2Multiplier')) || 10;
     this.pointsToWin = parseInt(localStorage.getItem('pointsToWin')) || 10;
@@ -48,17 +47,14 @@ class BLEController {
 
   createSliders() {
     requestAnimationFrame(() => {
-      // Create player speed sliders
       this.p1Slider = createSlider(1, 100, this.player1MoveMultiplier);
       this.p2Slider = createSlider(1, 100, this.player2MoveMultiplier);
       this.pointsSlider = createSlider(1, 21, this.pointsToWin);
       
-      // Create labels
       this.p1Label = createElement('div', 'P1 Speed: ' + this.player1MoveMultiplier);
       this.p2Label = createElement('div', 'P2 Speed: ' + this.player2MoveMultiplier);
       this.pointsLabel = createElement('div', 'Points to Win: ' + this.pointsToWin);
       
-      // Style elements
       this.p1Slider.class('debug-slider');
       this.p2Slider.class('debug-slider');
       this.pointsSlider.class('debug-slider');
@@ -66,7 +62,6 @@ class BLEController {
       this.p2Label.class('slider-label');
       this.pointsLabel.class('slider-label');
       
-      // Add event listeners
       this.p1Slider.input(() => {
         this.player1MoveMultiplier = this.p1Slider.value();
         localStorage.setItem('player1Multiplier', this.player1MoveMultiplier);
@@ -93,7 +88,6 @@ class BLEController {
   updateButtonPositions() {
     const canvasRect = document.querySelector('canvas').getBoundingClientRect();
     const buttonPadding = 20;
-    
     const bottomY = canvasRect.bottom + buttonPadding;
     
     this.p1Button.position(
@@ -113,10 +107,8 @@ class BLEController {
     const canvasRect = document.querySelector('canvas').getBoundingClientRect();
     const buttonPadding = 20;
     const sliderPadding = 60;
-    
     const bottomY = canvasRect.bottom + buttonPadding + sliderPadding;
     
-    // Position player 1 controls
     this.p1Slider.position(
       canvasRect.left + (canvasRect.width * 0.25) - (this.p1Slider.width / 2),
       bottomY
@@ -126,7 +118,6 @@ class BLEController {
       bottomY - 20
     );
     
-    // Position points to win controls
     this.pointsSlider.position(
       canvasRect.left + (canvasRect.width * 0.5) - (this.pointsSlider.width / 2),
       bottomY
@@ -136,7 +127,6 @@ class BLEController {
       bottomY - 20
     );
     
-    // Position player 2 controls
     this.p2Slider.position(
       canvasRect.left + (canvasRect.width * 0.75) - (this.p2Slider.width / 2),
       bottomY
@@ -145,6 +135,18 @@ class BLEController {
       canvasRect.left + (canvasRect.width * 0.75) - (this.p2Slider.width / 2),
       bottomY - 20
     );
+  }
+
+  updateSliderVisibility() {
+    if (!this.p1Slider || !this.p2Slider || !this.pointsSlider) return;
+    
+    const display = this._debug ? 'block' : 'none';
+    this.p1Slider.style('display', display);
+    this.p2Slider.style('display', display);
+    this.pointsSlider.style('display', display);
+    this.p1Label.style('display', display);
+    this.p2Label.style('display', display);
+    this.pointsLabel.style('display', display);
   }
 
   setupButtonStyles() {
@@ -156,67 +158,41 @@ class BLEController {
         border-radius: 5px;
         cursor: pointer;
         position: fixed;
+        transition: all 0.3s ease;
       }
       .p1-button, .p2-button {
-        background-color: #ff0000;
+        background-color: #4CAF50;
         color: white;
       }
       .connected {
-        background-color: #00ff00 !important;
+        background-color: #f44336 !important;
       }
       .debug-slider {
         position: fixed;
-        width: 150px;
       }
       .slider-label {
         position: fixed;
-        font-family: Arial, sans-serif;
-        font-size: 14px;
-        color: #333;
+        color: white;
       }
     `;
     document.head.appendChild(style);
   }
 
-  updateSliderVisibility() {
-    if (!this.p1Slider || !this.p2Slider || !this.pointsSlider) return;
-    
-    const display = this.debug ? 'block' : 'none';
-    this.p1Slider.style('display', display);
-    this.p2Slider.style('display', display);
-    this.pointsSlider.style('display', display);
-    this.p1Label.style('display', display);
-    this.p2Label.style('display', display);
-    this.pointsLabel.style('display', display);
-  }
-
   handleButtonClick(player) {
     const isConnected = player === 1 ? this.player1Connected : this.player2Connected;
-    const button = player === 1 ? this.p1Button : this.p2Button;
     
     if (!isConnected) {
-      button.html('Connecting...');
       this.connectToBle(player);
     } else {
-      button.html(`Connect Player ${player}`);
       this.disconnectBle(player);
     }
   }
 
-  disconnectBle(player) {
-    const ble = player === 1 ? this.myBLE1 : this.myBLE2;
-    ble.disconnect();
-    this.handleDisconnect(player);
-  }
-
   connectToBle(player) {
     const ble = player === 1 ? this.myBLE1 : this.myBLE2;
-    const button = player === 1 ? this.p1Button : this.p2Button;
-
     ble.connect(this.serviceUuid, (error, characteristics) => {
       if (error) {
-        console.log('Error: ', error);
-        button.html(`Connect Player ${player}`);
+        console.log('Error:', error);
         return;
       }
       
@@ -242,11 +218,16 @@ class BLEController {
     });
   }
 
+  disconnectBle(player) {
+    const ble = player === 1 ? this.myBLE1 : this.myBLE2;
+    ble.disconnect();
+    this.handleDisconnect(player);
+  }
+
   handleMovementData(player, data) {
     if (this.debug) console.log(`Player ${player} data:`, data);
     
     let rawValue = Number(data);
-    
     let value;
     if (rawValue === 1) {
       value = 1;  // UP
@@ -282,17 +263,14 @@ class BLEController {
   drawDebug() {
     if (!this.debug) return;
     
-    // Connection status and device names
     text(`Player 1: ${this.player1Connected ? 'Connected' : 'Disconnected'}`, width/4, 30);
     text(`Player 2: ${this.player2Connected ? 'Connected' : 'Disconnected'}`, 3*width/4, 30);
     text(`Device: ${this.player1Name}`, width/4, 60);
     text(`Device: ${this.player2Name}`, 3*width/4, 60);
     
-    // Movement debug info
     this.drawPlayerDebug(this.player1Movement, width/4, 90);
     this.drawPlayerDebug(this.player2Movement, 3*width/4, 90);
     
-    // Points to win
     text(`Points to Win: ${this.pointsToWin}`, width/2, 30);
   }
 
