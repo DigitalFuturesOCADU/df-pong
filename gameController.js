@@ -59,7 +59,8 @@ class GameController {
                 textSize(bigText);
                 text("DF PONG", width/2, height/2 - (bigText/2));
                 textSize(32);
-                text("Press SPACE to Start Game", width/2, height/2 + 50);
+                text("VS", width/2, height/2);
+                text("Press SPACE to Start Game", width/2, height/2 + 200);
                 break;
 
             case this.STATE.PAUSED:
@@ -70,7 +71,8 @@ class GameController {
                 break;
 
             case this.STATE.WON:
-                textSize(64);
+                background(0);    
+            textSize(64);
                 text(this.winner + " WINS!", width/2, height/2);
                 textSize(32);
                 text("Press ENTER to Play Again", width/2, height/2 + 50);

@@ -63,13 +63,7 @@ function setup() {
 
 function draw() {
   background(0);
-  // Draw the dotted vertical line
-  stroke(255, 255, 255, 127);
-  strokeWeight(2);
-  for (let y = 0; y < height; y += 20) {
-    line(width / 2, y, width / 2, y + 10);
-  }
-  noStroke();
+  
   // Always update BLE data
   player1Name = bleController.player1Name;
   player2Name = bleController.player2Name;
@@ -86,7 +80,15 @@ function draw() {
     if (bleController.isPlayer2Connected()) {
       right.move(player2Movement);
     }
-    
+    // Draw the dotted vertical line
+  stroke(255, 255, 255, 127);
+  strokeWeight(2);
+  for (let y = 0; y < height; y += 20) {
+    line(width / 2, y, width / 2, y + 10);
+  }
+  noStroke();
+
+
     puck.checkPaddleRight(right);
     puck.checkPaddleLeft(left);
 
