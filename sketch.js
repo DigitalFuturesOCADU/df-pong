@@ -136,41 +136,46 @@ function keyReleased() {
 }
 
 function keyPressed() {
-  console.log(key);
-  if (key == leftUpKey) {
-    left.move(-10);
-  } else if (key == leftDownKey) {
-    left.move(10);
-  }
-
-  if (key == rightUpKey) {
-    right.move(-10);
-  } else if (key == rightDownKey) {
-    right.move(10);
-  }
-
-  // Toggle debug with 'd' key
-  if (key == 'd') {
-    drawBleDebug = !drawBleDebug;
-    bleController.debug = drawBleDebug;
-    puck.setDebug(drawBleDebug);
-  }
-
-  // Handle game states with SPACE and ENTER
-  if (key === ' ') {
-    // Space handles pause/resume during gameplay
-    if (gameController.currentState === gameController.STATE.PLAYING) {
-      gameController.pauseGame();
-    } else if (gameController.currentState === gameController.STATE.PAUSED || 
-               gameController.currentState === gameController.STATE.WAITING) {
-      gameController.resumeGame();
+    console.log(key);
+    if (key == leftUpKey) {
+        left.move(-10);
+    } else if (key == leftDownKey) {
+        left.move(10);
     }
-  } else if (keyCode === ENTER) {
-    // Enter handles reset after win or during pause
-    if (gameController.currentState === gameController.STATE.WON ||
-        gameController.currentState === gameController.STATE.PAUSED) {
-      gameController.resetGame();
-      puck.reset();
+
+    if (key == rightUpKey) {
+        right.move(-10);
+    } else if (key == rightDownKey) {
+        right.move(10);
     }
-  }
+
+    // Toggle debug with 'd' key
+    if (key == 'd') {
+        drawBleDebug = !drawBleDebug;
+        bleController.debug = drawBleDebug;
+    }
+
+    // Toggle debug GUI with 'c' key
+    if (key == 'c') {
+        gameController.debugGUIVisible = !gameController.debugGUIVisible;
+        gameController.setDebugGUIVisible(gameController.debugGUIVisible);
+    }
+
+    // Handle game states with SPACE and ENTER
+    if (key === ' ') {
+        // Space handles pause/resume during gameplay
+        if (gameController.currentState === gameController.STATE.PLAYING) {
+            gameController.pauseGame();
+        } else if (gameController.currentState === gameController.STATE.PAUSED || 
+                   gameController.currentState === gameController.STATE.WAITING) {
+            gameController.resumeGame();
+        }
+    } else if (keyCode === ENTER) {
+        // Enter handles reset after win or during pause
+        if (gameController.currentState === gameController.STATE.WON ||
+            gameController.currentState === gameController.STATE.PAUSED) {
+            gameController.resetGame();
+            puck.reset();
+        }
+    }
 }

@@ -10,6 +10,10 @@ class GameController {
         this.currentState = this.STATE.WAITING;
         this.winningScore = winningScore;
         this.winner = null;
+
+        // Debug GUI elements
+        this.debugGUIVisible = false;
+        this.createDebugGUI();
     }
 
     startGame() {
@@ -72,7 +76,7 @@ class GameController {
 
             case this.STATE.WON:
                 background(0);    
-            textSize(64);
+                textSize(64);
                 text(this.winner + " WINS!", width/2, height/2);
                 textSize(32);
                 text("Press ENTER to Play Again", width/2, height/2 + 50);
@@ -83,5 +87,88 @@ class GameController {
 
     get isPlaying() {
         return this.currentState === this.STATE.PLAYING;
+    }
+
+    createDebugGUI() {
+        // Create sliders and labels
+        this.p1Slider = createSlider(1, 100, parseInt(localStorage.getItem('player1MoveMultiplier')) || 10);
+        this.p2Slider = createSlider(1, 100, parseInt(localStorage.getItem('player2MoveMultiplier')) || 10);
+        this.pointsSlider = createSlider(1, 21, parseInt(localStorage.getItem('pointsToWin')) || 10);
+        this.speedIncrementSlider = createSlider(0.01, 1, parseFloat(localStorage.getItem('speedIncrement')) || 0.15, 0.01);
+
+        this.p1Label = createElement('div', 'P1 Speed: ' + this.p1Slider.value());
+        this.p2Label = createElement('div', 'P2 Speed: ' + this.p2Slider.value());
+        this.pointsLabel = createElement('div', 'Points to Win: ' + this.pointsSlider.value());
+        this.speedIncrementLabel = createElement('div', 'Puck Speed Increment: ' + this.speedIncrementSlider.value());
+
+        // Style elements
+        this.p1Slider.class('debug-slider');
+        this.p2Slider.class('debug-slider');
+        this.pointsSlider.class('debug-slider');
+        this.speedIncrementSlider.class('debug-slider');
+        this.p1Label.class('slider-label');
+        this.p2Label.class('slider-label');
+        this.pointsLabel.class('slider-label');
+        this.speedIncrementLabel.class('slider-label');
+
+        // Add event listeners
+        this.p1Slider.input(() => {
+            localStorage.setItem('player1MoveMultiplier', this.p1Slider.value());
+            this.p1Label.html('P1 Speed: ' + this.p1Slider.value());
+            bleController.player1MoveMultiplier = this.p1Slider.value();
+        });
+
+        this.p2Slider.input(() => {
+            localStorage.setItem('player2MoveMultiplier', this.p2Slider.value());
+            this.p2Label.html('P2 Speed: ' + this.p2Slider.value());
+            bleController.player2MoveMultiplier = this.p2Slider.value();
+        });
+
+        this.pointsSlider.input(() => {
+            localStorage.setItem('pointsToWin', this.pointsSlider.value());
+            this.pointsLabel.html('Points to Win: ' + this.pointsSlider.value());
+            this.winningScore = this.pointsSlider.value();
+        });
+
+        this.speedIncrementSlider.input(() => {
+            localStorage.setItem('speedIncrement', this.speedIncrementSlider.value());
+            this.speedIncrementLabel.html('Puck Speed Increment: ' + this.speedIncrementSlider.value());
+            puck.speedIncrement = this.speedIncrementSlider.value();
+        });
+
+        // Initially hide controls
+        this.setDebugGUIVisible(false);
+        this.updateDebugGUIPositions();
+    }
+
+    setDebugGUIVisible(visible) {
+        const display = visible ? 'block' : 'none';
+        this.p1Slider.style('display', display);
+        this.p2Slider.style('display', display);
+        this.pointsSlider.style('display', display);
+        this.speedIncrementSlider.style('display', display);
+        this.p1Label.style('display', display);
+        this.p2Label.style('display', display);
+        this.pointsLabel.style('display', display);
+        this.speedIncrementLabel.style('display', display);
+    }
+
+    updateDebugGUIPositions() {
+        const canvasRect = document.querySelector('canvas').getBoundingClientRect();
+        const padding = 20;
+        const sliderSpacing = 40;
+        const topY = canvasRect.top - padding - sliderSpacing * 4;
+
+        this.p1Slider.position(canvasRect.left + padding, topY);
+        this.p1Label.position(canvasRect.left + padding, topY - 20);
+
+        this.p2Slider.position(canvasRect.left + padding, topY + sliderSpacing);
+        this.p2Label.position(canvasRect.left + padding, topY + sliderSpacing - 20);
+
+        this.pointsSlider.position(canvasRect.left + padding, topY + sliderSpacing * 2);
+        this.pointsLabel.position(canvasRect.left + padding, topY + sliderSpacing * 2 - 20);
+
+        this.speedIncrementSlider.position(canvasRect.left + padding, topY + sliderSpacing * 3);
+        this.speedIncrementLabel.position(canvasRect.left + padding, topY + sliderSpacing * 3 - 20);
     }
 }

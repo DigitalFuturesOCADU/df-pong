@@ -65,18 +65,18 @@ class BLEController {
     let buttonStyle = document.createElement('style');
     buttonStyle.textContent = `
       button {
-        padding: 10px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        position: fixed;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      position: fixed;
       }
       .p1-button, .p2-button {
-        background-color: #4CAF50;
-        color: white;
+      background-color: #cd16cf;
+      color: white;
       }
       .connected {
-        background-color: #f44336 !important;
+      background-color: black !important;
       }
     `;
     document.head.appendChild(buttonStyle);
