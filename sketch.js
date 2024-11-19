@@ -32,13 +32,13 @@ let drawBleDebug = false;
 let bleController;
 
 function preload() {
-  // song = loadSound("pa5a.wav");
-  // song2 = loadSound("pongblipa4.wav");
+   song = loadSound("paddle.wav");
+  song2 = loadSound("wall.wav");
 }
 
 function setup() {
   createCanvas(1200, 800);
-  ding = loadSound("ding.mp3");
+  //ding = loadSound("ding.mp3");
   puck = new Puck();
   left = new Paddle(true);
   right = new Paddle(false);

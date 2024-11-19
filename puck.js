@@ -111,15 +111,15 @@ class Puck {
         }
         
         if (this.x - this.r > width) {
-            ding.play();
-          //song.play();
+           // ding.play();
+          song.play();
             leftscore++;
             this.reset();
         }
         
         if (this.x + this.r < 0) {
-            ding.play();
-          //song2.play();
+            //ding.play();
+          song2.play();
             rightscore++;
             this.reset();
         }
