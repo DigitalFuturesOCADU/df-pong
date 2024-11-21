@@ -157,18 +157,19 @@ class GameController {
         const canvasRect = document.querySelector('canvas').getBoundingClientRect();
         const padding = 20;
         const sliderSpacing = 40;
-        const topY = canvasRect.top - padding - sliderSpacing * 4;
+        const leftX = canvasRect.left - 19c0; // Move 220 pixels to the left of canvas
+        const topY = canvasRect.top + padding; // Start from top of canvas
 
-        this.p1Slider.position(canvasRect.left + padding, topY);
-        this.p1Label.position(canvasRect.left + padding, topY - 20);
+        this.p1Slider.position(leftX, topY);
+        this.p1Label.position(leftX, topY - 20);
 
-        this.p2Slider.position(canvasRect.left + padding, topY + sliderSpacing);
-        this.p2Label.position(canvasRect.left + padding, topY + sliderSpacing - 20);
+        this.p2Slider.position(leftX, topY + sliderSpacing);
+        this.p2Label.position(leftX, topY + sliderSpacing - 20);
 
-        this.pointsSlider.position(canvasRect.left + padding, topY + sliderSpacing * 2);
-        this.pointsLabel.position(canvasRect.left + padding, topY + sliderSpacing * 2 - 20);
+        this.pointsSlider.position(leftX, topY + sliderSpacing * 2);
+        this.pointsLabel.position(leftX, topY + sliderSpacing * 2 - 20);
 
-        this.speedIncrementSlider.position(canvasRect.left + padding, topY + sliderSpacing * 3);
-        this.speedIncrementLabel.position(canvasRect.left + padding, topY + sliderSpacing * 3 - 20);
+        this.speedIncrementSlider.position(leftX, topY + sliderSpacing * 3);
+        this.speedIncrementLabel.position(leftX, topY + sliderSpacing * 3 - 20);
     }
 }
