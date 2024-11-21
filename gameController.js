@@ -91,7 +91,7 @@ class GameController {
 
     createDebugGUI() {
         // Create sliders and labels
-        this.p1Slider = createSlider(1, 100, parseInt(localStorage.getItem('player1MoveMultiplier')) || 10);
+        this.p1Slider = createSlider(1, 100, parseInt(localStorage.getItem('player1MoveMultiplier'), 10) || 10);
         this.p2Slider = createSlider(1, 100, parseInt(localStorage.getItem('player2MoveMultiplier')) || 10);
         this.pointsSlider = createSlider(1, 21, parseInt(localStorage.getItem('pointsToWin')) || 10);
         this.speedIncrementSlider = createSlider(0.01, 1, parseFloat(localStorage.getItem('speedIncrement')) || 0.15, 0.01);
@@ -157,7 +157,7 @@ class GameController {
         const canvasRect = document.querySelector('canvas').getBoundingClientRect();
         const padding = 20;
         const sliderSpacing = 40;
-        const leftX = canvasRect.left - 19c0; // Move 220 pixels to the left of canvas
+        const leftX = canvasRect.left - 190; // Move 220 pixels to the left of canvas
         const topY = canvasRect.top + padding; // Start from top of canvas
 
         this.p1Slider.position(leftX, topY);
