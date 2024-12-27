@@ -1,6 +1,9 @@
+![Game Start](./images/gameStart.png)
+
 # df-pong
 
 [Play the Game](https://digitalfuturesocadu.github.io/df-pong/)
+
 
 ## General Overview
 
@@ -69,4 +72,3 @@ The game will display the connection status and handle any errors that occur dur
 1. Clone the repository:
    ```bash
    git clone https://github.com/yourusername/df-pong.git
-
