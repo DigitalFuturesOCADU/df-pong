@@ -12,7 +12,7 @@ df-pong provides a framework for creating unusual BLE controllers for pong.
 ## Controllers
 
 This game is designed to be played with custom Bluetooth controllers. You can find the corresponding controllers and their setup instructions at the following link:
-[https://github.com/DigitalFuturesOCADU/Pong-Controller](https://github.com/DigitalFuturesOCADU/Pong-Controller)
+[https://github.com/DigitalFuturesOCADU/Pong-Controller](https://github.com/DigitalFuturesOCADU/Pong-Controller/game)
 
 ## How to Play
 
