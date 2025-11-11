@@ -14,6 +14,11 @@ df-pong provides a framework for creating unusual BLE controllers for pong.
 This game is designed to be played with custom Bluetooth controllers. You can find the corresponding controllers and their setup instructions at the following link:
 [https://github.com/DigitalFuturesOCADU/Pong-Controller](https://github.com/DigitalFuturesOCADU/Pong-Controller/game)
 
+**Important:** When setting up controllers, make sure to:
+- Name each controller with the `DFPONG-` prefix (e.g., `DFPONG-001`, `DFPONG-002`)
+- Use unique numbers for each controller in a classroom setting
+- This naming convention helps the game filter and find the correct devices in crowded BLE environments
+
 ## How to Play
 
 1. **Connect Controllers**: 

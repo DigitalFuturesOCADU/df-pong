@@ -37,7 +37,9 @@
 
 
 //Name your controller!
-const char* deviceName = "YOUR CONTROLLER NAME";
+// Strategy 1: Use DFPONG- prefix for easy filtering and identification
+// Change the number to make each controller unique (e.g., DFPONG-001, DFPONG-002, etc.)
+const char* deviceName = "DFPONG-001";
 
 // Pin definitions buzzer/LED
 const int BUZZER_PIN = 11;       // Pin for haptic feedback buzzer

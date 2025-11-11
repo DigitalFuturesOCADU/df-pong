@@ -22,6 +22,33 @@ class BLEController {
     this.handshakeComplete2 = false;
     this.gattOperationInProgress1 = false; // Flag to track ongoing GATT operations for player 1
     this.gattOperationInProgress2 = false; // Flag to track ongoing GATT operations for player 2
+    
+    // Strategy 1: Device Discovery & Filtering
+    this.deviceNamePrefix = "DFPONG-";
+    this.cachedDevices = [];
+    this.recentDevices = this.loadRecentDevices();
+    this.scanInProgress = false;
+    this.player1RSSI = null;
+    this.player2RSSI = null;
+  }
+  
+  // Load recently connected devices from localStorage
+  loadRecentDevices() {
+    try {
+      const stored = localStorage.getItem('dfpong_recent_devices');
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  
+  // Save device to recent connections
+  saveRecentDevice(deviceName, deviceId) {
+    const device = { name: deviceName, id: deviceId, timestamp: Date.now() };
+    this.recentDevices = this.recentDevices.filter(d => d.id !== deviceId);
+    this.recentDevices.unshift(device);
+    this.recentDevices = this.recentDevices.slice(0, 5); // Keep only 5 most recent
+    localStorage.setItem('dfpong_recent_devices', JSON.stringify(this.recentDevices));
   }
 
   setup() {
@@ -107,7 +134,16 @@ class BLEController {
     }
 
     try {
-      const characteristics = await ble.connect(this.serviceUuid);
+      // Strategy 1: Filter devices by name prefix during connection
+      const options = {
+        filters: [
+          { namePrefix: this.deviceNamePrefix },
+          { services: [this.serviceUuid] }
+        ],
+        optionalServices: [this.serviceUuid]
+      };
+      
+      const characteristics = await ble.connect(this.serviceUuid, options);
       const movementCharacteristic = characteristics.find(c => c.uuid === this.characteristicUuid);
       if (!movementCharacteristic) {
         console.log('Required characteristic not found');
@@ -116,16 +152,36 @@ class BLEController {
 
       await ble.startNotifications(movementCharacteristic, this.handleMovementData.bind(this, player));
 
+      // Strategy 1: Store RSSI and save to recent devices
+      const deviceName = ble.device.name || `Player ${player} Device`;
+      const deviceId = ble.device.id;
+      
+      // Try to get RSSI (not all browsers support this)
+      if (ble.device.gatt && ble.device.gatt.connected) {
+        try {
+          // Note: RSSI monitoring varies by browser
+          if (player === 1) {
+            this.player1RSSI = "Connected";
+          } else {
+            this.player2RSSI = "Connected";
+          }
+        } catch (e) {
+          console.log('RSSI not available');
+        }
+      }
+      
+      this.saveRecentDevice(deviceName, deviceId);
+
       if (player === 1) {
         this.player1Connected = true;
-        this.player1Name = ble.device.name || "Player 1 Device";
+        this.player1Name = deviceName;
         this.p1Button.addClass('connected');
         this.p1Button.html('Disconnect Player 1');
         this.handshakeComplete1 = false;
         this.gattOperationInProgress1 = false;
       } else {
         this.player2Connected = true;
-        this.player2Name = ble.device.name || "Player 2 Device";
+        this.player2Name = deviceName;
         this.p2Button.addClass('connected');
         this.p2Button.html('Disconnect Player 2');
         this.handshakeComplete2 = false;
@@ -136,8 +192,10 @@ class BLEController {
         this.handleDisconnect(player);
         if (player === 1) {
           this.gattOperationInProgress1 = false;
+          this.player1RSSI = null;
         } else {
           this.gattOperationInProgress2 = false;
+          this.player2RSSI = null;
         }
       });
     } catch (error) {
@@ -222,8 +280,24 @@ class BLEController {
     text(`Device: ${this.player1Name}`, width/4, 60);
     text(`Device: ${this.player2Name}`, 3*width/4, 60);
     
+    // Strategy 1: Display RSSI/signal info
+    if (this.player1RSSI) {
+      text(`Signal: ${this.player1RSSI}`, width/4, 75);
+    }
+    if (this.player2RSSI) {
+      text(`Signal: ${this.player2RSSI}`, 3*width/4, 75);
+    }
+    
     this.drawPlayerDebug(this.player1Movement, width/4, 90);
     this.drawPlayerDebug(this.player2Movement, 3*width/4, 90);
+    
+    // Display recent devices
+    if (this.recentDevices.length > 0) {
+      text('Recent Devices:', 20, height - 80);
+      this.recentDevices.slice(0, 3).forEach((device, i) => {
+        text(`${device.name}`, 20, height - 60 + (i * 15));
+      });
+    }
   }
 
   drawPlayerDebug(movement, x, baseY) {

@@ -29,6 +29,10 @@ bool handshakeComplete = false;
 int lastSentValue = 0;
 bool valueChanged = false;
 
+// Strategy 1: Manufacturer data for device identification
+// This helps the web app identify DFPONG devices more reliably
+const uint8_t manufacturerData[] = {0xDF, 0x01}; // DF = DFPong, 01 = version
+
 void onBLEConnected(BLEDevice central) {
   Serial.print("Connected to central: ");
   Serial.println(central.address());
@@ -88,9 +92,15 @@ void setupBLE(const char* deviceName, int ledPin) {
   
   BLE.setLocalName(deviceName);
   BLE.setAdvertisedServiceUuid(pongService.uuid());
-  BLE.setConnectionInterval(8, 16);
+  
+  // Strategy 1: Optimized connection parameters for crowded environments
+  // Longer intervals reduce radio congestion
+  BLE.setConnectionInterval(12, 24);  // 15-30ms (was 8-16, now more conservative)
   BLE.setPairable(false);
-  BLE.setAdvertisingInterval(80);
+  BLE.setAdvertisingInterval(160);    // 100ms (was 80ms, reduces collisions)
+  
+  // Strategy 1: Add manufacturer data for better device identification
+  BLE.setManufacturerData(manufacturerData, sizeof(manufacturerData));
   
   pongService.addCharacteristic(movementCharacteristic);
   BLE.addService(pongService);

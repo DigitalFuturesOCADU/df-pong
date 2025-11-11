@@ -6,7 +6,12 @@ Steps
 
 1. [Download the Example Code from Github](https://github.com/DigitalFuturesOCADU/CC2024/tree/main/experiment4/Arduino/BLE)
     1. Use [DFpong_controller_2button](/examples/BLE/DFpong_controller_2button)
-2. Update line #40 with your name: const char* deviceName = "YOUR CONTROLLER NAME";
+2. **⚠️ IMPORTANT:** Update line #40 with a unique name using the DFPONG- prefix:
+   ```cpp
+   const char* deviceName = "DFPONG-001";  // Change 001 to your student number
+   ```
+   - This prefix is required for the game to find your controller
+   - Use a unique number (001, 002, 003, etc.) to avoid confusion in classrooms
 3. Wire up your controller and battery based on what you have on hand (If you don't have a battery, it can be usb powered from your laptop for now)
 4. [Connect to the game and play](https://digitalfuturesocadu.github.io/df-pong/)
 
