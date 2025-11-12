@@ -8,11 +8,15 @@
 
 #include <ArduinoBLE.h>
 
-const char* SERVICE_UUID = "19b10010-e8f2-537e-4f6c-d104768a1214";
-const char* CHARACTERISTIC_UUID = "19b10011-e8f2-537e-4f6c-d104768a1214";
+// UUIDs are generated dynamically based on device number
+// This ensures each device has a unique service UUID for easy filtering
+String serviceUuidStr;
+String characteristicUuidStr;
+const char* SERVICE_UUID;
+const char* CHARACTERISTIC_UUID;
 
-BLEService pongService(SERVICE_UUID);
-BLEByteCharacteristic movementCharacteristic(CHARACTERISTIC_UUID, BLERead | BLENotify | BLEWrite);
+BLEService* pongService = nullptr;
+BLEByteCharacteristic* movementCharacteristic = nullptr;
 
 int statusLedPin;
 unsigned long lastConnectionAttempt = 0;
@@ -52,16 +56,56 @@ void onBLEDisconnected(BLEDevice central) {
 
 void onCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
   if (characteristic.uuid() == CHARACTERISTIC_UUID) {
-    byte value = movementCharacteristic.value();
+    byte value = movementCharacteristic->value();
     if (value == 3) {
       handshakeComplete = true;
     }
   }
 }
 
-void setupBLE(const char* deviceName, int ledPin) {
+// Generate unique UUIDs based on device number (1-25)
+void generateUUIDs(int deviceNumber) {
+  // Base UUIDs (must match JavaScript exactly, ending with "12")
+  const String serviceBase = "19b10010-e8f2-537e-4f6c-d104768a12";
+  const String characteristicBase = "19b10011-e8f2-537e-4f6c-d104768a12";
+  
+  // Calculate unique suffix (base 14 + deviceNumber - 1)
+  // Device 1 → 14 (0x0E), Device 2 → 15 (0x0F), etc.
+  int suffix = 13 + deviceNumber;
+  
+  // Convert to hex string (2 digits, lowercase)
+  String hexSuffix = String(suffix, HEX);
+  if (hexSuffix.length() == 1) {
+    hexSuffix = "0" + hexSuffix;
+  }
+  hexSuffix.toLowerCase();
+  
+  // Generate full UUIDs (must keep strings in memory)
+  serviceUuidStr = serviceBase + hexSuffix;
+  characteristicUuidStr = characteristicBase + hexSuffix;
+  
+  // Store c_str pointers - strings must remain in scope
+  SERVICE_UUID = serviceUuidStr.c_str();
+  CHARACTERISTIC_UUID = characteristicUuidStr.c_str();
+  
+  Serial.print("Device #");
+  Serial.println(deviceNumber);
+  Serial.print("Service UUID: ");
+  Serial.println(SERVICE_UUID);
+  Serial.print("Characteristic UUID: ");
+  Serial.println(CHARACTERISTIC_UUID);
+}
+
+void setupBLE(const char* deviceName, int deviceNumber, int ledPin) {
   statusLedPin = ledPin;
   pinMode(statusLedPin, OUTPUT);
+  
+  // Generate unique UUIDs based on device number
+  generateUUIDs(deviceNumber);
+  
+  // Create BLE service and characteristic with generated UUIDs
+  pongService = new BLEService(SERVICE_UUID);
+  movementCharacteristic = new BLEByteCharacteristic(CHARACTERISTIC_UUID, BLERead | BLENotify | BLEWrite);
   
   // Initialize BLE with retry
   for (int i = 0; i < 3; i++) {
@@ -85,13 +129,14 @@ void setupBLE(const char* deviceName, int ledPin) {
   BLE.stopAdvertise();
   delay(100);
 
+  
   // Configure BLE parameters
   BLE.setEventHandler(BLEConnected, onBLEConnected);
   BLE.setEventHandler(BLEDisconnected, onBLEDisconnected);
-  movementCharacteristic.setEventHandler(BLEWritten, onCharacteristicWritten);
+  movementCharacteristic->setEventHandler(BLEWritten, onCharacteristicWritten);
   
   BLE.setLocalName(deviceName);
-  BLE.setAdvertisedServiceUuid(pongService.uuid());
+  BLE.setAdvertisedServiceUuid(pongService->uuid());
   
   // Strategy 1: Optimized connection parameters for crowded environments
   // Longer intervals reduce radio congestion
@@ -102,10 +147,10 @@ void setupBLE(const char* deviceName, int ledPin) {
   // Strategy 1: Add manufacturer data for better device identification
   BLE.setManufacturerData(manufacturerData, sizeof(manufacturerData));
   
-  pongService.addCharacteristic(movementCharacteristic);
-  BLE.addService(pongService);
+  pongService->addCharacteristic(*movementCharacteristic);
+  BLE.addService(*pongService);
   
-  movementCharacteristic.writeValue(0);
+  movementCharacteristic->writeValue(0);
   delay(100);
   
   serviceStarted = true;
@@ -114,10 +159,8 @@ void setupBLE(const char* deviceName, int ledPin) {
 }
 
 bool isConnected() {
-  return serviceStarted && BLE.connected() && movementCharacteristic.subscribed() && handshakeComplete;
-}
-
-void updateLED() {
+  return serviceStarted && BLE.connected() && movementCharacteristic->subscribed() && handshakeComplete;
+}void updateLED() {
   if (!isConnected()) {
     unsigned long currentTime = millis();
     if (currentTime - lastLedToggle >= LED_BLINK_INTERVAL) {
@@ -134,7 +177,7 @@ void updateBLE() {
 }
 
 void sendMovement(int movement) {
-  if (!BLE.connected() || !movementCharacteristic.subscribed()) {
+  if (!BLE.connected() || !movementCharacteristic->subscribed()) {
     return;
   }
 
@@ -152,7 +195,7 @@ void sendMovement(int movement) {
   
   // Only send if value changed and enough time has passed
   if (valueChanged && (currentTime - lastNotificationTime >= MIN_NOTIFICATION_INTERVAL)) {
-    if (movementCharacteristic.writeValue(movement)) {
+    if (movementCharacteristic->writeValue(movement)) {
       lastSentValue = movement;
       lastNotificationTime = currentTime;
       valueChanged = false;

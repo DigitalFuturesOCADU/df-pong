@@ -36,10 +36,15 @@
 //Since code is split over multiple files, we have to include them here
 
 
-//Name your controller!
-// Strategy 1: Use DFPONG- prefix for easy filtering and identification
-// Change the number to make each controller unique (e.g., DFPONG-001, DFPONG-002, etc.)
-const char* deviceName = "DFPONG-001";
+// ============================================
+// IMPORTANT: SET YOUR DEVICE NUMBER HERE (1-25)
+// ============================================
+const int DEVICE_NUMBER = 1;  // ← CHANGE THIS TO YOUR ASSIGNED NUMBER!
+// ============================================
+
+// Device name is generated from device number
+String deviceNameStr = "DFPONG-" + String(DEVICE_NUMBER);
+const char* deviceName = deviceNameStr.c_str();
 
 // Pin definitions buzzer/LED
 const int BUZZER_PIN = 11;       // Pin for haptic feedback buzzer
@@ -61,8 +66,8 @@ void setup()
   // Configure LED for connection status indication
   pinMode(LED_PIN, OUTPUT);
   
-  // Initialize Bluetooth Low Energy with device name and status LED
-  setupBLE(deviceName, LED_PIN);
+  // Initialize Bluetooth Low Energy with device name, number, and status LED
+  setupBLE(deviceName, DEVICE_NUMBER, LED_PIN);
   
   // Initialize buzzer for feedback
   setupBuzzer(BUZZER_PIN);

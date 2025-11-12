@@ -1,17 +1,31 @@
 class Paddle {
     constructor(isLeft) {
-        this.y = height/2;
-        this.w = 20;
-        this.h = 100;
+        this.isLeft = isLeft;
+        this.updateDimensions();
         this.ychange = 0;
-        
-        if (isLeft) {
+        this.setPosition();
+    }
+    
+    updateDimensions() {
+        // Scale paddle size based on canvas height
+        this.w = height * 0.025; // 2.5% of canvas height
+        this.h = height * 0.15;  // 15% of canvas height
+        this.y = height/2;
+    }
+    
+    setPosition() {
+        if (this.isLeft) {
             this.x = this.w;
         } else {
             this.x = width - this.w;
         }
-        
-        
+    }
+    
+    resize() {
+        // Called when canvas resizes
+        this.updateDimensions();
+        this.setPosition();
+        this.y = constrain(this.y, this.h/2, height-this.h/2);
     }
     
     update() {

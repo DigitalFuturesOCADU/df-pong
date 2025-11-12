@@ -31,13 +31,59 @@ let drawBleDebug = false;
 // Initialize BLEController
 let bleController;
 
+// Orientation check
+let isLandscape = true;
+
 function preload() {
    song = loadSound("paddle.wav");
   song2 = loadSound("wall.wav");
 }
 
 function setup() {
-  createCanvas(1200, 800);
+  // Show debug panel FIRST (p5-phone) for mobile debugging
+  const isMobile = windowWidth <= 768;
+  if (isMobile) {
+    //showDebug();
+  }
+  
+  // Create canvas based on device type and orientation
+  
+  if (isMobile) {
+    // Mobile: Use full viewport (visualViewport for better accuracy)
+    const vw = window.visualViewport ? window.visualViewport.width : windowWidth;
+    const vh = window.visualViewport ? window.visualViewport.height : windowHeight;
+    
+    debug('Mobile Setup - vw:', vw, 'vh:', vh);
+    
+    if (vh > vw) {
+      // Portrait: fit canvas to width, maintain 1.5:1 ratio (width:height)
+      isLandscape = true; // Keep game logic as landscape
+      const canvasWidth = vw;
+      const canvasHeight = canvasWidth / 1.5;
+      
+      debug('Canvas size - width:', canvasWidth, 'height:', canvasHeight);
+      createCanvas(canvasWidth, canvasHeight);
+    } else {
+      // Landscape: show orientation warning
+      isLandscape = false;
+      createCanvas(vw, vh);
+    }
+  } else {
+    // Desktop: Use constrained size to leave room for buttons below
+    isLandscape = true;
+    let canvasWidth = min(windowWidth, 1200);
+    let canvasHeight = min(windowHeight - 150, 800);
+    
+    // Maintain aspect ratio
+    if (canvasWidth / canvasHeight > 1.5) {
+      canvasWidth = canvasHeight * 1.5;
+    } else {
+      canvasHeight = canvasWidth / 1.5;
+    }
+    
+    createCanvas(canvasWidth, canvasHeight);
+  }
+  
   //ding = loadSound("ding.mp3");
   puck = new Puck();
   left = new Paddle(true);
@@ -59,10 +105,23 @@ function setup() {
   gameController = new GameController(pointsToWin);
   // Initialize the game 
   gameController.startGame();
+  
+  // Listen for visualViewport changes (mobile browser UI showing/hiding)
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      windowResized();
+    });
+  }
 }
 
 function draw() {
   background(0);
+  
+  // Check if device is in portrait mode
+  if (!isLandscape) {
+    drawOrientationWarning();
+    return;
+  }
   
   // Always update BLE data
   player1Name = bleController.player1Name;
@@ -101,31 +160,34 @@ function draw() {
     puck.edges();
     puck.show();
     
-    // Score display
+    // Score display - scale to canvas size
     textAlign(LEFT, CENTER);
     fill(255);
-    textSize(32);
-    text(leftscore, 32, 40);
+    textSize(height * 0.04); // 4% of canvas height
+    text(leftscore, width * 0.03, height * 0.05);
     textAlign(RIGHT, CENTER);   
-    text(rightscore, width-32, 40);
+    text(rightscore, width - (width * 0.03), height * 0.05);
     
     // Check win condition after score update
     gameController.checkWinCondition(player1Name, player2Name);
   }
 
-  // Always show player names
-  textSize(40);
+  // Always show player names - scale to canvas size
+  textSize(height * 0.05); // 5% of canvas height
   fill(255, 255, 255, 127);
   textAlign(CENTER, CENTER);
   text(player1Name, width/4, height/2);
   text(player2Name, (3 * width)/4, height/2);
+
+  // Draw connection particle effects
+  bleController.updateAndDrawParticles();
 
   // Always draw game state
   gameController.drawGameState();
 
   // Debug info
   if (drawBleDebug) {
-    textSize(16);
+    textSize(height * 0.02); // 2% of canvas height
     bleController.drawDebug();
   }
 }
@@ -153,6 +215,10 @@ function keyPressed() {
     if (key == 'd') {
         drawBleDebug = !drawBleDebug;
         bleController.debug = drawBleDebug;
+        // Also toggle p5-phone debug panel if available
+        if (typeof toggleDebug !== 'undefined') {
+            toggleDebug();
+        }
     }
 
     // Toggle debug GUI with 'c' key
@@ -163,19 +229,125 @@ function keyPressed() {
 
     // Handle game states with SPACE and ENTER
     if (key === ' ') {
-        // Space handles pause/resume during gameplay
-        if (gameController.currentState === gameController.STATE.PLAYING) {
-            gameController.pauseGame();
-        } else if (gameController.currentState === gameController.STATE.PAUSED || 
-                   gameController.currentState === gameController.STATE.WAITING) {
-            gameController.resumeGame();
-        }
+        handleGameToggle();
     } else if (keyCode === ENTER) {
-        // Enter handles reset after win or during pause
-        if (gameController.currentState === gameController.STATE.WON ||
-            gameController.currentState === gameController.STATE.PAUSED) {
-            gameController.resetGame();
-            puck.reset();
-        }
+        handleGameReset();
     }
+}
+
+// Handle touch/click on canvas for mobile support
+function mousePressed() {
+  // Only handle clicks on the canvas, not on buttons
+  const canvasElement = document.querySelector('canvas');
+  if (canvasElement) {
+    const rect = canvasElement.getBoundingClientRect();
+    if (mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
+      // Click on canvas - toggle play/pause
+      handleGameToggle();
+    }
+  }
+}
+
+function touchStarted() {
+  // Prevent default touch behavior
+  const canvasElement = document.querySelector('canvas');
+  if (canvasElement) {
+    const rect = canvasElement.getBoundingClientRect();
+    // Check if touch is within canvas bounds
+    if (touches.length > 0) {
+      const touch = touches[0];
+      if (touch.x >= 0 && touch.x <= width && touch.y >= 0 && touch.y <= height) {
+        handleGameToggle();
+        return false; // Prevent default
+      }
+    }
+  }
+}
+
+function handleGameToggle() {
+  // Space/Click handles pause/resume during gameplay
+  if (gameController.currentState === gameController.STATE.PLAYING) {
+    gameController.pauseGame();
+  } else if (gameController.currentState === gameController.STATE.PAUSED || 
+             gameController.currentState === gameController.STATE.WAITING) {
+    gameController.resumeGame();
+  }
+}
+
+function handleGameReset() {
+  // Enter/Double-click handles reset after win or during pause
+  if (gameController.currentState === gameController.STATE.WON ||
+      gameController.currentState === gameController.STATE.PAUSED) {
+    gameController.resetGame();
+    puck.reset();
+  }
+}
+
+function windowResized() {
+  const isMobile = windowWidth <= 768;
+  
+  if (isMobile) {
+    // Mobile: Use full viewport
+    const vw = window.visualViewport ? window.visualViewport.width : windowWidth;
+    const vh = window.visualViewport ? window.visualViewport.height : windowHeight;
+    
+    if (vh > vw) {
+      // Portrait: fit canvas to width, maintain 1.5:1 ratio (width:height)
+      isLandscape = true; // Keep game logic as landscape
+      const canvasWidth = vw;
+      const canvasHeight = canvasWidth / 1.5;
+      
+      resizeCanvas(canvasWidth, canvasHeight);
+    } else {
+      // Landscape: show orientation warning
+      isLandscape = false;
+      resizeCanvas(vw, vh);
+    }
+  } else {
+    // Desktop: Use constrained size
+    isLandscape = true;
+    let canvasWidth = min(windowWidth, 1200);
+    let canvasHeight = min(windowHeight - 150, 800);
+    
+    if (canvasWidth / canvasHeight > 1.5) {
+      canvasWidth = canvasHeight * 1.5;
+    } else {
+      canvasHeight = canvasWidth / 1.5;
+    }
+    
+    resizeCanvas(canvasWidth, canvasHeight);
+  }
+  
+  // Update button positions
+  if (bleController) {
+    bleController.updateButtonPositions();
+  }
+  
+  // Resize game objects
+  if (puck) {
+    puck.resize();
+  }
+  if (left) {
+    left.resize();
+  }
+  if (right) {
+    right.resize();
+  }
+}
+
+function drawOrientationWarning() {
+  background(0);
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textSize(32);
+  text("Please rotate your device", width/2, height/2 - 40);
+  textSize(64);
+  text("↻", width/2, height/2 + 20);
+  textSize(24);
+  text("Portrait mode required", width/2, height/2 + 80);
+}
+
+function deviceTurned() {
+  // p5.js function called when device orientation changes
+  windowResized();
 }

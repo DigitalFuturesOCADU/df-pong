@@ -4,7 +4,7 @@ class Puck {
         this.y = height / 2;
         this.xspeed = 0;
         this.yspeed = 0;
-        this.r = 12;
+        this.updateRadius();
         this.speedMultiplier = 1.0;
         this.speedIncrement = 0.15;
 
@@ -32,6 +32,19 @@ class Puck {
         this.updatePosition();
 
         this.reset();
+    }
+    
+    updateRadius() {
+        // Scale puck radius based on canvas height
+        this.r = height * 0.015; // 1.5% of canvas height
+    }
+    
+    resize() {
+        // Called when canvas resizes
+        this.updateRadius();
+        this.x = constrain(this.x, this.r, width - this.r);
+        this.y = constrain(this.y, this.r, height - this.r);
+        this.updatePosition();
     }
     
     setDebug(show) {

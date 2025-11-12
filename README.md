@@ -26,10 +26,37 @@ This game is designed to be played with custom Bluetooth controllers. You can fi
    - If less than 2 Controllers are connected, the other player can use the keyboard.
    - Use the Pong Controller Framework for your Arduino Code: [Pong Controller Framework](https://github.com/DigitalFuturesOCADU/Pong-Controller)
    - Connect 1 controller at a time using the corresponding button.
+   - **Note:** When reconnecting a previously paired controller, it may show as "Arduino-Paired" instead of your custom name. The game will display the real name after connection.
+   - **Tip:** If you're unsure which device is yours, connect it and click the "💡 Flash" button to make your controller identify itself with LED blinks and buzzer beeps.
 2. **Start Game**: Press the SPACE key to start the game.
 3. **Control Paddles**: Use the controllers to move the paddles up and down.
 4. **Pause/Resume Game**: Press the SPACE key to pause or resume the game.
 5. **Reset Game**: Press the ENTER key to reset the game after a win or during a pause.
+
+## Identifying Your Controller
+
+In crowded environments with many controllers:
+- The "💡 Flash" button appears when a controller is connected
+- Click it to make your controller flash its LED and buzz
+- This helps you physically confirm which device you're connected to
+- The game remembers your device and shows the real name (e.g., "DFPONG-001") even when the browser shows "Arduino-Paired"
+
+### Troubleshooting "Arduino-Paired" Issue
+
+If you see multiple "Arduino-Paired" devices instead of "DFPONG-001", "DFPONG-002", etc.:
+
+**Quick Solution - Trial and Error:**
+1. Click "Connect Player 1"
+2. Select any "Arduino-Paired" device
+3. After connecting, check if the game shows your device name
+4. Click "💡 Flash" - does your controller blink/buzz?
+5. If yes, you're connected! If no, disconnect and try another
+
+**Permanent Solution - Forget Devices:**
+1. Click the "⚠️ Forget All Devices" button for instructions
+2. Follow the steps to remove paired devices from your browser
+3. Refresh the page
+4. Devices will now show their real names ("DFPONG-001", etc.) in the picker!
 
 ## Debug Controls
 

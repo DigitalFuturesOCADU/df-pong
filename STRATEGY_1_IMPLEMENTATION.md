@@ -109,7 +109,14 @@ BLE.setManufacturerData(manufacturerData, sizeof(manufacturerData));
 3. **Upload to your controller**
 4. **Open the game** at https://digitalfuturesocadu.github.io/df-pong/
 5. **Click "Connect Player 1" or "Connect Player 2"**
-6. **Select your device** from the filtered list (only DFPONG- devices will show)
+6. **Select your device** from the list
+
+**Note about device names:**
+- **First connection**: Your device will show as "DFPONG-001" (or your chosen name)
+- **Reconnection**: Your device may show as "Arduino-Paired" or similar
+  - This is normal browser behavior for previously paired devices
+  - The game still filters by the correct service, so only DF Pong controllers appear
+  - You can still reconnect - just select the "paired" device
 
 ### For Instructors:
 
@@ -128,7 +135,6 @@ The game now passes filtering options to the browser:
 ```javascript
 const options = {
   filters: [
-    { namePrefix: this.deviceNamePrefix },
     { services: [this.serviceUuid] }
   ],
   optionalServices: [this.serviceUuid]
@@ -136,9 +142,16 @@ const options = {
 ```
 
 This ensures:
-- Only devices starting with "DFPONG-" appear in the picker
-- Devices must advertise the correct service UUID
-- Reduces clutter in crowded BLE environments
+- Only devices advertising the correct service UUID appear in the picker
+- Both new and previously paired devices will appear
+- Reduces clutter by filtering out non-DF Pong BLE devices
+
+**Important Note:** Web Bluetooth has a quirk where:
+- **Unpaired devices** show their custom name (e.g., "DFPONG-001")
+- **Previously paired devices** may show generic names (e.g., "Arduino-Paired")
+- This is browser behavior and cannot be changed
+- The service UUID filter ensures only DF Pong controllers appear regardless of name
+- Users should select their previously paired device when reconnecting
 
 ### ArduinoBLE Configuration
 

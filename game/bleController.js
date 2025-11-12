@@ -8,8 +8,10 @@ class BLEController {
     this.player2Name = "P=UP, L=DOWN";
     this._debug = false;
 
-    this.serviceUuid = "19b10010-e8f2-537e-4f6c-d104768a1214";
-    this.characteristicUuid = "19b10011-e8f2-537e-4f6c-d104768a1214";
+    // Base UUIDs - will be modified based on device number
+    // Note: These are in the short format, but will be used with Web Bluetooth
+    this.baseServiceUuid = "19b10010-e8f2-537e-4f6c-d104768a12";
+    this.baseCharacteristicUuid = "19b10011-e8f2-537e-4f6c-d104768a12";
     
     this.myBLE1 = new p5ble();
     this.myBLE2 = new p5ble();
@@ -20,35 +22,37 @@ class BLEController {
 
     this.handshakeComplete1 = false;
     this.handshakeComplete2 = false;
-    this.gattOperationInProgress1 = false; // Flag to track ongoing GATT operations for player 1
-    this.gattOperationInProgress2 = false; // Flag to track ongoing GATT operations for player 2
+    this.gattOperationInProgress1 = false;
+    this.gattOperationInProgress2 = false;
     
-    // Strategy 1: Device Discovery & Filtering
-    this.deviceNamePrefix = "DFPONG-";
-    this.cachedDevices = [];
-    this.recentDevices = this.loadRecentDevices();
-    this.scanInProgress = false;
+    // Device number selection
+    this.player1DeviceNumber = null;
+    this.player2DeviceNumber = null;
+    
+    // Particle systems for connection effects
+    this.player1Particles = [];
+    this.player2Particles = [];
     this.player1RSSI = null;
     this.player2RSSI = null;
+    this.player1DeviceId = null;
+    this.player2DeviceId = null;
   }
   
-  // Load recently connected devices from localStorage
-  loadRecentDevices() {
-    try {
-      const stored = localStorage.getItem('dfpong_recent_devices');
-      return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-      return [];
-    }
+  // Generate UUID based on device number (1-25)
+  generateServiceUUID(deviceNumber) {
+    // Device 1 → ...120e, Device 2 → ...120f, etc.
+    const suffix = (13 + deviceNumber).toString(16).padStart(2, '0').toLowerCase();
+    const uuid = this.baseServiceUuid + suffix;
+    console.log(`Generated Service UUID for device ${deviceNumber}: ${uuid}`);
+    return uuid;
   }
   
-  // Save device to recent connections
-  saveRecentDevice(deviceName, deviceId) {
-    const device = { name: deviceName, id: deviceId, timestamp: Date.now() };
-    this.recentDevices = this.recentDevices.filter(d => d.id !== deviceId);
-    this.recentDevices.unshift(device);
-    this.recentDevices = this.recentDevices.slice(0, 5); // Keep only 5 most recent
-    localStorage.setItem('dfpong_recent_devices', JSON.stringify(this.recentDevices));
+  generateCharacteristicUUID(deviceNumber) {
+    // Device 1 → ...120e, Device 2 → ...120f, etc.
+    const suffix = (13 + deviceNumber).toString(16).padStart(2, '0').toLowerCase();
+    const uuid = this.baseCharacteristicUuid + suffix;
+    console.log(`Generated Characteristic UUID for device ${deviceNumber}: ${uuid}`);
+    return uuid;
   }
 
   setup() {
@@ -59,12 +63,27 @@ class BLEController {
 
   createButtons() {
     requestAnimationFrame(() => {
-      this.p1Button = createButton('Connect Player 1');
-      this.p2Button = createButton('Connect Player 2');
+      // Player number selectors (corresponds to device number on Arduino)
+      this.p1DeviceSelect = createSelect();
+      this.p2DeviceSelect = createSelect();
+      
+      // Populate player number options
+      this.p1DeviceSelect.option('Select Player #', 0);
+      this.p2DeviceSelect.option('Select Player #', 0);
+      for (let i = 1; i <= 25; i++) {
+        this.p1DeviceSelect.option(`Player #${i}`, i);
+        this.p2DeviceSelect.option(`Player #${i}`, i);
+      }
+      
+      // Connect buttons - simpler text
+      this.p1Button = createButton('Connect');
+      this.p2Button = createButton('Connect');
       
       this.p1Button.mousePressed(() => this.handleButtonClick(1));
       this.p2Button.mousePressed(() => this.handleButtonClick(2));
       
+      this.p1DeviceSelect.class('device-select');
+      this.p2DeviceSelect.class('device-select');
       this.p1Button.class('p1-button');
       this.p2Button.class('p2-button');
       
@@ -74,36 +93,122 @@ class BLEController {
 
   updateButtonPositions() {
     const canvasRect = document.querySelector('canvas').getBoundingClientRect();
-    const buttonPadding = 20;
-    const bottomY = canvasRect.bottom + buttonPadding;
+    const isMobile = window.innerWidth <= 768;
     
-    this.p1Button.position(
-      canvasRect.left + (canvasRect.width * 0.25) - (this.p1Button.width / 2),
-      bottomY
-    );
+    if (isMobile && typeof debug !== 'undefined') {
+      debug('Button Update - isMobile:', isMobile);
+      debug('Canvas - left:', canvasRect.left.toFixed(0), 'top:', canvasRect.top.toFixed(0), 
+            'width:', canvasRect.width.toFixed(0), 'height:', canvasRect.height.toFixed(0));
+    }
     
-    this.p2Button.position(
-      canvasRect.left + (canvasRect.width * 0.75) - (this.p2Button.width / 2),
-      bottomY
-    );
+    if (isMobile) {
+      // Mobile: Stack all controls vertically below canvas, centered horizontally
+      const startY = canvasRect.bottom + 20;
+      const centerX = window.innerWidth / 2;
+      const dropdownWidth = 140;
+      const buttonWidth = 100;
+      const verticalSpacing = 15;
+      const playerSpacing = 30;
+      
+      if (typeof debug !== 'undefined') {
+        debug('Buttons - startY:', startY.toFixed(0), 'centerX:', centerX.toFixed(0));
+      }
+      
+      // Player 1: Centered, stacked vertically
+      this.p1DeviceSelect.position(
+        centerX - (dropdownWidth / 2),
+        startY
+      );
+      this.p1Button.position(
+        centerX - (buttonWidth / 2),
+        startY + 50 + verticalSpacing
+      );
+      
+      // Player 2: Below Player 1, centered, stacked vertically
+      const p2StartY = startY + 50 + verticalSpacing + 50 + playerSpacing;
+      this.p2DeviceSelect.position(
+        centerX - (dropdownWidth / 2),
+        p2StartY
+      );
+      this.p2Button.position(
+        centerX - (buttonWidth / 2),
+        p2StartY + 50 + verticalSpacing
+      );
+      
+    } else {
+      // Desktop: Horizontal layout below canvas
+      const bottomY = canvasRect.bottom + 15;
+      const dropdownWidth = 140;
+      const buttonWidth = 90;
+      const horizontalSpacing = 15;
+      
+      // Player 1: Aligned to left edge of canvas
+      this.p1DeviceSelect.position(canvasRect.left, bottomY);
+      this.p1Button.position(canvasRect.left + dropdownWidth + horizontalSpacing, bottomY);
+      
+      // Player 2: Aligned to right edge of canvas
+      this.p2Button.position(canvasRect.right - buttonWidth, bottomY);
+      this.p2DeviceSelect.position(canvasRect.right - buttonWidth - dropdownWidth - horizontalSpacing, bottomY);
+    }
   }
 
   setupButtonStyles() {
     let buttonStyle = document.createElement('style');
     buttonStyle.textContent = `
-      button {
+      button, select {
       padding: 10px;
-      border: none;
+      border: 2px solid black;
       border-radius: 5px;
       cursor: pointer;
       position: fixed;
+      font-weight: bold;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      }
+      .device-select {
+      background-color: white;
+      color: black;
+      font-size: 14px;
+      padding: 8px;
+      border: 2px solid black;
+      min-width: 140px;
       }
       .p1-button, .p2-button {
-      background-color: #cd16cf;
-      color: white;
+      background-color: white;
+      color: black;
+      font-size: 16px;
+      border: 2px solid black;
+      min-width: 90px;
+      }
+      .p1-button:hover, .p2-button:hover {
+      background-color: #f0f0f0;
       }
       .connected {
       background-color: black !important;
+      color: white !important;
+      }
+      
+      /* Mobile responsive styles */
+      @media (max-width: 768px) {
+        button, select {
+          font-size: 14px;
+          padding: 12px;
+          background-color: rgba(255, 255, 255, 0.95) !important;
+          backdrop-filter: blur(5px);
+        }
+        .device-select {
+          font-size: 14px;
+          min-width: 100px;
+          background-color: rgba(255, 255, 255, 0.95) !important;
+        }
+        .p1-button, .p2-button {
+          font-size: 16px;
+          min-width: 100px;
+          background-color: rgba(255, 255, 255, 0.95) !important;
+        }
+        .connected {
+          background-color: rgba(0, 0, 0, 0.95) !important;
+        }
       }
     `;
     document.head.appendChild(buttonStyle);
@@ -112,13 +217,22 @@ class BLEController {
   handleButtonClick(player) {
     const isConnected = player === 1 ? this.player1Connected : this.player2Connected;
     if (!isConnected) {
-      this.connectToBle(player);
+      // Get selected device number
+      const deviceSelect = player === 1 ? this.p1DeviceSelect : this.p2DeviceSelect;
+      const deviceNumber = parseInt(deviceSelect.value());
+      
+      if (deviceNumber === 0 || isNaN(deviceNumber)) {
+        alert(`Please select a device number (1-25) for Player ${player} first!`);
+        return;
+      }
+      
+      this.connectToBle(player, deviceNumber);
     } else {
       this.disconnectBle(player);
     }
   }
 
-  async connectToBle(player) {
+  async connectToBle(player, deviceNumber) {
     const ble = player === 1 ? this.myBLE1 : this.myBLE2;
     const gattOperationInProgress = player === 1 ? this.gattOperationInProgress1 : this.gattOperationInProgress2;
 
@@ -129,22 +243,24 @@ class BLEController {
 
     if (player === 1) {
       this.gattOperationInProgress1 = true;
+      this.player1DeviceNumber = deviceNumber;
     } else {
       this.gattOperationInProgress2 = true;
+      this.player2DeviceNumber = deviceNumber;
     }
 
+    // Generate UUIDs based on device number
+    const serviceUuid = this.generateServiceUUID(deviceNumber);
+    const characteristicUuid = this.generateCharacteristicUUID(deviceNumber);
+    
+    console.log(`Connecting to Device #${deviceNumber}`);
+    console.log(`Service UUID: ${serviceUuid}`);
+    console.log(`Characteristic UUID: ${characteristicUuid}`);
+
     try {
-      // Strategy 1: Filter devices by name prefix during connection
-      const options = {
-        filters: [
-          { namePrefix: this.deviceNamePrefix },
-          { services: [this.serviceUuid] }
-        ],
-        optionalServices: [this.serviceUuid]
-      };
-      
-      const characteristics = await ble.connect(this.serviceUuid, options);
-      const movementCharacteristic = characteristics.find(c => c.uuid === this.characteristicUuid);
+      // Connect using the unique service UUID - this filters to only devices with this UUID
+      const characteristics = await ble.connect(serviceUuid);
+      const movementCharacteristic = characteristics.find(c => c.uuid === characteristicUuid);
       if (!movementCharacteristic) {
         console.log('Required characteristic not found');
         throw new Error('Characteristic not found');
@@ -152,40 +268,34 @@ class BLEController {
 
       await ble.startNotifications(movementCharacteristic, this.handleMovementData.bind(this, player));
 
-      // Strategy 1: Store RSSI and save to recent devices
-      const deviceName = ble.device.name || `Player ${player} Device`;
+      // Store player number instead of device name
       const deviceId = ble.device.id;
+      const playerNumber = deviceNumber;
       
-      // Try to get RSSI (not all browsers support this)
-      if (ble.device.gatt && ble.device.gatt.connected) {
-        try {
-          // Note: RSSI monitoring varies by browser
-          if (player === 1) {
-            this.player1RSSI = "Connected";
-          } else {
-            this.player2RSSI = "Connected";
-          }
-        } catch (e) {
-          console.log('RSSI not available');
-        }
-      }
-      
-      this.saveRecentDevice(deviceName, deviceId);
+      console.log(`Connected to Player #${playerNumber} (Device ID: ${deviceId})`);
 
       if (player === 1) {
         this.player1Connected = true;
-        this.player1Name = deviceName;
+        this.player1Name = `Player #${playerNumber}`;
+        this.player1DeviceId = deviceId;
+        this.player1DeviceNumber = playerNumber;
         this.p1Button.addClass('connected');
-        this.p1Button.html('Disconnect Player 1');
+        this.p1Button.html('Disconnect');
         this.handshakeComplete1 = false;
         this.gattOperationInProgress1 = false;
+        // Trigger particle effect
+        this.createConnectionParticles(1);
       } else {
         this.player2Connected = true;
-        this.player2Name = deviceName;
+        this.player2Name = `Player #${playerNumber}`;
+        this.player2DeviceId = deviceId;
+        this.player2DeviceNumber = playerNumber;
         this.p2Button.addClass('connected');
-        this.p2Button.html('Disconnect Player 2');
+        this.p2Button.html('Disconnect');
         this.handshakeComplete2 = false;
         this.gattOperationInProgress2 = false;
+        // Trigger particle effect
+        this.createConnectionParticles(2);
       }
 
       ble.onDisconnected(() => {
@@ -200,6 +310,7 @@ class BLEController {
       });
     } catch (error) {
       console.log('Error:', error);
+      alert(`Failed to connect to Player #${deviceNumber}. Make sure:\n1. Device is powered on\n2. Device number in Arduino is set to ${deviceNumber}\n3. Device is not already connected`);
       if (player === 1) {
         this.gattOperationInProgress1 = false;
       } else {
@@ -212,6 +323,41 @@ class BLEController {
     const ble = player === 1 ? this.myBLE1 : this.myBLE2;
     ble.disconnect();
     this.handleDisconnect(player);
+  }
+  
+  // Send identification signal to flash LED/buzz
+  async identifyDevice(player) {
+    const ble = player === 1 ? this.myBLE1 : this.myBLE2;
+    const isConnected = player === 1 ? this.player1Connected : this.player2Connected;
+    const deviceNumber = player === 1 ? this.player1DeviceNumber : this.player2DeviceNumber;
+    
+    if (!isConnected) {
+      console.log('Device not connected');
+      return;
+    }
+    
+    // Get the correct characteristic UUID for this device
+    const characteristicUuid = this.generateCharacteristicUUID(deviceNumber);
+    const characteristic = ble.characteristics.find(c => c.uuid === characteristicUuid);
+    
+    if (characteristic) {
+      // Send a rapid sequence to trigger LED flash/buzz pattern
+      // Send value 1, then 2, then 1, then 2 (creates a distinctive pattern)
+      try {
+        await ble.write(characteristic, new Uint8Array([1]));
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await ble.write(characteristic, new Uint8Array([2]));
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await ble.write(characteristic, new Uint8Array([1]));
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await ble.write(characteristic, new Uint8Array([2]));
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await ble.write(characteristic, new Uint8Array([0])); // Stop
+        console.log(`Identification signal sent to player ${player}`);
+      } catch (error) {
+        console.log('Error sending identification signal:', error);
+      }
+    }
   }
 
   handleMovementData(player, data) {
@@ -242,33 +388,48 @@ class BLEController {
 
   sendHelloHandshake(player) {
     const ble = player === 1 ? this.myBLE1 : this.myBLE2;
-    const characteristic = ble.characteristics.find(c => c.uuid === this.characteristicUuid);
-    if (characteristic) {
-      ble.write(characteristic, new Uint8Array([3]), (error) => {
-        if (error) {
-          console.log('Handshake write error:', error);
-          return;
-        }
-        if (player === 1) {
-          this.handshakeComplete1 = true;
-        } else {
-          this.handshakeComplete2 = true;
-        }
-      });
+    const deviceNumber = player === 1 ? this.player1DeviceNumber : this.player2DeviceNumber;
+    const characteristicUuid = this.generateCharacteristicUUID(deviceNumber);
+    const characteristic = ble.characteristics.find(c => c.uuid === characteristicUuid);
+    
+    if (!characteristic) {
+      console.log('Characteristic not found for handshake');
+      return;
     }
+    
+    // Add a small delay to avoid GATT operation conflicts
+    setTimeout(() => {
+      try {
+        ble.write(characteristic, new Uint8Array([3]), (error) => {
+          if (error) {
+            console.log('Handshake write error:', error);
+            return;
+          }
+          if (player === 1) {
+            this.handshakeComplete1 = true;
+          } else {
+            this.handshakeComplete2 = true;
+          }
+        });
+      } catch (error) {
+        console.log('Error in handshake:', error);
+      }
+    }, 100); // 100ms delay
   }
 
   handleDisconnect(player) {
     if (player === 1) {
       this.player1Connected = false;
       this.player1Movement = 0;
+      this.player1DeviceId = null;
       this.p1Button.removeClass('connected');
-      this.p1Button.html('Connect Player 1');
+      this.p1Button.html('Connect');
     } else {
       this.player2Connected = false;
       this.player2Movement = 0;
+      this.player2DeviceId = null;
       this.p2Button.removeClass('connected');
-      this.p2Button.html('Connect Player 2');
+      this.p2Button.html('Connect');
     }
   }
 
@@ -277,27 +438,13 @@ class BLEController {
     
     text(`Player 1: ${this.player1Connected ? 'Connected' : 'Disconnected'}`, width/4, 30);
     text(`Player 2: ${this.player2Connected ? 'Connected' : 'Disconnected'}`, 3*width/4, 30);
-    text(`Device: ${this.player1Name}`, width/4, 60);
-    text(`Device: ${this.player2Name}`, 3*width/4, 60);
+    text(`Player: ${this.player1Name}`, width/4, 60);
+    text(`Player: ${this.player2Name}`, 3*width/4, 60);
     
-    // Strategy 1: Display RSSI/signal info
-    if (this.player1RSSI) {
-      text(`Signal: ${this.player1RSSI}`, width/4, 75);
-    }
-    if (this.player2RSSI) {
-      text(`Signal: ${this.player2RSSI}`, 3*width/4, 75);
-    }
+    // Display device numbers is now redundant since player name shows it
     
-    this.drawPlayerDebug(this.player1Movement, width/4, 90);
-    this.drawPlayerDebug(this.player2Movement, 3*width/4, 90);
-    
-    // Display recent devices
-    if (this.recentDevices.length > 0) {
-      text('Recent Devices:', 20, height - 80);
-      this.recentDevices.slice(0, 3).forEach((device, i) => {
-        text(`${device.name}`, 20, height - 60 + (i * 15));
-      });
-    }
+    this.drawPlayerDebug(this.player1Movement, width/4, 75);
+    this.drawPlayerDebug(this.player2Movement, 3*width/4, 75);
   }
 
   drawPlayerDebug(movement, x, baseY) {
@@ -313,6 +460,73 @@ class BLEController {
       circle(0, movement * -20, 20);
     }
     pop();
+  }
+
+  createConnectionParticles(player) {
+    const x = player === 1 ? width/4 : 3*width/4;
+    const y = height/2;
+    const particleCount = 30;
+    
+    for (let i = 0; i < particleCount; i++) {
+      const angle = random(TWO_PI);
+      const speed = random(2, 6);
+      const particle = {
+        x: x,
+        y: y,
+        vx: cos(angle) * speed,
+        vy: sin(angle) * speed,
+        life: 1.0,
+        size: random(3, 8)
+      };
+      
+      if (player === 1) {
+        this.player1Particles.push(particle);
+      } else {
+        this.player2Particles.push(particle);
+      }
+    }
+  }
+
+  updateAndDrawParticles() {
+    // Update and draw Player 1 particles
+    for (let i = this.player1Particles.length - 1; i >= 0; i--) {
+      const p = this.player1Particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 0.02;
+      p.vx *= 0.98; // Slight slowdown
+      p.vy *= 0.98;
+      
+      if (p.life <= 0) {
+        this.player1Particles.splice(i, 1);
+      } else {
+        push();
+        noStroke();
+        fill(255, 255, 255, p.life * 255);
+        circle(p.x, p.y, p.size * p.life);
+        pop();
+      }
+    }
+    
+    // Update and draw Player 2 particles
+    for (let i = this.player2Particles.length - 1; i >= 0; i--) {
+      const p = this.player2Particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 0.02;
+      p.vx *= 0.98;
+      p.vy *= 0.98;
+      
+      if (p.life <= 0) {
+        this.player2Particles.splice(i, 1);
+      } else {
+        push();
+        noStroke();
+        fill(255, 255, 255, p.life * 255);
+        circle(p.x, p.y, p.size * p.life);
+        pop();
+      }
+    }
   }
 
   getPlayer1Movement() {

@@ -57,28 +57,38 @@ class GameController {
         push();
         textAlign(CENTER, CENTER);
         fill(255);
-        let bigText = 220;
+        // Scale text sizes based on canvas height
+        let bigText = height * 0.28;    // 28% of canvas height
+        let medText = height * 0.08;    // 8% of canvas height
+        let smallText = height * 0.03;  // 3% of canvas height
+        let tinyText = height * 0.02;   // 2% of canvas height
+        
         switch(this.currentState) {
             case this.STATE.WAITING:
                 textSize(bigText);
                 text("DF PONG", width/2, height/2 - (bigText/2));
-                textSize(32);
+                textSize(medText);
                 text("VS", width/2, height/2);
-                text("Press SPACE to Start Game", width/2, height/2 + 200);
+                textSize(smallText);
+                text("Click/Tap to Start Game", width/2, height/2 + 200);
+                textSize(tinyText);
+                text("(or press SPACE)", width/2, height/2 + 230);
                 break;
 
             case this.STATE.PAUSED:
-                textSize(64);
+                textSize(medText);
                 text("GAME PAUSED", width/2, height/2);
-                textSize(32);
-                text("Press SPACE to Resume, ENTER to RESET", width/2, height/2 + 50);
+                textSize(smallText);
+                text("Click/Tap to Resume", width/2, height/2 + 50);
+                textSize(tinyText);
+                text("(SPACE to resume, ENTER to reset)", width/2, height/2 + 80);
                 break;
 
             case this.STATE.WON:
                 background(0);    
-                textSize(64);
+                textSize(medText);
                 text(this.winner + " WINS!", width/2, height/2);
-                textSize(32);
+                textSize(smallText);
                 text("Press ENTER to Play Again", width/2, height/2 + 50);
                 break;
         }
