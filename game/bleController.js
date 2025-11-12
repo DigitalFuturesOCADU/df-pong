@@ -524,18 +524,18 @@ class BLEController {
   createConnectionParticles(player) {
     const x = player === 1 ? width/4 : 3*width/4;
     const y = height/2;
-    const particleCount = 30;
+    const particleCount = 100; // Increased from 30 to 100
     
     for (let i = 0; i < particleCount; i++) {
       const angle = random(TWO_PI);
-      const speed = random(2, 6);
+      const speed = random(4, 12); // Increased from (2, 6) to (4, 12)
       const particle = {
         x: x,
         y: y,
         vx: cos(angle) * speed,
         vy: sin(angle) * speed,
         life: 1.0,
-        size: random(3, 8)
+        size: random(4, 12) // Increased from (3, 8) to (4, 12)
       };
       
       if (player === 1) {

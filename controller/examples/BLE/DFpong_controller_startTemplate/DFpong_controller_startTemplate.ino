@@ -60,8 +60,11 @@ void setup()
 {
   
   Serial.begin(9600);
+  // DO NOT use while(!Serial) - it blocks startup without Serial Monitor
+  // Small delay allows Serial Monitor to catch output if connected
+  delay(1000);
   
-
+  Serial.println("=== DF Pong Controller Starting ===");
   
   // Configure LED for connection status indication
   pinMode(LED_PIN, OUTPUT);

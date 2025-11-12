@@ -18,6 +18,22 @@ canvas {
   display: block;
 }
 
+/* Debug GUI Styles */
+.debug-slider {
+  width: 200px;
+}
+
+.slider-label {
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
 /* Mobile: portrait mode with canvas at top */
 @media (max-width: 768px) {
   html {

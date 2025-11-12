@@ -65,7 +65,7 @@ All settings persist in browser's local storage.
 
 ## Setup
 
-### For Students
+### To Play
 
 #### 1. Configure Your Arduino Device Number
 
@@ -89,9 +89,9 @@ Each student must set a unique device number (1-25) in their Arduino controller:
 4. Select your Arduino from the browser's Bluetooth picker
 5. The button will turn black and say "Disconnect" when connected
 
-### For Instructors
 
-#### Update Student Names
+
+#### Update Player Names
 
 Edit `game/players-config.json` to assign names to device numbers:
 
@@ -141,7 +141,7 @@ Device 25: 19b10010-e8f2-537e-4f6c-d104768a1227  (13 + 25 = 38 = 0x27)
 
 #### How Web Bluetooth Filters By UUID
 
-When a student selects their device number from the dropdown:
+When a person selects their device number from the dropdown:
 
 1. **JavaScript generates the matching UUID**:
    ```javascript
@@ -157,7 +157,7 @@ When a student selects their device number from the dropdown:
    })
    ```
 
-3. **Browser shows only matching devices**: Typically just one - the student's assigned device!
+3. **Browser shows only matching devices**: Typically just one 
 
 #### Why This Works
 
@@ -186,7 +186,7 @@ generateServiceUUID(deviceNumber) {
 }
 ```
 
-**Result**: Hardware and software agree on the exact UUID to use for each device number.
+
 
 ---
 
@@ -225,24 +225,11 @@ controller/examples/BLE/
 
 ### Dependencies
 
-- **p5.js** (v1.10.0): Canvas rendering and game loop
+- **p5.js** 
 - **p5.sound.js**: Audio support
 - **p5.ble.js** (v0.0.7): Web Bluetooth API wrapper
 - **p5-phone** (v1.5.0): Mobile debugging with on-screen console
 - **ArduinoBLE** (Arduino): Bluetooth Low Energy library for Arduino Nano 33 IoT
-
-### Responsive Design
-
-- **Desktop**: Centered canvas (max 1200×800px) with controls below
-- **Mobile Portrait**: Full-width canvas at top, vertically stacked controls below
-- **Scaling**: All game elements (paddles, puck, text, scores) scale proportionally to canvas size
-
-### Browser Compatibility
-
-- Chrome 80+ (desktop and Android)
-- Safari 13+ (desktop and iOS)
-- Edge 80+
-- **Note**: Web Bluetooth API required (not supported in Firefox)
 
 ---
 

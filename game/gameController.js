@@ -2,6 +2,7 @@ class GameController {
     constructor(winningScore) {
         this.STATE = {
             WAITING: 'waiting',
+            COUNTDOWN: 'countdown',
             PLAYING: 'playing',
             PAUSED: 'paused',
             WON: 'won'
@@ -10,6 +11,10 @@ class GameController {
         this.currentState = this.STATE.WAITING;
         this.winningScore = winningScore;
         this.winner = null;
+        
+        // Countdown properties
+        this.countdownValue = 3;
+        this.countdownStartTime = 0;
 
         // Debug GUI elements
         this.debugGUIVisible = false;
@@ -23,6 +28,27 @@ class GameController {
         rightscore = 0;
     }
 
+    startCountdown() {
+        this.currentState = this.STATE.COUNTDOWN;
+        this.countdownValue = 3;
+        this.countdownStartTime = millis();
+    }
+
+    updateCountdown() {
+        if (this.currentState !== this.STATE.COUNTDOWN) return;
+        
+        const elapsed = millis() - this.countdownStartTime;
+        const secondsPassed = floor(elapsed / 1000);
+        
+        if (secondsPassed >= 3) {
+            // Countdown complete, start playing
+            this.currentState = this.STATE.PLAYING;
+        } else {
+            // Update countdown value (3, 2, 1)
+            this.countdownValue = 3 - secondsPassed;
+        }
+    }
+
     pauseGame() {
         if (this.currentState === this.STATE.PLAYING) {
             this.currentState = this.STATE.PAUSED;
@@ -30,8 +56,10 @@ class GameController {
     }
 
     resumeGame() {
-        if (this.currentState === this.STATE.PAUSED || this.currentState === this.STATE.WAITING) {
+        if (this.currentState === this.STATE.PAUSED) {
             this.currentState = this.STATE.PLAYING;
+        } else if (this.currentState === this.STATE.WAITING) {
+            this.startCountdown();
         }
     }
 
@@ -71,8 +99,12 @@ class GameController {
                 text("VS", width/2, height/2);
                 textSize(smallText);
                 text("Click/Tap to Start Game", width/2, height/2 + 200);
-                textSize(tinyText);
-                text("(or press SPACE)", width/2, height/2 + 230);
+                break;
+
+            case this.STATE.COUNTDOWN:
+                // Show countdown number in center, aligned with player names
+                textSize(bigText);
+                text(this.countdownValue, width/2, height/2);
                 break;
 
             case this.STATE.PAUSED:
@@ -152,6 +184,8 @@ class GameController {
     }
 
     setDebugGUIVisible(visible) {
+        console.log('Setting debug GUI visible:', visible);
+        this.debugGUIVisible = visible;
         const display = visible ? 'block' : 'none';
         this.p1Slider.style('display', display);
         this.p2Slider.style('display', display);
@@ -161,14 +195,20 @@ class GameController {
         this.p2Label.style('display', display);
         this.pointsLabel.style('display', display);
         this.speedIncrementLabel.style('display', display);
+        
+        // Update positions when showing
+        if (visible) {
+            this.updateDebugGUIPositions();
+        }
     }
 
     updateDebugGUIPositions() {
-        const canvasRect = document.querySelector('canvas').getBoundingClientRect();
         const padding = 20;
-        const sliderSpacing = 40;
-        const leftX = canvasRect.left - 190; // Move 220 pixels to the left of canvas
-        const topY = canvasRect.top + padding; // Start from top of canvas
+        const sliderSpacing = 50;
+        
+        // Position from the top-left of the screen
+        const leftX = padding;
+        const topY = padding;
 
         this.p1Slider.position(leftX, topY);
         this.p1Label.position(leftX, topY - 20);

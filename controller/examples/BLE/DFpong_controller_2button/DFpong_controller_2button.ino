@@ -39,7 +39,7 @@
 // ============================================
 // IMPORTANT: SET YOUR DEVICE NUMBER HERE (1-25)
 // ============================================
-const int DEVICE_NUMBER = 1;  // ← CHANGE THIS TO YOUR ASSIGNED NUMBER!
+const int DEVICE_NUMBER = 2;  // ← CHANGE THIS TO YOUR ASSIGNED NUMBER!
 // ============================================
 
 // Device name is generated from device number
@@ -65,8 +65,9 @@ void setup()
 {
   
   Serial.begin(9600);
-  while (!Serial) delay(10); // Wait for Serial to be ready
-  delay(1000); // Extra delay to ensure Serial Monitor catches the output
+  // DO NOT use while(!Serial) - it blocks startup without Serial Monitor
+  // Small delay allows Serial Monitor to catch output if connected
+  delay(1000); 
   
   Serial.println("=== DF Pong Controller Starting ===");
   

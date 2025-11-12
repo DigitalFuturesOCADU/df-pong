@@ -123,13 +123,29 @@ function draw() {
     return;
   }
   
+  // Update countdown if active
+  gameController.updateCountdown();
+  
   // Always update BLE data
   player1Name = bleController.player1Name;
   player2Name = bleController.player2Name;
   player1Movement = bleController.getPlayer1Movement();
   player2Movement = bleController.getPlayer2Movement();
 
- 
+  // Draw player names ALWAYS (behind everything) - scale to canvas size
+  textSize(height * 0.05); // 5% of canvas height
+  fill(255, 255, 255, 127);
+  textAlign(CENTER, CENTER);
+  text(player1Name, width/4, height/2);
+  text(player2Name, (3 * width)/4, height/2);
+
+  // Show "VS" in center during gameplay
+  if (gameController.isPlaying) {
+    textSize(height * 0.08); // 8% of canvas height
+    fill(255, 255, 255, 127);
+    textAlign(CENTER, CENTER);
+    text("VS", width/2, height/2);
+  }
 
   if (gameController.isPlaying) {
     // Game logic only runs when playing
@@ -139,13 +155,6 @@ function draw() {
     if (bleController.isPlayer2Connected()) {
       right.move(player2Movement);
     }
-    
-    // Draw player names FIRST (behind everything) - scale to canvas size
-    textSize(height * 0.05); // 5% of canvas height
-    fill(255, 255, 255, 127);
-    textAlign(CENTER, CENTER);
-    text(player1Name, width/4, height/2);
-    text(player2Name, (3 * width)/4, height/2);
     
     // Draw the dotted vertical line
   stroke(255, 255, 255, 127);
@@ -322,6 +331,11 @@ function windowResized() {
   // Update button positions
   if (bleController) {
     bleController.updateButtonPositions();
+  }
+  
+  // Update debug GUI positions
+  if (gameController) {
+    gameController.updateDebugGUIPositions();
   }
   
   // Resize game objects
