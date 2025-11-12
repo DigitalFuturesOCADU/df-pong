@@ -2,8 +2,8 @@
   "players": [
     { "deviceNumber": 1, "name": "Kate" },
     { "deviceNumber": 2, "name": "Nick" },
-    { "deviceNumber": 3, "name": "Player Name" },
-    { "deviceNumber": 4, "name": "Player Name" },
+    { "deviceNumber": 3, "name": "Tester 1" },
+    { "deviceNumber": 4, "name": "Tester 2" },
     { "deviceNumber": 5, "name": "Player Name" },
     { "deviceNumber": 6, "name": "Player Name" },
     { "deviceNumber": 7, "name": "Player Name" },

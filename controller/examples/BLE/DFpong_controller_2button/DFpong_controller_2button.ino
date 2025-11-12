@@ -39,7 +39,7 @@
 // ============================================
 // IMPORTANT: SET YOUR DEVICE NUMBER HERE (1-25)
 // ============================================
-const int DEVICE_NUMBER = 2;  // ← CHANGE THIS TO YOUR ASSIGNED NUMBER!
+const int DEVICE_NUMBER = 4;  // ← CHANGE THIS TO YOUR ASSIGNED NUMBER!
 // ============================================
 
 // Device name is generated from device number
