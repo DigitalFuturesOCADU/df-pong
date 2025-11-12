@@ -8,7 +8,7 @@
 
 ## Overview
 
-DF Pong is a browser-based Pong game that allows students to create and connect custom Bluetooth Low Energy (BLE) controllers using Arduino Nano 33 IoT boards. The game supports 0, 1, or 2 BLE controllers, with keyboard fallback for any unconnected players. Designed for classroom environments with up to 25 active devices, it uses a unique UUID-based filtering system to ensure reliable connections even in crowded Bluetooth environments.
+DF Pong is a browser-based Pong game that allows players to create and connect custom Bluetooth Low Energy (BLE) controllers using Arduino Nano 33 IoT boards. The game supports 0, 1, or 2 BLE controllers, with keyboard fallback for any unconnected players. Designed for classroom environments with up to 25 active devices, it uses a unique UUID-based filtering system to ensure reliable connections even in crowded Bluetooth environments.
 
 **Key Features:**
 - Connect custom Arduino BLE controllers to play Pong in the browser
@@ -65,11 +65,11 @@ All settings persist in browser's local storage.
 
 ## Setup
 
-### To Play
+### For Students
 
 #### 1. Configure Your Arduino Device Number
 
-Each student must set a unique device number (1-25) in their Arduino controller:
+Each player must set a unique device number (1-25) in their Arduino controller:
 
 1. Open `controller/examples/BLE/DFpong_controller_2button/DFpong_controller_2button.ino`
 2. Find this line at the top:
@@ -90,6 +90,8 @@ Each student must set a unique device number (1-25) in their Arduino controller:
 5. The button will turn black and say "Disconnect" when connected
 
 
+
+### For Instructors
 
 #### Update Player Names
 
@@ -122,7 +124,7 @@ In a classroom with 25 Arduino devices broadcasting Bluetooth simultaneously, tr
 1. **Browser Caching**: Web browsers cache paired device names
 2. **Generic Names**: Previously paired devices may show as "Arduino-Paired" instead of their custom names
 3. **Name Collisions**: Multiple devices can appear identical in the connection dialog
-4. **Trial and Error**: Students can't reliably identify which physical device is theirs
+4. **Trial and Error**: Players can't reliably identify which physical device is theirs
 
 ### The Solution: Unique UUID Per Device
 
@@ -164,7 +166,7 @@ When a person selects their device number from the dropdown:
 - **Unique Hardware Identifier**: Each device broadcasts a different UUID at the hardware level
 - **Browser-Agnostic**: Works regardless of name caching or pairing history
 - **No Ambiguity**: Only one device will match the requested UUID
-- **Reliable**: Students always connect to their assigned device, first time, every time
+- **Reliable**: Players always connect to their assigned device, first time, every time
 
 ### Technical Architecture
 

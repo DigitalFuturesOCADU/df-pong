@@ -57,7 +57,7 @@ class BLEController {
       this.playersConfig = {
         players: Array.from({length: 25}, (_, i) => ({
           deviceNumber: i + 1,
-          name: 'Student Name'
+          name: 'Player Name'
         }))
       };
     }
@@ -130,8 +130,8 @@ class BLEController {
     } else {
       // Fallback if config not loaded yet
       for (let i = 1; i <= 25; i++) {
-        this.p1DeviceSelect.option(`${i}: Student Name`, i);
-        this.p2DeviceSelect.option(`${i}: Student Name`, i);
+        this.p1DeviceSelect.option(`${i}: Player Name`, i);
+        this.p2DeviceSelect.option(`${i}: Player Name`, i);
       }
     }
     
