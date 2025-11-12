@@ -31,12 +31,16 @@ let drawBleDebug = false;
 // Initialize BLEController
 let bleController;
 
+// Sound variables
+let song, song2, ding;
+
 // Orientation check
 let isLandscape = true;
 
 function preload() {
    song = loadSound("paddle.wav");
   song2 = loadSound("wall.wav");
+  ding = loadSound("ding.mp3");
 }
 
 function setup() {
@@ -84,7 +88,6 @@ function setup() {
     createCanvas(canvasWidth, canvasHeight);
   }
   
-  //ding = loadSound("ding.mp3");
   puck = new Puck();
   left = new Paddle(true);
   right = new Paddle(false);

@@ -342,8 +342,11 @@ class BLEController {
         this.p1Button.html('Disconnect');
         this.handshakeComplete1 = false;
         this.gattOperationInProgress1 = false;
-        // Trigger particle effect
+        // Trigger particle effect and sound
         this.createConnectionParticles(1);
+        if (typeof ding !== 'undefined' && ding) {
+          ding.play();
+        }
       } else {
         this.player2Connected = true;
         this.player2Name = playerName;
@@ -353,8 +356,11 @@ class BLEController {
         this.p2Button.html('Disconnect');
         this.handshakeComplete2 = false;
         this.gattOperationInProgress2 = false;
-        // Trigger particle effect
+        // Trigger particle effect and sound
         this.createConnectionParticles(2);
+        if (typeof ding !== 'undefined' && ding) {
+          ding.play();
+        }
       }
 
       ble.onDisconnected(() => {

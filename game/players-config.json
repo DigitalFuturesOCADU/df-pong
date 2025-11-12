@@ -1,7 +1,7 @@
 {
   "players": [
-    { "deviceNumber": 1, "name": "Student Name" },
-    { "deviceNumber": 2, "name": "Student Name" },
+    { "deviceNumber": 1, "name": "Kate" },
+    { "deviceNumber": 2, "name": "Nick" },
     { "deviceNumber": 3, "name": "Student Name" },
     { "deviceNumber": 4, "name": "Student Name" },
     { "deviceNumber": 5, "name": "Student Name" },
