@@ -44,11 +44,7 @@ function preload() {
 }
 
 function setup() {
-  // Show debug panel FIRST (p5-phone) for mobile debugging
   const isMobile = windowWidth <= 768;
-  if (isMobile) {
-    //showDebug();
-  }
   
   // Create canvas based on device type and orientation
   
@@ -224,10 +220,6 @@ function keyPressed() {
     if (key == 'd') {
         drawBleDebug = !drawBleDebug;
         bleController.debug = drawBleDebug;
-        // Also toggle p5-phone debug panel if available
-        if (typeof toggleDebug !== 'undefined') {
-            toggleDebug();
-        }
     }
 
     // Toggle debug GUI with 'c' key
@@ -258,6 +250,19 @@ function mousePressed() {
 }
 
 function touchStarted() {
+  // Check if touch is on a slider or other UI element
+  if (event && event.target) {
+    const target = event.target;
+    // Don't handle game toggle if touching a slider, button, or select element
+    if (target.tagName === 'INPUT' || 
+        target.tagName === 'BUTTON' || 
+        target.tagName === 'SELECT' ||
+        target.classList.contains('debug-slider') ||
+        target.classList.contains('mobile-settings-btn')) {
+      return true; // Allow default behavior for UI elements
+    }
+  }
+  
   // Prevent default touch behavior
   const canvasElement = document.querySelector('canvas');
   if (canvasElement) {
@@ -280,6 +285,9 @@ function handleGameToggle() {
   } else if (gameController.currentState === gameController.STATE.PAUSED || 
              gameController.currentState === gameController.STATE.WAITING) {
     gameController.resumeGame();
+  } else if (gameController.currentState === gameController.STATE.WON) {
+    // On mobile, tap to restart when game is over
+    handleGameReset();
   }
 }
 
@@ -335,6 +343,7 @@ function windowResized() {
   // Update debug GUI positions
   if (gameController) {
     gameController.updateDebugGUIPositions();
+    gameController.updateMobileSettingsButton();
   }
   
   // Resize game objects

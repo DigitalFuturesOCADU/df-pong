@@ -145,12 +145,6 @@ class BLEController {
     const canvasRect = document.querySelector('canvas').getBoundingClientRect();
     const isMobile = window.innerWidth <= 768;
     
-    if (isMobile && typeof debug !== 'undefined') {
-      debug('Button Update - isMobile:', isMobile);
-      debug('Canvas - left:', canvasRect.left.toFixed(0), 'top:', canvasRect.top.toFixed(0), 
-            'width:', canvasRect.width.toFixed(0), 'height:', canvasRect.height.toFixed(0));
-    }
-    
     if (isMobile) {
       // Mobile: Stack all controls vertically below canvas, centered horizontally
       const startY = canvasRect.bottom + 20;
@@ -159,10 +153,6 @@ class BLEController {
       const buttonWidth = 100;
       const verticalSpacing = 20; // Increased spacing
       const playerSpacing = 40; // Increased spacing between player sections
-      
-      if (typeof debug !== 'undefined') {
-        debug('Buttons - startY:', startY.toFixed(0), 'centerX:', centerX.toFixed(0));
-      }
       
       // Player 1: Centered, stacked vertically
       this.p1DeviceSelect.position(

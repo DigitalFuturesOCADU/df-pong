@@ -21,6 +21,8 @@ canvas {
 /* Debug GUI Styles */
 .debug-slider {
   width: 200px;
+  z-index: 1001;
+  position: relative;
 }
 
 .slider-label {
@@ -32,6 +34,39 @@ canvas {
   padding: 4px 8px;
   border-radius: 4px;
   white-space: nowrap;
+  z-index: 1001;
+  position: relative;
+}
+
+/* Mobile Settings Button */
+.mobile-settings-btn {
+  display: none;
+  padding: 10px 15px;
+  background-color: #fff;
+  color: #000;
+  border: 2px solid #000;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 1001;
+  position: absolute;
+}
+
+.mobile-settings-btn:hover {
+  background-color: #f0f0f0;
+}
+
+/* Settings Overlay */
+.settings-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+  display: none;
 }
 
 /* Mobile: portrait mode with canvas at top */

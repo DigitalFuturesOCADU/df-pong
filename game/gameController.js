@@ -18,6 +18,9 @@ class GameController {
 
         // Debug GUI elements
         this.debugGUIVisible = false;
+        this.mobileSettingsButton = null;
+        this.settingsOverlay = null;
+        this.createMobileSettingsButton();
         this.createDebugGUI();
     }
 
@@ -121,7 +124,12 @@ class GameController {
                 textSize(medText);
                 text(this.winner + " WINS!", width/2, height/2);
                 textSize(smallText);
-                text("Press ENTER to Play Again", width/2, height/2 + 50);
+                const isMobile = windowWidth <= 768;
+                if (isMobile) {
+                    text("Tap to Play Again", width/2, height/2 + 50);
+                } else {
+                    text("Press ENTER to Play Again", width/2, height/2 + 50);
+                }
                 break;
         }
         pop();
@@ -183,6 +191,57 @@ class GameController {
         this.updateDebugGUIPositions();
     }
 
+    createMobileSettingsButton() {
+        // Create settings toggle button for mobile
+        this.mobileSettingsButton = createButton('⚙️ Settings');
+        this.mobileSettingsButton.class('mobile-settings-btn');
+        this.mobileSettingsButton.mousePressed(() => {
+            this.debugGUIVisible = !this.debugGUIVisible;
+            this.setDebugGUIVisible(this.debugGUIVisible);
+            this.updateSettingsOverlay();
+        });
+        
+        // Create overlay div
+        this.settingsOverlay = createElement('div');
+        this.settingsOverlay.class('settings-overlay');
+        this.settingsOverlay.hide();
+        
+        this.updateMobileSettingsButton();
+    }
+
+    updateMobileSettingsButton() {
+        const isMobile = windowWidth <= 768;
+        if (isMobile) {
+            this.mobileSettingsButton.show();
+            const canvasRect = document.querySelector('canvas').getBoundingClientRect();
+            const centerX = windowWidth / 2;
+            const buttonWidth = 120;
+            const startY = canvasRect.bottom + 20;
+            const verticalSpacing = 20;
+            const playerSpacing = 40;
+            
+            // Position below P2 connect button using same layout logic as bleController
+            const p2StartY = startY + 50 + verticalSpacing + 50 + playerSpacing;
+            const settingsY = p2StartY + 50 + verticalSpacing + 60; // Below P2 button with extra spacing
+            
+            this.mobileSettingsButton.position(
+                centerX - (buttonWidth / 2),
+                settingsY
+            );
+        } else {
+            this.mobileSettingsButton.hide();
+        }
+    }
+
+    updateSettingsOverlay() {
+        const isMobile = windowWidth <= 768;
+        if (isMobile && this.debugGUIVisible) {
+            this.settingsOverlay.show();
+        } else {
+            this.settingsOverlay.hide();
+        }
+    }
+
     setDebugGUIVisible(visible) {
         console.log('Setting debug GUI visible:', visible);
         this.debugGUIVisible = visible;
@@ -196,10 +255,11 @@ class GameController {
         this.pointsLabel.style('display', display);
         this.speedIncrementLabel.style('display', display);
         
-        // Update positions when showing
+        // Update positions and overlay when showing
         if (visible) {
             this.updateDebugGUIPositions();
         }
+        this.updateSettingsOverlay();
     }
 
     updateDebugGUIPositions() {
