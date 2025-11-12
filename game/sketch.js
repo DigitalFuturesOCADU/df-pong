@@ -139,6 +139,14 @@ function draw() {
     if (bleController.isPlayer2Connected()) {
       right.move(player2Movement);
     }
+    
+    // Draw player names FIRST (behind everything) - scale to canvas size
+    textSize(height * 0.05); // 5% of canvas height
+    fill(255, 255, 255, 127);
+    textAlign(CENTER, CENTER);
+    text(player1Name, width/4, height/2);
+    text(player2Name, (3 * width)/4, height/2);
+    
     // Draw the dotted vertical line
   stroke(255, 255, 255, 127);
   strokeWeight(2);
@@ -171,13 +179,6 @@ function draw() {
     // Check win condition after score update
     gameController.checkWinCondition(player1Name, player2Name);
   }
-
-  // Always show player names - scale to canvas size
-  textSize(height * 0.05); // 5% of canvas height
-  fill(255, 255, 255, 127);
-  textAlign(CENTER, CENTER);
-  text(player1Name, width/4, height/2);
-  text(player2Name, (3 * width)/4, height/2);
 
   // Draw connection particle effects
   bleController.updateAndDrawParticles();

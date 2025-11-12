@@ -1,0 +1,29 @@
+{
+  "players": [
+    { "deviceNumber": 1, "name": "Student Name" },
+    { "deviceNumber": 2, "name": "Student Name" },
+    { "deviceNumber": 3, "name": "Student Name" },
+    { "deviceNumber": 4, "name": "Student Name" },
+    { "deviceNumber": 5, "name": "Student Name" },
+    { "deviceNumber": 6, "name": "Student Name" },
+    { "deviceNumber": 7, "name": "Student Name" },
+    { "deviceNumber": 8, "name": "Student Name" },
+    { "deviceNumber": 9, "name": "Student Name" },
+    { "deviceNumber": 10, "name": "Student Name" },
+    { "deviceNumber": 11, "name": "Student Name" },
+    { "deviceNumber": 12, "name": "Student Name" },
+    { "deviceNumber": 13, "name": "Student Name" },
+    { "deviceNumber": 14, "name": "Student Name" },
+    { "deviceNumber": 15, "name": "Student Name" },
+    { "deviceNumber": 16, "name": "Student Name" },
+    { "deviceNumber": 17, "name": "Student Name" },
+    { "deviceNumber": 18, "name": "Student Name" },
+    { "deviceNumber": 19, "name": "Student Name" },
+    { "deviceNumber": 20, "name": "Student Name" },
+    { "deviceNumber": 21, "name": "Student Name" },
+    { "deviceNumber": 22, "name": "Student Name" },
+    { "deviceNumber": 23, "name": "Student Name" },
+    { "deviceNumber": 24, "name": "Student Name" },
+    { "deviceNumber": 25, "name": "Student Name" }
+  ]
+}

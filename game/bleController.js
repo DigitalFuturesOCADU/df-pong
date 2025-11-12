@@ -36,6 +36,31 @@ class BLEController {
     this.player2RSSI = null;
     this.player1DeviceId = null;
     this.player2DeviceId = null;
+    
+    // Players configuration
+    this.playersConfig = null;
+    this.loadPlayersConfig();
+  }
+  
+  async loadPlayersConfig() {
+    try {
+      const response = await fetch('players-config.json');
+      this.playersConfig = await response.json();
+      console.log('Players config loaded:', this.playersConfig);
+      // Recreate dropdowns if they already exist
+      if (this.p1DeviceSelect && this.p2DeviceSelect) {
+        this.createDeviceSelectors();
+      }
+    } catch (error) {
+      console.error('Error loading players config:', error);
+      // Fallback to default 25 players
+      this.playersConfig = {
+        players: Array.from({length: 25}, (_, i) => ({
+          deviceNumber: i + 1,
+          name: 'Student Name'
+        }))
+      };
+    }
   }
   
   // Generate UUID based on device number (1-25)
@@ -63,17 +88,7 @@ class BLEController {
 
   createButtons() {
     requestAnimationFrame(() => {
-      // Player number selectors (corresponds to device number on Arduino)
-      this.p1DeviceSelect = createSelect();
-      this.p2DeviceSelect = createSelect();
-      
-      // Populate player number options
-      this.p1DeviceSelect.option('Select Player #', 0);
-      this.p2DeviceSelect.option('Select Player #', 0);
-      for (let i = 1; i <= 25; i++) {
-        this.p1DeviceSelect.option(`Player #${i}`, i);
-        this.p2DeviceSelect.option(`Player #${i}`, i);
-      }
+      this.createDeviceSelectors();
       
       // Connect buttons - simpler text
       this.p1Button = createButton('Connect');
@@ -82,13 +97,48 @@ class BLEController {
       this.p1Button.mousePressed(() => this.handleButtonClick(1));
       this.p2Button.mousePressed(() => this.handleButtonClick(2));
       
-      this.p1DeviceSelect.class('device-select');
-      this.p2DeviceSelect.class('device-select');
       this.p1Button.class('p1-button');
       this.p2Button.class('p2-button');
       
       this.updateButtonPositions();
     });
+  }
+  
+  createDeviceSelectors() {
+    // Remove old selectors if they exist
+    if (this.p1DeviceSelect) this.p1DeviceSelect.remove();
+    if (this.p2DeviceSelect) this.p2DeviceSelect.remove();
+    
+    // Create new selectors
+    this.p1DeviceSelect = createSelect();
+    this.p2DeviceSelect = createSelect();
+    
+    // Apply CSS classes immediately
+    this.p1DeviceSelect.class('device-select');
+    this.p2DeviceSelect.class('device-select');
+    
+    // Populate options from config
+    this.p1DeviceSelect.option('Select Player #', 0);
+    this.p2DeviceSelect.option('Select Player #', 0);
+    
+    if (this.playersConfig && this.playersConfig.players) {
+      this.playersConfig.players.forEach(player => {
+        const label = `${player.deviceNumber}: ${player.name}`;
+        this.p1DeviceSelect.option(label, player.deviceNumber);
+        this.p2DeviceSelect.option(label, player.deviceNumber);
+      });
+    } else {
+      // Fallback if config not loaded yet
+      for (let i = 1; i <= 25; i++) {
+        this.p1DeviceSelect.option(`${i}: Student Name`, i);
+        this.p2DeviceSelect.option(`${i}: Student Name`, i);
+      }
+    }
+    
+    // Reposition after creation (only if buttons exist)
+    if (this.p1Button && this.p2Button) {
+      this.updateButtonPositions();
+    }
   }
 
   updateButtonPositions() {
@@ -105,10 +155,10 @@ class BLEController {
       // Mobile: Stack all controls vertically below canvas, centered horizontally
       const startY = canvasRect.bottom + 20;
       const centerX = window.innerWidth / 2;
-      const dropdownWidth = 140;
+      const dropdownWidth = 200; // Increased for longer names
       const buttonWidth = 100;
-      const verticalSpacing = 15;
-      const playerSpacing = 30;
+      const verticalSpacing = 20; // Increased spacing
+      const playerSpacing = 40; // Increased spacing between player sections
       
       if (typeof debug !== 'undefined') {
         debug('Buttons - startY:', startY.toFixed(0), 'centerX:', centerX.toFixed(0));
@@ -138,9 +188,9 @@ class BLEController {
     } else {
       // Desktop: Horizontal layout below canvas
       const bottomY = canvasRect.bottom + 15;
-      const dropdownWidth = 140;
-      const buttonWidth = 90;
-      const horizontalSpacing = 15;
+      const dropdownWidth = 200; // Increased for longer names
+      const buttonWidth = 100;
+      const horizontalSpacing = 20; // Increased spacing
       
       // Player 1: Aligned to left edge of canvas
       this.p1DeviceSelect.position(canvasRect.left, bottomY);
@@ -171,14 +221,14 @@ class BLEController {
       font-size: 14px;
       padding: 8px;
       border: 2px solid black;
-      min-width: 140px;
+      min-width: 200px;
       }
       .p1-button, .p2-button {
       background-color: white;
       color: black;
       font-size: 16px;
       border: 2px solid black;
-      min-width: 90px;
+      min-width: 100px;
       }
       .p1-button:hover, .p2-button:hover {
       background-color: #f0f0f0;
@@ -198,7 +248,7 @@ class BLEController {
         }
         .device-select {
           font-size: 14px;
-          min-width: 100px;
+          min-width: 200px;
           background-color: rgba(255, 255, 255, 0.95) !important;
         }
         .p1-button, .p2-button {
@@ -272,11 +322,20 @@ class BLEController {
       const deviceId = ble.device.id;
       const playerNumber = deviceNumber;
       
-      console.log(`Connected to Player #${playerNumber} (Device ID: ${deviceId})`);
+      // Get player name from config
+      let playerName = `Player #${playerNumber}`;
+      if (this.playersConfig && this.playersConfig.players) {
+        const playerData = this.playersConfig.players.find(p => p.deviceNumber === playerNumber);
+        if (playerData) {
+          playerName = playerData.name;
+        }
+      }
+      
+      console.log(`Connected to ${playerName} (Device #${playerNumber}, ID: ${deviceId})`);
 
       if (player === 1) {
         this.player1Connected = true;
-        this.player1Name = `Player #${playerNumber}`;
+        this.player1Name = playerName;
         this.player1DeviceId = deviceId;
         this.player1DeviceNumber = playerNumber;
         this.p1Button.addClass('connected');
@@ -287,7 +346,7 @@ class BLEController {
         this.createConnectionParticles(1);
       } else {
         this.player2Connected = true;
-        this.player2Name = `Player #${playerNumber}`;
+        this.player2Name = playerName;
         this.player2DeviceId = deviceId;
         this.player2DeviceNumber = playerNumber;
         this.p2Button.addClass('connected');

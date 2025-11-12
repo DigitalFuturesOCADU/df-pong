@@ -1,106 +1,298 @@
-![Game Start](./images/gameStart.png)
+![Game Start](./game/images/gameStart.png)
 
-# df-pong
+# DF Pong
+
+**A Bluetooth Low Energy multiplayer Pong game designed for custom Arduino controllers.**
 
 [Play the Game](https://digitalfuturesocadu.github.io/df-pong/)
 
+## Overview
 
-## General Overview
+DF Pong is a browser-based Pong game that allows students to create and connect custom Bluetooth Low Energy (BLE) controllers using Arduino Nano 33 IoT boards. The game supports 0, 1, or 2 BLE controllers, with keyboard fallback for any unconnected players. Designed for classroom environments with up to 25 active devices, it uses a unique UUID-based filtering system to ensure reliable connections even in crowded Bluetooth environments.
 
-df-pong provides a framework for creating unusual BLE controllers for pong.
+**Key Features:**
+- Connect custom Arduino BLE controllers to play Pong in the browser
+- Supports 0-2 controllers (keyboard controls available for unconnected players)
+- Unique device identification system for classroom use (1-25 players)
+- Configurable player names and device assignments
+- Mobile and desktop support
+- Real-time debug controls for game tuning
 
-## Controllers
+---
 
-This game is designed to be played with custom Bluetooth controllers. You can find the corresponding controllers and their setup instructions at the following link:
-[https://github.com/DigitalFuturesOCADU/Pong-Controller](https://github.com/DigitalFuturesOCADU/Pong-Controller/game)
+## Playing the Game
 
-**Important:** When setting up controllers, make sure to:
-- Name each controller with the `DFPONG-` prefix (e.g., `DFPONG-001`, `DFPONG-002`)
-- Use unique numbers for each controller in a classroom setting
-- This naming convention helps the game filter and find the correct devices in crowded BLE environments
+### Controller Modes
 
-## How to Play
+**With 0 Controllers (Keyboard Only):**
+- Player 1: `A` (up) / `Z` (down)
+- Player 2: `P` (up) / `L` (down)
+- Press `SPACE` to start/pause
+- Press `ENTER` to reset
 
-1. **Connect Controllers**: 
-   - Connect 1 or more Controllers via BLE.
-   - If less than 2 Controllers are connected, the other player can use the keyboard.
-   - Use the Pong Controller Framework for your Arduino Code: [Pong Controller Framework](https://github.com/DigitalFuturesOCADU/Pong-Controller)
-   - Connect 1 controller at a time using the corresponding button.
-   - **Note:** When reconnecting a previously paired controller, it may show as "Arduino-Paired" instead of your custom name. The game will display the real name after connection.
-   - **Tip:** If you're unsure which device is yours, connect it and click the "💡 Flash" button to make your controller identify itself with LED blinks and buzzer beeps.
-2. **Start Game**: Press the SPACE key to start the game.
-3. **Control Paddles**: Use the controllers to move the paddles up and down.
-4. **Pause/Resume Game**: Press the SPACE key to pause or resume the game.
-5. **Reset Game**: Press the ENTER key to reset the game after a win or during a pause.
+**With 1 Controller:**
+- One player uses their custom BLE controller
+- Other player uses keyboard controls (see above)
 
-## Identifying Your Controller
-
-In crowded environments with many controllers:
-- The "💡 Flash" button appears when a controller is connected
-- Click it to make your controller flash its LED and buzz
-- This helps you physically confirm which device you're connected to
-- The game remembers your device and shows the real name (e.g., "DFPONG-001") even when the browser shows "Arduino-Paired"
-
-### Troubleshooting "Arduino-Paired" Issue
-
-If you see multiple "Arduino-Paired" devices instead of "DFPONG-001", "DFPONG-002", etc.:
-
-**Quick Solution - Trial and Error:**
-1. Click "Connect Player 1"
-2. Select any "Arduino-Paired" device
-3. After connecting, check if the game shows your device name
-4. Click "💡 Flash" - does your controller blink/buzz?
-5. If yes, you're connected! If no, disconnect and try another
-
-**Permanent Solution - Forget Devices:**
-1. Click the "⚠️ Forget All Devices" button for instructions
-2. Follow the steps to remove paired devices from your browser
-3. Refresh the page
-4. Devices will now show their real names ("DFPONG-001", etc.) in the picker!
-
-## Debug Controls
-
-There are 2 sets of debug controls for the game:
-
-### BLE Debug
-- **Toggle with 'd'**: Shows the connection status and data received in P5.
+**With 2 Controllers:**
+- Both players use custom BLE controllers
+- No keyboard controls needed
 
 ### Game Controls
-- **Toggle with 'c'**: These controls set:
-  - Move Speed of each player
-  - Speed multiplier for the puck
-  - Winning score total
 
-## Technical Explanation
+| Action | Desktop | Mobile |
+|--------|---------|--------|
+| Start/Pause Game | `SPACE` or click canvas | Tap canvas |
+| Reset Game | `ENTER` | (Desktop only) |
+| Toggle BLE Debug | `d` | Tap with 2 fingers |
+| Toggle Game Settings | `c` | Long press canvas (1 sec) |
+
+### Debug & Configuration
+
+**BLE Debug (`d` key):**
+- Shows connection status
+- Displays real-time data from controllers
+- Useful for troubleshooting connectivity
+
+**Game Settings (`c` key):**
+- **Player 1/2 Move Speed**: Adjust paddle responsiveness (1-100)
+- **Puck Speed**: Set base speed of the ball (1-20)
+- **Winning Score**: Set points needed to win (default: 10)
+
+All settings persist in browser's local storage.
+
+---
+
+## Setup
+
+### For Students
+
+#### 1. Configure Your Arduino Device Number
+
+Each student must set a unique device number (1-25) in their Arduino controller:
+
+1. Open `controller/examples/BLE/DFpong_controller_2button/DFpong_controller_2button.ino`
+2. Find this line at the top:
+   ```cpp
+   const int DEVICE_NUMBER = 1;  // ← CHANGE THIS!
+   ```
+3. Change the number to your assigned device (1-25)
+4. Upload the sketch to your Arduino Nano 33 IoT
+
+**Important:** Remember your device number - you'll use it throughout the semester!
+
+#### 2. Connect to the Game
+
+1. Go to [https://digitalfuturesocadu.github.io/df-pong/](https://digitalfuturesocadu.github.io/df-pong/)
+2. Select your device number from the dropdown (e.g., "1: Your Name")
+3. Click "Connect"
+4. Select your Arduino from the browser's Bluetooth picker
+5. The button will turn black and say "Disconnect" when connected
+
+### For Instructors
+
+#### Update Student Names
+
+Edit `game/players-config.json` to assign names to device numbers:
+
+```json
+{
+  "players": [
+    { "deviceNumber": 1, "name": "Alice Smith" },
+    { "deviceNumber": 2, "name": "Bob Jones" },
+    { "deviceNumber": 3, "name": "Carol White" }
+  ]
+}
+```
+
+**Configuration Options:**
+- **Dropdown display**: Shows `"1: Alice Smith"`, `"2: Bob Jones"`, etc.
+- **In-game display**: Shows only the name: `"Alice Smith"` vs `"Bob Jones"`
+- **Number of players**: Determined by array length (add/remove entries as needed)
+- Changes take effect on page refresh
+
+---
+
+## How It Works
+
+### The Challenge: Identifying Devices in Crowded Environments
+
+In a classroom with 25 Arduino devices broadcasting Bluetooth simultaneously, traditional device name filtering fails:
+
+1. **Browser Caching**: Web browsers cache paired device names
+2. **Generic Names**: Previously paired devices may show as "Arduino-Paired" instead of their custom names
+3. **Name Collisions**: Multiple devices can appear identical in the connection dialog
+4. **Trial and Error**: Students can't reliably identify which physical device is theirs
+
+### The Solution: Unique UUID Per Device
+
+Instead of relying on device names, each Arduino generates a **unique Bluetooth Service UUID** based on its device number:
+
+#### UUID Generation Formula
+
+```
+Base UUID: 19b10010-e8f2-537e-4f6c-d104768a12
+Suffix Calculation: hex(13 + deviceNumber)
+
+Device 1:  19b10010-e8f2-537e-4f6c-d104768a120e  (13 + 1 = 14 = 0x0E)
+Device 2:  19b10010-e8f2-537e-4f6c-d104768a120f  (13 + 2 = 15 = 0x0F)
+Device 25: 19b10010-e8f2-537e-4f6c-d104768a1227  (13 + 25 = 38 = 0x27)
+```
+
+#### How Web Bluetooth Filters By UUID
+
+When a student selects their device number from the dropdown:
+
+1. **JavaScript generates the matching UUID**:
+   ```javascript
+   const deviceNumber = 1;
+   const suffix = (13 + deviceNumber).toString(16); // "0e"
+   const uuid = "19b10010-e8f2-537e-4f6c-d104768a12" + suffix;
+   ```
+
+2. **Web Bluetooth API requests only that specific UUID**:
+   ```javascript
+   navigator.bluetooth.requestDevice({
+     filters: [{ services: [uuid] }]
+   })
+   ```
+
+3. **Browser shows only matching devices**: Typically just one - the student's assigned device!
+
+#### Why This Works
+
+- **Unique Hardware Identifier**: Each device broadcasts a different UUID at the hardware level
+- **Browser-Agnostic**: Works regardless of name caching or pairing history
+- **No Ambiguity**: Only one device will match the requested UUID
+- **Reliable**: Students always connect to their assigned device, first time, every time
+
+### Technical Architecture
+
+**Arduino Side** (`ble_functions.h`):
+```cpp
+void generateUUIDs(int deviceNumber) {
+  int suffix = 13 + deviceNumber;
+  String hexSuffix = String(suffix, HEX);
+  serviceUuidStr = "19b10010-e8f2-537e-4f6c-d104768a12" + hexSuffix;
+  // Advertise this unique service UUID
+}
+```
+
+**JavaScript Side** (`bleController.js`):
+```javascript
+generateServiceUUID(deviceNumber) {
+  const suffix = (13 + deviceNumber).toString(16).padStart(2, '0');
+  return "19b10010-e8f2-537e-4f6c-d104768a12" + suffix;
+}
+```
+
+**Result**: Hardware and software agree on the exact UUID to use for each device number.
+
+---
+
+## Technical Details
 
 ### Game Components
 
-- **Puck**: The puck moves across the screen, bouncing off the paddles and the top and bottom edges of the screen.
-- **Paddles**: Each player controls a paddle to hit the puck. The paddles can move up and down.
-- **GameController**: Manages the game state, including starting, pausing, resuming, and resetting the game.
-- **BLEController**: Manages the Bluetooth connections to the custom controllers.
+- **Puck**: Ball that bounces off paddles and edges, speeds up with each hit
+- **Paddles**: Player-controlled vertical bars, scale responsively to canvas size
+- **GameController**: Manages game states (waiting, playing, paused, won)
+- **BLEController**: Handles UUID generation, device filtering, and connection management
 
-### Connecting the Controllers
+### File Structure
 
-1. **Player 1**: Press the "Connect Player 1" button to initiate the connection process for the first controller.
-2. **Player 2**: Press the "Connect Player 2" button to initiate the connection process for the second controller.
+```
+game/
+├── index.html              # Main entry point
+├── sketch.js               # p5.js game loop and canvas management
+├── gameController.js       # Game state and scoring logic
+├── bleController.js        # BLE connection and UUID filtering
+├── paddle.js               # Paddle physics and rendering
+├── puck.js                 # Ball physics and collision detection
+├── players-config.json     # Device-to-name mapping
+└── style.css              # Responsive layout (desktop/mobile)
 
-The game will display the connection status and handle any errors that occur during the connection process.
-
-### Technical Details
-
-- **Puck**: The puck's speed and direction are controlled by the `Puck` class. The speed can be adjusted using the debug GUI.
-- **Paddles**: The paddles are controlled by the `Paddle` class. The movement speed can be adjusted using the debug GUI.
-- **GameController**: The `GameController` class manages the game state and handles user input for starting, pausing, resuming, and resetting the game.
-- **BLEController**: The `BLEController` class manages the Bluetooth connections to the custom controllers. It handles connecting, disconnecting, and receiving data from the controllers.
+controller/examples/BLE/
+├── DFpong_controller_2button/       # Complete 2-button example
+│   ├── DFpong_controller_2button.ino
+│   ├── ble_functions.h             # UUID generation and BLE setup
+│   └── buzzer_functions.h          # Audio feedback
+└── DFpong_controller_startTemplate/ # Starter template for custom controllers
+    ├── DFpong_controller_startTemplate.ino
+    ├── ble_functions.h
+    └── buzzer_functions.h
+```
 
 ### Dependencies
 
-- **p5.js**: Used for rendering the game and handling user input.
-- **p5ble.js**: Used for managing Bluetooth connections.
+- **p5.js** (v1.10.0): Canvas rendering and game loop
+- **p5.sound.js**: Audio support
+- **p5.ble.js** (v0.0.7): Web Bluetooth API wrapper
+- **p5-phone** (v1.5.0): Mobile debugging with on-screen console
+- **ArduinoBLE** (Arduino): Bluetooth Low Energy library for Arduino Nano 33 IoT
 
-### Installation
+### Responsive Design
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/df-pong.git
+- **Desktop**: Centered canvas (max 1200×800px) with controls below
+- **Mobile Portrait**: Full-width canvas at top, vertically stacked controls below
+- **Scaling**: All game elements (paddles, puck, text, scores) scale proportionally to canvas size
+
+### Browser Compatibility
+
+- Chrome 80+ (desktop and Android)
+- Safari 13+ (desktop and iOS)
+- Edge 80+
+- **Note**: Web Bluetooth API required (not supported in Firefox)
+
+---
+
+## Creating Custom Controllers
+
+Use the template in `controller/examples/BLE/DFpong_controller_startTemplate/` to build your own controller:
+
+1. Set your `DEVICE_NUMBER`
+2. Implement `handleInput()` to read your sensors
+3. Set `currentMovement` to:
+   - `0` = Stop/neutral
+   - `1` = Move paddle UP
+   - `2` = Move paddle DOWN
+4. Upload and connect!
+
+**Example sensors:**
+- Buttons, joysticks, accelerometers
+- Light sensors, distance sensors, potentiometers
+- Capacitive touch, flex sensors, pressure sensors
+- Anything that can produce distinct UP/DOWN/NEUTRAL states!
+
+---
+
+## Troubleshooting
+
+**Controller won't connect:**
+- Verify `DEVICE_NUMBER` is set (1-25)
+- Check Arduino is powered and LED is blinking
+- Try refreshing the browser page
+- Check browser console for errors (press `d` for debug info)
+
+**Wrong controller connects:**
+- Verify you selected the correct device number from dropdown
+- Each controller must have a unique `DEVICE_NUMBER`
+- Check Serial Monitor to confirm UUID is correct
+
+**Game is too fast/slow:**
+- Press `c` to open game settings
+- Adjust paddle speed and puck speed to your preference
+- Settings are saved automatically
+
+---
+
+## Controller Framework
+
+For detailed controller setup and examples:  
+[https://github.com/DigitalFuturesOCADU/Pong-Controller](https://github.com/DigitalFuturesOCADU/Pong-Controller)
+
+---
+
+## License
+
+MIT License - See LICENSE file for details
