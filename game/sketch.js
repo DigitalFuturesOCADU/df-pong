@@ -57,15 +57,11 @@ function setup() {
     const vw = window.visualViewport ? window.visualViewport.width : windowWidth;
     const vh = window.visualViewport ? window.visualViewport.height : windowHeight;
     
-    debug('Mobile Setup - vw:', vw, 'vh:', vh);
-    
     if (vh > vw) {
       // Portrait: fit canvas to width, maintain 1.5:1 ratio (width:height)
       isLandscape = true; // Keep game logic as landscape
       const canvasWidth = vw;
       const canvasHeight = canvasWidth / 1.5;
-      
-      debug('Canvas size - width:', canvasWidth, 'height:', canvasHeight);
       createCanvas(canvasWidth, canvasHeight);
     } else {
       // Landscape: show orientation warning
