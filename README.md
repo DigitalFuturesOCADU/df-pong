@@ -4,7 +4,7 @@
 
 **A Bluetooth Low Energy multiplayer Pong game designed for custom Arduino controllers.**
 
-[Play the Game](https://digitalfuturesocadu.github.io/df-pong/)
+[Play the Game](https://digitalfuturesocadu.github.io/df-pong/game)
 
 ## Overview
 
