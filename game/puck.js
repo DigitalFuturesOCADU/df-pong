@@ -80,6 +80,7 @@ class Puck {
                 this.yspeed = this.baseSpeed * this.speedMultiplier * sin(angle);
                 this.x = p.x + p.w/2 + this.r;
                 this.speedMultiplier += this.speedIncrement;
+                song.play(); // Play paddle sound
             }
             
         }
@@ -96,6 +97,7 @@ class Puck {
                 this.yspeed = this.baseSpeed * this.speedMultiplier * sin(angle);
                 this.x = p.x - p.w/2 - this.r;
                 this.speedMultiplier += this.speedIncrement;
+                song.play(); // Play paddle sound
             }
         }
     }
@@ -118,22 +120,27 @@ class Puck {
         }
     }
     
-    edges() {
+    edges(bleController) {
         if (this.y < 0 || this.y > height) {
             this.yspeed *= -1;
+            song2.play(); // Play wall sound
         }
         
         if (this.x - this.r > width) {
-           // ding.play();
-          song.play();
+            ding.play(); // Play score sound
             leftscore++;
+            if (bleController) {
+                bleController.createConnectionParticles(1); // Particle effect for player 1
+            }
             this.reset();
         }
         
         if (this.x + this.r < 0) {
-            //ding.play();
-          song2.play();
+            ding.play(); // Play score sound
             rightscore++;
+            if (bleController) {
+                bleController.createConnectionParticles(2); // Particle effect for player 2
+            }
             this.reset();
         }
     }

@@ -129,7 +129,7 @@ function draw() {
 
   // Draw player names ALWAYS (behind everything) - scale to canvas size
   textSize(height * 0.05); // 5% of canvas height
-  fill(255, 255, 255, 127);
+  fill(255); // White, not transparent
   textAlign(CENTER, CENTER);
   text(player1Name, width/4, height/2);
   text(player2Name, (3 * width)/4, height/2);
@@ -137,11 +137,16 @@ function draw() {
   // Show "VS" in center during gameplay
   if (gameController.isPlaying) {
     textSize(height * 0.08); // 8% of canvas height
-    fill(255, 255, 255, 127);
+    fill(255); // White, not transparent
     textAlign(CENTER, CENTER);
     text("VS", width/2, height/2);
   }
 
+  // Update keyboard control visibility based on BLE connections
+  gameController.updateKeyboardControlVisibility(bleController);
+  gameController.updateGameButtonLabel();
+  gameController.updateKeyboardControlPositions();
+  
   if (gameController.isPlaying) {
     // Game logic only runs when playing
     if (bleController.isPlayer1Connected()) {
@@ -157,6 +162,12 @@ function draw() {
   for (let y = 0; y < height; y += 20) {
     line(width / 2, y, width / 2, y + 10);
   }
+  
+  // Draw top and bottom borders
+  stroke(255, 255, 255, 127);
+  strokeWeight(2);
+  line(0, 0, width, 0); // Top border
+  line(0, height - 1, width, height - 1); // Bottom border
   noStroke();
 
 
@@ -169,7 +180,7 @@ function draw() {
     right.update();
     
     puck.update();
-    puck.edges();
+    puck.edges(bleController);
     puck.show();
     
     // Score display - scale to canvas size
@@ -228,54 +239,34 @@ function keyPressed() {
         gameController.setDebugGUIVisible(gameController.debugGUIVisible);
     }
 
-    // Handle game states with SPACE and ENTER
-    if (key === ' ') {
-        handleGameToggle();
-    } else if (keyCode === ENTER) {
+    // ENTER key still resets game
+    if (keyCode === ENTER) {
         handleGameReset();
     }
 }
 
 // Handle touch/click on canvas for mobile support
 function mousePressed() {
-  // Only handle clicks on the canvas, not on buttons
-  const canvasElement = document.querySelector('canvas');
-  if (canvasElement) {
-    const rect = canvasElement.getBoundingClientRect();
-    if (mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
-      // Click on canvas - toggle play/pause
-      handleGameToggle();
-    }
-  }
+  // Canvas clicks no longer toggle game state - use the game control button instead
+  return false;
 }
 
 function touchStarted() {
   // Check if touch is on a slider or other UI element
   if (event && event.target) {
     const target = event.target;
-    // Don't handle game toggle if touching a slider, button, or select element
+    // Allow default behavior for UI elements
     if (target.tagName === 'INPUT' || 
         target.tagName === 'BUTTON' || 
         target.tagName === 'SELECT' ||
         target.classList.contains('debug-slider') ||
-        target.classList.contains('mobile-settings-btn')) {
+        target.classList.contains('mobile-settings-btn') ||
+        target.classList.contains('control-btn')) {
       return true; // Allow default behavior for UI elements
     }
   }
-  
-  // Prevent default touch behavior
-  const canvasElement = document.querySelector('canvas');
-  if (canvasElement) {
-    const rect = canvasElement.getBoundingClientRect();
-    // Check if touch is within canvas bounds
-    if (touches.length > 0) {
-      const touch = touches[0];
-      if (touch.x >= 0 && touch.x <= width && touch.y >= 0 && touch.y <= height) {
-        handleGameToggle();
-        return false; // Prevent default
-      }
-    }
-  }
+  // Canvas touches no longer toggle game state
+  return false;
 }
 
 function handleGameToggle() {

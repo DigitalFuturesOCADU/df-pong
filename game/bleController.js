@@ -4,8 +4,8 @@ class BLEController {
     this.player2Connected = false;
     this.player1Movement = 0;
     this.player2Movement = 0;
-    this.player1Name = "A=UP, Z=DOWN";
-    this.player2Name = "P=UP, L=DOWN";
+    this.player1Name = "Player 1";
+    this.player2Name = "Player 2";
     this._debug = false;
 
     // Base UUIDs - will be modified based on device number
@@ -146,13 +146,16 @@ class BLEController {
     const isMobile = window.innerWidth <= 768;
     
     if (isMobile) {
-      // Mobile: Stack all controls vertically below canvas, centered horizontally
-      const startY = canvasRect.bottom + 20;
+      // Mobile: Stack connection controls at bottom, leaving space for game controls at top
       const centerX = window.innerWidth / 2;
-      const dropdownWidth = 200; // Increased for longer names
+      const dropdownWidth = 200;
       const buttonWidth = 100;
-      const verticalSpacing = 20; // Increased spacing
-      const playerSpacing = 40; // Increased spacing between player sections
+      const verticalSpacing = 20;
+      const playerSpacing = 40;
+      
+      // Start from below canvas + space for game controls (START button + player buttons)
+      const gameControlsHeight = 180; // Space reserved for game controls
+      const startY = canvasRect.bottom + gameControlsHeight;
       
       // Player 1: Centered, stacked vertically
       this.p1DeviceSelect.position(

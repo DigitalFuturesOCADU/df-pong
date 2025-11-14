@@ -38,6 +38,58 @@ canvas {
   position: relative;
 }
 
+/* Keyboard Control Buttons */
+.control-btn {
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #000;
+  border: 2px solid #000;
+  border-radius: 8px;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  z-index: 10;
+}
+
+.player-btn {
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-btn:hover {
+  background-color: rgba(255, 255, 255, 1);
+  transform: scale(1.05);
+}
+
+.player-btn:active {
+  background-color: rgba(200, 200, 200, 1);
+  transform: scale(0.95);
+}
+
+.game-control-btn {
+  width: 120px;
+  height: 50px;
+  padding: 10px 20px;
+  font-size: 18px;
+}
+
+.game-control-btn:hover {
+  background-color: rgba(255, 255, 255, 1);
+  transform: scale(1.05);
+}
+
+.game-control-btn:active {
+  background-color: rgba(200, 200, 200, 1);
+  transform: scale(0.95);
+}
+
 /* Mobile Settings Button */
 .mobile-settings-btn {
   display: none;
