@@ -108,7 +108,7 @@ class GameController {
         switch(this.currentState) {
             case this.STATE.WAITING:
                 textSize(bigText);
-                text("DF PONG", width/2, height/2 - (bigText/2));
+                text("DF PONG", width/2, height/2 - bigText);
                 textSize(medText);
                 text("VS", width/2, height/2);
                 break;

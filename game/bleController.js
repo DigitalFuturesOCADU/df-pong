@@ -118,8 +118,8 @@ class BLEController {
     this.p2DeviceSelect.class('device-select');
     
     // Populate options from config
-    this.p1DeviceSelect.option('Select Player #', 0);
-    this.p2DeviceSelect.option('Select Player #', 0);
+    this.p1DeviceSelect.option('Select Player', 0);
+    this.p2DeviceSelect.option('Select Player', 0);
     
     if (this.playersConfig && this.playersConfig.players) {
       this.playersConfig.players.forEach(player => {
@@ -200,35 +200,36 @@ class BLEController {
     buttonStyle.textContent = `
       button, select {
       padding: 10px;
-      border: 2px solid black;
+      border: 2px solid white;
       border-radius: 5px;
       cursor: pointer;
       position: fixed;
       font-weight: bold;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
+      background-color: black;
+      color: white;
       }
       .device-select {
-      background-color: white;
-      color: black;
+      background-color: black;
+      color: white;
       font-size: 14px;
       padding: 8px;
-      border: 2px solid black;
+      border: 2px solid white;
       min-width: 200px;
       }
       .p1-button, .p2-button {
-      background-color: white;
-      color: black;
+      background-color: black;
+      color: white;
       font-size: 16px;
-      border: 2px solid black;
+      border: 2px solid white;
       min-width: 100px;
       }
       .p1-button:hover, .p2-button:hover {
-      background-color: #f0f0f0;
+      background-color: #222;
       }
       .connected {
-      background-color: black !important;
-      color: white !important;
+      color: #0f0 !important;
       }
       
       /* Mobile responsive styles */
@@ -236,18 +237,20 @@ class BLEController {
         button, select {
           font-size: 14px;
           padding: 12px;
-          background-color: rgba(255, 255, 255, 0.95) !important;
-          backdrop-filter: blur(5px);
+          background-color: black !important;
         }
         .device-select {
           font-size: 14px;
           min-width: 200px;
-          background-color: rgba(255, 255, 255, 0.95) !important;
+          background-color: black !important;
+          color: white !important;
         }
         .p1-button, .p2-button {
           font-size: 16px;
           min-width: 100px;
-          background-color: rgba(255, 255, 255, 0.95) !important;
+          background-color: black !important;
+          color: white !important;
+        }
         }
         .connected {
           background-color: rgba(0, 0, 0, 0.95) !important;
