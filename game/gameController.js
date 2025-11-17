@@ -107,9 +107,31 @@ class GameController {
         
         switch(this.currentState) {
             case this.STATE.WAITING:
+                // Blinking effect for DF PONG text - words alternate
+                const blinkCycle = millis() % 2000; // 2 second total cycle
+                const dfColor = blinkCycle < 1000 ? 255 : 0; // White for first second, black for second
+                const pongColor = blinkCycle < 1000 ? 0 : 255; // Black for first second, white for second
+                
                 textSize(bigText);
-                text("DF PONG", width/2, height/2 - bigText);
+                
+                // Measure text widths for proper centering
+                const dfWidth = textWidth("DF ");
+                const pongWidth = textWidth("PONG");
+                const totalWidth = dfWidth + pongWidth;
+                const startX = width/2 - totalWidth/2;
+                
+                // Draw DF
+                textAlign(LEFT, CENTER);
+                fill(dfColor);
+                text("DF", startX, height/2 - bigText);
+                
+                // Draw PONG
+                fill(pongColor);
+                text("PONG", startX + dfWidth, height/2 - bigText);
+                
+                textAlign(CENTER, CENTER);
                 textSize(medText);
+                fill(255); // VS stays white
                 text("VS", width/2, height/2);
                 break;
 
