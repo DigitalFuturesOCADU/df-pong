@@ -81,25 +81,30 @@ canvas {
   height: 50px;
   padding: 10px 20px;
   font-size: 18px;
+  background-color: #000;
+  color: #fff;
+  border: 2px solid #fff;
 }
 
 .game-control-btn:hover {
-  background-color: rgba(255, 255, 255, 1);
+  background-color: #222;
   transform: scale(1.05);
 }
 
 .game-control-btn:active {
-  background-color: rgba(200, 200, 200, 1);
+  background-color: #444;
   transform: scale(0.95);
 }
 
 /* Mobile Settings Button */
 .mobile-settings-btn {
   display: none;
+  width: 120px;
+  height: 50px;
   padding: 10px 15px;
-  background-color: #fff;
-  color: #000;
-  border: 2px solid #000;
+  background-color: #000;
+  color: #fff;
+  border: 2px solid #fff;
   border-radius: 5px;
   font-size: 16px;
   font-weight: bold;
@@ -109,7 +114,7 @@ canvas {
 }
 
 .mobile-settings-btn:hover {
-  background-color: #f0f0f0;
+  background-color: #222;
 }
 
 /* Settings Overlay */

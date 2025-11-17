@@ -303,7 +303,7 @@ class GameController {
         if (isMobile) {
             // Mobile: Player controls at screen edges, game button centered
             const centerX = windowWidth / 2;
-            const startY = canvasRect.bottom + 20;
+            const startY = canvasRect.bottom + 10; // Reduced from 20
             const edgeMargin = 10; // Small margin from screen edge
             
             // Position buttons based on paused state
@@ -332,7 +332,7 @@ class GameController {
             }
             
             // Player controls below game button, at screen edges
-            const playerY = startY + 60;
+            const playerY = startY + 50; // Reduced from 60
             
             // Player 1 controls on left edge
             this.keyboardControls.p1Up.position(
@@ -433,9 +433,14 @@ class GameController {
 
     createMobileSettingsButton() {
         // Create settings toggle button for mobile
-        this.mobileSettingsButton = createButton('⚙️ Settings');
+        this.mobileSettingsButton = createButton('Settings');
         this.mobileSettingsButton.class('mobile-settings-btn');
         this.mobileSettingsButton.mousePressed(() => {
+            // Pause game if playing when opening settings
+            if (!this.debugGUIVisible && this.currentState === this.STATE.PLAYING) {
+                this.pauseGame();
+            }
+            
             this.debugGUIVisible = !this.debugGUIVisible;
             this.setDebugGUIVisible(this.debugGUIVisible);
             this.updateSettingsOverlay();
@@ -450,27 +455,29 @@ class GameController {
     }
 
     updateMobileSettingsButton() {
+        const canvasRect = document.querySelector('canvas').getBoundingClientRect();
+        const centerX = windowWidth / 2;
+        const buttonWidth = 120;
         const isMobile = windowWidth <= 768;
+        
+        this.mobileSettingsButton.show(); // Show on both desktop and mobile
+        
         if (isMobile) {
-            this.mobileSettingsButton.show();
-            const canvasRect = document.querySelector('canvas').getBoundingClientRect();
-            const centerX = windowWidth / 2;
-            const buttonWidth = 120;
-            const verticalSpacing = 20;
-            const playerSpacing = 40;
-            
-            // Calculate position: below canvas + game controls + connection controls
-            const gameControlsHeight = 180;
-            const connectionStartY = canvasRect.bottom + gameControlsHeight;
-            const p2StartY = connectionStartY + 50 + verticalSpacing + 50 + playerSpacing;
-            const settingsY = p2StartY + 50 + verticalSpacing + 60;
+            const startY = canvasRect.bottom + 10;
+            const settingsY = startY + 70; // More spacing: button height 50 + 20 spacing
             
             this.mobileSettingsButton.position(
                 centerX - (buttonWidth / 2),
                 settingsY
             );
         } else {
-            this.mobileSettingsButton.hide();
+            // Desktop: centered below game button with more spacing
+            const settingsY = canvasRect.bottom + 80; // Below game button (20 + 50 + 10 spacing)
+            
+            this.mobileSettingsButton.position(
+                canvasRect.left + (canvasRect.width / 2) - (buttonWidth / 2),
+                settingsY
+            );
         }
     }
 

@@ -150,11 +150,11 @@ class BLEController {
       const centerX = window.innerWidth / 2;
       const dropdownWidth = 200;
       const buttonWidth = 100;
-      const verticalSpacing = 20;
-      const playerSpacing = 40;
+      const verticalSpacing = 10; // Reduced from 20
+      const playerSpacing = 20; // Reduced from 40
       
       // Start from below canvas + space for game controls (START button + player buttons)
-      const gameControlsHeight = 180; // Space reserved for game controls
+      const gameControlsHeight = 140; // Reduced from 180
       const startY = canvasRect.bottom + gameControlsHeight;
       
       // Player 1: Centered, stacked vertically
