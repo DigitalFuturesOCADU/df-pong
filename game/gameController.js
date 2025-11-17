@@ -334,24 +334,28 @@ class GameController {
         } else {
             // Desktop: Player controls at canvas corners, game button centered below
             
-            // Player 1 controls - left side of canvas
+            // Calculate vertical center position for player controls
+            const totalControlHeight = buttonSize + spacing + buttonSize; // Two buttons with spacing
+            const centerY = canvasRect.top + (canvasRect.height / 2) - (totalControlHeight / 2);
+            
+            // Player 1 controls - left side of canvas, vertically centered
             this.keyboardControls.p1Up.position(
                 canvasRect.left - buttonSize - spacing,
-                canvasRect.top
+                centerY
             );
             this.keyboardControls.p1Down.position(
                 canvasRect.left - buttonSize - spacing,
-                canvasRect.top + buttonSize + spacing
+                centerY + buttonSize + spacing
             );
             
-            // Player 2 controls - right side of canvas
+            // Player 2 controls - right side of canvas, vertically centered
             this.keyboardControls.p2Up.position(
                 canvasRect.right + spacing,
-                canvasRect.top
+                centerY
             );
             this.keyboardControls.p2Down.position(
                 canvasRect.right + spacing,
-                canvasRect.top + buttonSize + spacing
+                centerY + buttonSize + spacing
             );
             
             // Position buttons based on paused state
