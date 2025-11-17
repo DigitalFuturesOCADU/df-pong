@@ -247,6 +247,23 @@ function keyPressed() {
 
 // Handle touch/click on canvas for mobile support
 function mousePressed() {
+  // Check if click is on a UI element
+  if (event && event.target) {
+    const target = event.target;
+    // Allow default behavior for UI elements
+    if (target.tagName === 'INPUT' || 
+        target.tagName === 'BUTTON' || 
+        target.tagName === 'SELECT' ||
+        target.tagName === 'OPTION' ||
+        target.classList.contains('debug-slider') ||
+        target.classList.contains('mobile-settings-btn') ||
+        target.classList.contains('control-btn') ||
+        target.classList.contains('device-select') ||
+        target.classList.contains('p1-button') ||
+        target.classList.contains('p2-button')) {
+      return true; // Allow default behavior for UI elements
+    }
+  }
   // Canvas clicks no longer toggle game state - use the game control button instead
   return false;
 }
