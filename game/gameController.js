@@ -381,27 +381,45 @@ class GameController {
             );
             
             // Position buttons based on paused state
+            const buttonWidth = 120;
+            const gap = 10;
+            const baseY = canvasRect.bottom + 20;
+            
             if (this.currentState === this.STATE.PAUSED) {
-                // Two buttons side by side, gap centered
-                const buttonWidth = 120;
-                const gap = 10;
+                // Three buttons: Settings (left), Resume (center-left), Reset (center-right)
+                const totalWidth = buttonWidth * 3 + gap * 2;
+                const startX = canvasRect.left + (canvasRect.width / 2) - (totalWidth / 2);
+                
+                // Settings on far left
+                this.mobileSettingsButton.position(startX, baseY);
+                
+                // Resume and Reset centered
                 this.keyboardControls.gameButton.position(
-                    canvasRect.left + (canvasRect.width / 2) - buttonWidth - (gap / 2),
-                    canvasRect.bottom + 20
+                    startX + buttonWidth + gap,
+                    baseY
                 );
                 this.keyboardControls.resetButton.position(
-                    canvasRect.left + (canvasRect.width / 2) + (gap / 2),
-                    canvasRect.bottom + 20
+                    startX + buttonWidth * 2 + gap * 2,
+                    baseY
                 );
             } else {
-                // Single button centered
+                // Two buttons: Settings (left), Start/Pause (right)
+                const totalWidth = buttonWidth * 2 + gap;
+                const startX = canvasRect.left + (canvasRect.width / 2) - (totalWidth / 2);
+                
+                // Settings on left
+                this.mobileSettingsButton.position(startX, baseY);
+                
+                // Start/Pause on right
                 this.keyboardControls.gameButton.position(
-                    canvasRect.left + (canvasRect.width / 2) - 60,
-                    canvasRect.bottom + 20
+                    startX + buttonWidth + gap,
+                    baseY
                 );
+                
+                // Reset button hidden but positioned
                 this.keyboardControls.resetButton.position(
-                    canvasRect.left + (canvasRect.width / 2) + 5,
-                    canvasRect.bottom + 20
+                    startX + buttonWidth * 2 + gap * 2,
+                    baseY
                 );
             }
         }
@@ -456,13 +474,13 @@ class GameController {
 
     updateMobileSettingsButton() {
         const canvasRect = document.querySelector('canvas').getBoundingClientRect();
-        const centerX = windowWidth / 2;
         const buttonWidth = 120;
         const isMobile = windowWidth <= 768;
         
         this.mobileSettingsButton.show(); // Show on both desktop and mobile
         
         if (isMobile) {
+            const centerX = windowWidth / 2;
             const startY = canvasRect.bottom + 10;
             const settingsY = startY + 70; // More spacing: button height 50 + 20 spacing
             
@@ -470,15 +488,8 @@ class GameController {
                 centerX - (buttonWidth / 2),
                 settingsY
             );
-        } else {
-            // Desktop: centered below game button with more spacing
-            const settingsY = canvasRect.bottom + 80; // Below game button (20 + 50 + 10 spacing)
-            
-            this.mobileSettingsButton.position(
-                canvasRect.left + (canvasRect.width / 2) - (buttonWidth / 2),
-                settingsY
-            );
         }
+        // Desktop positioning is handled in updateKeyboardControlPositions()
     }
 
     updateSettingsOverlay() {

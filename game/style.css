@@ -98,7 +98,6 @@ canvas {
 
 /* Mobile Settings Button */
 .mobile-settings-btn {
-  display: none;
   width: 120px;
   height: 50px;
   padding: 10px 15px;
