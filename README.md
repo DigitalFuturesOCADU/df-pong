@@ -25,27 +25,29 @@ DF Pong is a browser-based Pong game that allows players to create and connect c
 ### Controller Modes
 
 **With 0 Controllers (Keyboard Only):**
-- Player 1: `A` (up) / `Z` (down)
-- Player 2: `P` (up) / `L` (down)
-- Press `SPACE` to start/pause
-- Press `ENTER` to reset
+- Player 1: `A` (up) / `Z` (down) or use on-screen arrow buttons
+- Player 2: `P` (up) / `L` (down) or use on-screen arrow buttons
+- Click **START** button to begin
+- Click **PAUSE** during game, then **RESUME** or **RESET**
 
 **With 1 Controller:**
 - One player uses their custom BLE controller
-- Other player uses keyboard controls (see above)
+- Other player uses keyboard or on-screen arrow buttons
+- On-screen controls automatically hide for connected players
 
 **With 2 Controllers:**
 - Both players use custom BLE controllers
-- No keyboard controls needed
+- All on-screen paddle controls automatically hide
 
 ### Game Controls
 
 | Action | Desktop | Mobile |
 |--------|---------|--------|
-| Start/Pause Game | `SPACE` or click canvas | Tap canvas |
-| Reset Game | `ENTER` | (Desktop only) |
-| Toggle BLE Debug | `d` | Tap with 2 fingers |
-| Toggle Game Settings | `c` | Long press canvas (1 sec) |
+| Start/Pause/Resume Game | Click **START/PAUSE/RESUME** button | Tap **START/PAUSE/RESUME** button |
+| Reset Game | `ENTER` or **RESET** button (when paused) | **RESET** button (when paused) |
+| Control Paddles | Arrow buttons (left/right side of screen) | Arrow buttons (edges of screen) |
+| Toggle BLE Debug | `d` key | (Not available on mobile) |
+| Toggle Game Settings | `c` key or **Settings** button | **Settings** button |
 
 ### Debug & Configuration
 
@@ -91,7 +93,7 @@ Each player must set a unique device number (1-25) in their Arduino controller:
 
 
 
-### For Instructors
+### Setup
 
 #### Update Player Names
 
