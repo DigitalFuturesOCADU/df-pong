@@ -19,17 +19,17 @@ The controller needs to send three values:
 
 ### Example with Distance Sensor
 ```cpp
-int distanceValue = sensor.read();
+float distance = distanceSensor.measureDistanceCm();
 
-if (distanceValue < 50) {
-    // Object is close - move paddle up
-    return 1;  // UP
-} else if (distanceValue > 150) {
-    // Object is far - move paddle down
-    return 2;  // DOWN
+if (distance < 50) {
+  // Object is close - move paddle up
+  currentMovement = 1;  // UP
+} else if (distance > 150) {
+  // Object is far - move paddle down
+  currentMovement = 2;  // DOWN
 } else {
-    // Object in middle range - no movement
-    return 0;  // STOP
+  // Object in middle range - no movement
+  currentMovement = 0;  // STOP
 }
 ```
 
@@ -38,14 +38,14 @@ if (distanceValue < 50) {
 int lightValue = analogRead(lightPin);
 
 if (lightValue > 800) {
-    // Bright light - move up
-    return 1;  // UP
+  // Bright light - move up
+  currentMovement = 1;  // UP
 } else if (lightValue < 200) {
-    // Dark - move down
-    return 2;  // DOWN
+  // Dark - move down
+  currentMovement = 2;  // DOWN
 } else {
-    // Medium light - stop
-    return 0;  // STOP
+  // Medium light - stop
+  currentMovement = 0;  // STOP
 }
 ```
 
@@ -68,16 +68,16 @@ int previousValue = 0;
 int currentValue = sensor.read();
 
 if (currentValue > previousValue + 10) {
-    // Value is increasing - move up
-    previousValue = currentValue;
-    return 1;  // UP
+  // Value is increasing - move up
+  previousValue = currentValue;
+  currentMovement = 1;  // UP
 } else if (currentValue < previousValue - 10) {
-    // Value is decreasing - move down
-    previousValue = currentValue;
-    return 2;  // DOWN
+  // Value is decreasing - move down
+  previousValue = currentValue;
+  currentMovement = 2;  // DOWN
 } else {
-    // Not much change - stop
-    return 0;  // STOP
+  // Not much change - stop
+  currentMovement = 0;  // STOP
 }
 ```
 
@@ -96,33 +96,34 @@ if (currentValue > previousValue + 10) {
 
 ### Example with IMU Pitch (tilt forward/back)
 ```cpp
-float pitch = IMU.getPitch();  // Get tilt angle
+float pitch = fusion.getPitch();  // Get tilt angle
 
 if (pitch > 15) {
-    // Tilted forward - move up
-    return 1;  // UP
+  // Tilted forward - move up
+  currentMovement = 1;  // UP
 } else if (pitch < -15) {
-    // Tilted backward - move down
-    return 2;  // DOWN
+  // Tilted backward - move down
+  currentMovement = 2;  // DOWN
 } else {
-    // Level - stop
-    return 0;  // STOP
+  // Level - stop
+  currentMovement = 0;  // STOP
 }
 ```
 
 ### Example with IMU Acceleration
 ```cpp
-float accelY = IMU.readAccelY();
+float ax, ay, az;
+IMU.readAcceleration(ax, ay, az);
 
-if (accelY > 0.3) {
-    // Moving upward - paddle up
-    return 1;  // UP
-} else if (accelY < -0.3) {
-    // Moving downward - paddle down
-    return 2;  // DOWN
+if (ay > 0.3) {
+  // Moving upward - paddle up
+  currentMovement = 1;  // UP
+} else if (ay < -0.3) {
+  // Moving downward - paddle down
+  currentMovement = 2;  // DOWN
 } else {
-    // Not moving much - stop
-    return 0;  // STOP
+  // Not moving much - stop
+  currentMovement = 0;  // STOP
 }
 ```
 
@@ -154,14 +155,14 @@ unsigned long timeDelta = currentTime - previousTime;
 float velocity = (float)change / timeDelta;
 
 if (velocity > 5) {
-    // Changing fast upward
-    return 1;  // UP
+  // Changing fast upward
+  currentMovement = 1;  // UP
 } else if (velocity < -5) {
-    // Changing fast downward
-    return 2;  // DOWN
+  // Changing fast downward
+  currentMovement = 2;  // DOWN
 } else {
-    // Changing slowly or not at all
-    return 0;  // STOP
+  // Changing slowly or not at all
+  currentMovement = 0;  // STOP
 }
 
 previousValue = currentValue;
@@ -189,14 +190,14 @@ int sensor2 = analogRead(A1);  // Right sensor
 int difference = sensor1 - sensor2;
 
 if (difference > 100) {
-    // Sensor 1 much brighter - move up
-    return 1;  // UP
+  // Sensor 1 much brighter - move up
+  currentMovement = 1;  // UP
 } else if (difference < -100) {
-    // Sensor 2 much brighter - move down
-    return 2;  // DOWN
+  // Sensor 2 much brighter - move down
+  currentMovement = 2;  // DOWN
 } else {
-    // Similar brightness - stop
-    return 0;  // STOP
+  // Similar brightness - stop
+  currentMovement = 0;  // STOP
 }
 ```
 
@@ -225,8 +226,8 @@ Sensors can be noisy. Average several readings:
 ```cpp
 int smoothedValue = 0;
 for (int i = 0; i < 5; i++) {
-    smoothedValue += sensor.read();
-    delay(2);
+  smoothedValue += sensor.read();
+  delay(2);
 }
 smoothedValue = smoothedValue / 5;
 ```
@@ -235,7 +236,7 @@ smoothedValue = smoothedValue / 5;
 Create a "neutral zone" to prevent unwanted movements:
 ```cpp
 if (abs(value - centerValue) < 20) {
-    return 0;  // STOP - too close to center
+  currentMovement = 0;  // STOP - too close to center
 }
 ```
 
@@ -268,38 +269,60 @@ Here's a complete example integrating a distance sensor with threshold strategy:
 ```cpp
 // In DFpong_controller_startTemplate.ino
 
-#include <VL53L1X.h>
-VL53L1X distanceSensor;
+#include <HCSR04.h>
 
-void setup() {
-    // ... existing BLE setup ...
-    
-    // Initialize distance sensor
-    distanceSensor.setTimeout(500);
-    distanceSensor.init();
-    distanceSensor.startContinuous(50);
+#define TRIGGER_PIN 2
+#define ECHO_PIN 3
+
+// Create the distance sensor object
+UltraSonicDistanceSensor distanceSensor(TRIGGER_PIN, ECHO_PIN);
+
+void setup() 
+{
+  Serial.begin(9600);
+  delay(1000);
+  
+  Serial.println("=== DF Pong Controller Starting ===");
+  
+  // Configure LED for connection status indication
+  pinMode(LED_PIN, OUTPUT);
+  
+  // Initialize Bluetooth Low Energy with device name, number, and status LED
+  setupBLE(deviceName, DEVICE_NUMBER, LED_PIN);
+  
+  // Initialize buzzer for feedback
+  setupBuzzer(BUZZER_PIN);
 }
 
-int readSensorData() {
-    int distance = distanceSensor.read();
-    
-    // Threshold strategy
-    if (distance < 100) {
-        return 1;  // UP - object is close
-    } else if (distance > 200) {
-        return 2;  // DOWN - object is far
-    } else {
-        return 0;  // STOP - object in middle range
-    }
+void loop() 
+{
+  // Update BLE connection status and handle incoming data
+  updateBLE();
+  
+  // Read the inputs to determine the current state
+  // Results in changing the value of currentMovement
+  handleInput();
+
+  // Send the movement state to P5  
+  sendMovement(currentMovement);
+
+  // Make the correct noise
+  updateBuzzer(currentMovement);
 }
 
-void loop() {
-    int movementValue = readSensorData();
-    
-    // Send via BLE
-    moveCharacteristic.writeValue(movementValue);
-    
-    // ... existing code ...
+void handleInput() 
+{
+  // Read distance sensor
+  float distance = distanceSensor.measureDistanceCm();
+  
+  // Threshold strategy
+  if (distance < 50 && distance > 0) {
+    currentMovement = 1;  // UP - object is close
+  } else if (distance > 150) {
+    currentMovement = 2;  // DOWN - object is far
+  } else {
+    currentMovement = 0;  // STOP - object in middle range
+  }
 }
 ```
 
