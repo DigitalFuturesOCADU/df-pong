@@ -143,6 +143,8 @@ Device 2:  19b10010-e8f2-537e-4f6c-d104768a120f  (13 + 2 = 15 = 0x0F)
 Device 25: 19b10010-e8f2-537e-4f6c-d104768a1227  (13 + 25 = 38 = 0x27)
 ```
 
+**Why add 13?** The base UUID ends in `12` (hex), so adding 13 ensures device UUIDs start at `0E` (14 in decimal). This creates a contiguous range (`0E` through `27`) that's visually distinct from the base and avoids potential conflicts with reserved or commonly-used UUID suffixes in the `0x00-0x0D` range.
+
 #### How Web Bluetooth Filters By UUID
 
 When a person selects their device number from the dropdown:
