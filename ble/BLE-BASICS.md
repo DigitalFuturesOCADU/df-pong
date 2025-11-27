@@ -13,11 +13,11 @@ This guide explains the fundamental concepts and patterns for Bluetooth Low Ener
 5. [Characteristic Types](#characteristic-types)
 6. [Read, Write, and Notify Modes](#read-write-and-notify-modes)
 7. [Communication Patterns](#communication-patterns)
-   - [Pattern 1: p5.js → Arduino (Phone Controls Arduino)](#pattern-1-p5js--arduino-phone-controls-arduino)
+   - [Pattern 1: p5.js → Arduino (Browser Controls Arduino)](#pattern-1-p5js--arduino-browser-controls-arduino)
    - [Pattern 2: Arduino → p5.js (Arduino Sends Sensor Data)](#pattern-2-arduino--p5js-arduino-sends-sensor-data)
    - [Pattern 3: Arduino → p5.js with Notifications (Real-time Streaming)](#pattern-3-arduino--p5js-with-notifications-real-time-streaming)
    - [Pattern 4: Bidirectional (Both Ways)](#pattern-4-bidirectional-both-ways)
-   - [Pattern 5: p5.js → p5.js (Phone to Phone/Desktop)](#pattern-5-p5js--p5js-phone-to-phonedesktop)
+   - [Pattern 5: p5.js → p5.js (Browser to Browser)](#pattern-5-p5js--p5js-browser-to-browser)
 8. [Essential Commands Reference](#essential-commands-reference)
 9. [Common Mistakes to Avoid](#common-mistakes-to-avoid)
 10. [Next Steps](#next-steps)
@@ -76,7 +76,7 @@ Before diving into BLE, it's helpful to understand how it compares to WebSerial 
 | **Data Format** | Structured (characteristics have types) | Text-based (usually CSV or JSON strings) |
 | **Power** | Low power, battery friendly | Requires USB power |
 | **Speed** | Slower (~1 Mbps) | Faster (up to 12 Mbps) |
-| **Mobile Use** | ✅ Works on phones | ❌ Phones don't have USB host |
+| **Mobile Use** | ✅ Works on mobile browsers | ❌ Mobile devices don't have USB host |
 | **Multiple Connections** | Multiple devices can connect | One-to-one only |
 | **Library (p5.js)** | p5.ble.js | p5.webserial.js |
 | **Library (Arduino)** | ArduinoBLE | Built-in Serial |
@@ -149,7 +149,7 @@ function sendData() {
 
 **Use BLE when:**
 - ✅ You need wireless communication
-- ✅ Working with mobile phones/tablets
+- ✅ Working with mobile browsers or tablets
 - ✅ Battery-powered or portable projects
 - ✅ Multiple devices need to connect
 - ✅ You want structured data with types
@@ -239,10 +239,10 @@ In BLE communication, devices play one of two roles:
 
 BLE communication can be set up in different ways depending on your project needs. Here are the common scenarios covered in this guide:
 
-#### Scenario 1: Phone Controls Arduino (Pattern 1)
+#### Scenario 1: Browser Controls Arduino (Pattern 1)
 ```
 ┌─────────────────┐         ┌─────────────────┐
-│     Arduino     │         │   Phone/p5.js   │
+│     Arduino     │         │  Browser/p5.js  │
 │   (Peripheral)  │ ◄────── │    (Central)    │
 │     Server      │  Write  │     Client      │
 │                 │         │  Sends Commands │
@@ -251,10 +251,10 @@ BLE communication can be set up in different ways depending on your project need
      Motors, Servos
 ```
 
-#### Scenario 2: Arduino Sends Data to Phone (Pattern 2 & 3)
+#### Scenario 2: Arduino Sends Data to Browser (Pattern 2 & 3)
 ```
 ┌─────────────────┐         ┌─────────────────┐
-│     Arduino     │         │   Phone/p5.js   │
+│     Arduino     │         │  Browser/p5.js  │
 │   (Peripheral)  │ ──────► │    (Central)    │
 │     Server      │ Read or │     Client      │
 │  Reads Sensors  │ Notify  │  Displays Data  │
@@ -264,7 +264,7 @@ BLE communication can be set up in different ways depending on your project need
 #### Scenario 3: Two-Way Communication (Pattern 4)
 ```
 ┌─────────────────┐         ┌─────────────────┐
-│     Arduino     │         │   Phone/p5.js   │
+│     Arduino     │         │  Browser/p5.js  │
 │   (Peripheral)  │ ◄─────► │    (Central)    │
 │     Server      │  Write  │     Client      │
 │                 │  Notify │                 │
@@ -273,24 +273,24 @@ BLE communication can be set up in different ways depending on your project need
 └─────────────────┘         └─────────────────┘
 ```
 
-#### Scenario 4: Phone to Phone via Arduino Bridge (Pattern 5)
+#### Scenario 4: Browser to Browser via Arduino Bridge (Pattern 5)
 ```
 ┌─────────────┐    ┌──────────────┐    ┌─────────────┐
-│   Phone 1   │    │   Arduino    │    │   Phone 2   │
+│  Browser 1  │    │   Arduino    │    │  Browser 2  │
 │   (p5.js)   │    │  (Peripheral)│    │   (p5.js)   │
 │  Central    │◄──►│    Bridge    │◄──►│  Central    │
 │             │    │              │    │             │
 │ Writes to   │    │ Relays data  │    │ Writes to   │
-│ Char 1      │    │ between both │    │ Char 2      │
-│ Reads from  │    │ phones       │    │ Reads from  │
+│ Char 1      │    │  between     │    │ Char 2      │
+│ Reads from  │    │   browsers   │    │ Reads from  │
 │ Char 2      │    │              │    │ Char 1      │
 └─────────────┘    └──────────────┘    └─────────────┘
 ```
 
 **Key Points:**
 - **Arduino** = Always the Peripheral (advertises and waits for connections)
-- **Phone/p5.js** = Always the Central (initiates the connection)
-- Multiple phones can connect to the same Arduino for shared experiences
+- **Browser/p5.js** = Always the Central (initiates the connection)
+- Multiple browsers can connect to the same Arduino for shared experiences
 
 ### Why This Matters
 
@@ -305,12 +305,12 @@ BLE communication can be set up in different ways depending on your project need
 - **Web browsers** (Chrome, Safari) using Web Bluetooth API can **ONLY** act as **centrals** (clients)
 - **Arduino** can act as **either** a **peripheral** (server) **OR** a **central** (client)
 - This means:
-  - ✅ Phone/Browser → Arduino (phone is central, Arduino is peripheral) 
-  - ✅ Arduino → Phone/Browser (Arduino is peripheral, phone is central)
-  - ❌ Phone → Phone directly via BLE (both would need to be peripheral AND central)
-  - ✅ Phone → Arduino → Phone (Arduino acts as bridge/relay)
+  - ✅ Browser → Arduino (browser is central, Arduino is peripheral) 
+  - ✅ Arduino → Browser (Arduino is peripheral, browser is central)
+  - ❌ Browser → Browser directly via BLE (both would need to be peripheral AND central)
+  - ✅ Browser → Arduino → Browser (Arduino acts as bridge/relay)
 
-This is why most examples show Arduino as the peripheral and p5.js/phone as the central.
+This is why most examples show Arduino as the peripheral and p5.js/browser as the central.
 
 ---
 
@@ -473,9 +473,9 @@ BLEIntCharacteristic buttonChar("UUID", BLERead | BLENotify);
 
 ## Communication Patterns
 
-### Pattern 1: p5.js → Arduino (Phone Controls Arduino)
+### Pattern 1: p5.js → Arduino (Browser Controls Arduino)
 
-**Use Case:** Control Arduino LEDs, motors, or servos from phone
+**Use Case:** Control Arduino LEDs, motors, or servos from browser
 
 #### Arduino Code (Peripheral)
 
@@ -583,7 +583,7 @@ function draw() {
 
 ### Pattern 2: Arduino → p5.js (Arduino Sends Sensor Data)
 
-**Use Case:** Display Arduino sensor readings on phone
+**Use Case:** Display Arduino sensor readings in browser
 
 #### Arduino Code (Peripheral)
 
@@ -1136,9 +1136,9 @@ if (myBLE.isConnected()) {
 
 ---
 
-### Pattern 5: p5.js → p5.js (Phone to Phone/Desktop)
+### Pattern 5: p5.js → p5.js (Browser to Browser)
 
-**Use Case:** Two phones/browsers communicate directly, or desktop to phone. One device acts as peripheral (server), the other as central (client).
+**Use Case:** Two browsers communicate directly (desktop to desktop, mobile to desktop, or mobile to mobile). One device acts as peripheral (server), the other as central (client).
 
 **Important:** Web Bluetooth API can only act as a **central** (client), not as a peripheral (server). However, you can use the **Web Bluetooth Peripheral API** (experimental) or have one device be an Arduino acting as peripheral for p5.js-to-p5.js communication.
 
@@ -1147,8 +1147,8 @@ if (myBLE.isConnected()) {
 The most reliable way for p5.js ↔ p5.js communication is using Arduino as a bridge:
 
 ```
-Phone 1 (p5.js)  →  Arduino (bridge)  →  Phone 2 (p5.js)
-   Central              Peripheral           Central
+Browser 1 (p5.js)  →  Arduino (bridge)  →  Browser 2 (p5.js)
+    Central               Peripheral            Central
 ```
 
 #### Arduino Bridge Code
@@ -1159,11 +1159,11 @@ Phone 1 (p5.js)  →  Arduino (bridge)  →  Phone 2 (p5.js)
 // Service for p5.js to p5.js communication bridge
 BLEService bridgeService("19B10050-E8F2-537E-4F6C-D104768A1214");
 
-// Phone 1 writes here, Phone 2 reads/notifies
+// Browser 1 writes here, Browser 2 reads/notifies
 BLEIntCharacteristic phone1Data("19B10051-E8F2-537E-4F6C-D104768A1214", 
                                  BLEWrite | BLERead | BLENotify);
 
-// Phone 2 writes here, Phone 1 reads/notifies
+// Browser 2 writes here, Browser 1 reads/notifies
 BLEIntCharacteristic phone2Data("19B10052-E8F2-537E-4F6C-D104768A1214", 
                                  BLEWrite | BLERead | BLENotify);
 
@@ -1182,40 +1182,40 @@ void setup() {
   phone2Data.writeValue(0);
   
   BLE.advertise();
-  Serial.println("Bridge ready - waiting for phones...");
+  Serial.println("Bridge ready - waiting for browsers...");
 }
 
 void loop() {
   BLEDevice central = BLE.central();
   
   if (central) {
-    Serial.print("Phone connected: ");
+    Serial.print("Browser connected: ");
     Serial.println(central.address());
     
     while (central.connected()) {
-      // When Phone 1 writes, notify Phone 2
+      // When Browser 1 writes, notify Browser 2
       if (phone1Data.written()) {
         int value = phone1Data.value();
-        Serial.print("Phone 1 → Phone 2: ");
+        Serial.print("Browser 1 → Browser 2: ");
         Serial.println(value);
-        // Value is automatically available to Phone 2 via notifications
+        // Value is automatically available to Browser 2 via notifications
       }
       
-      // When Phone 2 writes, notify Phone 1
+      // When Browser 2 writes, notify Browser 1
       if (phone2Data.written()) {
         int value = phone2Data.value();
-        Serial.print("Phone 2 → Phone 1: ");
+        Serial.print("Browser 2 → Browser 1: ");
         Serial.println(value);
-        // Value is automatically available to Phone 1 via notifications
+        // Value is automatically available to Browser 1 via notifications
       }
     }
     
-    Serial.println("Phone disconnected");
+    Serial.println("Browser disconnected");
   }
 }
 ```
 
-#### p5.js Code - Phone 1 (Sender)
+#### p5.js Code - Browser 1 (Sender)
 
 ```javascript
 let myBLE;
@@ -1232,7 +1232,7 @@ function setup() {
   createCanvas(400, 400);
   myBLE = new p5ble();
   
-  let connectButton = createButton('Connect as Phone 1');
+  let connectButton = createButton('Connect as Browser 1');
   connectButton.position(20, 20);
   connectButton.mousePressed(connectToBLE);
   
@@ -1249,28 +1249,28 @@ function gotCharacteristics(error, characteristics) {
     return;
   }
   
-  console.log('Connected as Phone 1!');
+  console.log('Connected as Browser 1!');
   
   for (let i = 0; i < characteristics.length; i++) {
-    // This is where I SEND data (Phone 1 writes here)
+    // This is where I SEND data (Browser 1 writes here)
     if (characteristics[i].uuid === phone1Uuid) {
       phone1Characteristic = characteristics[i];
-      console.log('Found Phone 1 characteristic (my output)');
+      console.log('Found Browser 1 characteristic (my output)');
     }
     
-    // This is where I RECEIVE data (Phone 2 writes here)
+    // This is where I RECEIVE data (Browser 2 writes here)
     if (characteristics[i].uuid === phone2Uuid) {
       phone2Characteristic = characteristics[i];
-      // Start listening for updates from Phone 2
+      // Start listening for updates from Browser 2
       myBLE.startNotifications(phone2Characteristic, handlePhone2Data, 'uint32');
-      console.log('Listening for Phone 2 data...');
+      console.log('Listening for Browser 2 data...');
     }
   }
 }
 
 function handlePhone2Data(value) {
   receivedValue = value;
-  console.log('Received from Phone 2:', value);
+  console.log('Received from Browser 2:', value);
 }
 
 function draw() {
@@ -1285,7 +1285,7 @@ function draw() {
   // Display
   fill(0);
   textSize(16);
-  text('I am Phone 1', width/2, 80);
+  text('I am Browser 1', width/2, 80);
   
   fill(0, 100, 200);
   textSize(20);
@@ -1294,7 +1294,7 @@ function draw() {
   
   fill(200, 100, 0);
   textSize(20);
-  text('Receiving from Phone 2:', width/2, 250);
+  text('Receiving from Browser 2:', width/2, 250);
   text(receivedValue, width/2, 280);
   
   // Visual feedback
@@ -1303,7 +1303,7 @@ function draw() {
 }
 ```
 
-#### p5.js Code - Phone 2 (Receiver/Sender)
+#### p5.js Code - Browser 2 (Receiver/Sender)
 
 ```javascript
 let myBLE;
@@ -1320,7 +1320,7 @@ function setup() {
   createCanvas(400, 400);
   myBLE = new p5ble();
   
-  let connectButton = createButton('Connect as Phone 2');
+  let connectButton = createButton('Connect as Browser 2');
   connectButton.position(20, 20);
   connectButton.mousePressed(connectToBLE);
   
@@ -1337,28 +1337,28 @@ function gotCharacteristics(error, characteristics) {
     return;
   }
   
-  console.log('Connected as Phone 2!');
+  console.log('Connected as Browser 2!');
   
   for (let i = 0; i < characteristics.length; i++) {
-    // This is where I RECEIVE data (Phone 1 writes here)
+    // This is where I RECEIVE data (Browser 1 writes here)
     if (characteristics[i].uuid === phone1Uuid) {
       phone1Characteristic = characteristics[i];
-      // Start listening for updates from Phone 1
+      // Start listening for updates from Browser 1
       myBLE.startNotifications(phone1Characteristic, handlePhone1Data, 'uint32');
-      console.log('Listening for Phone 1 data...');
+      console.log('Listening for Browser 1 data...');
     }
     
-    // This is where I SEND data (Phone 2 writes here)
+    // This is where I SEND data (Browser 2 writes here)
     if (characteristics[i].uuid === phone2Uuid) {
       phone2Characteristic = characteristics[i];
-      console.log('Found Phone 2 characteristic (my output)');
+      console.log('Found Browser 2 characteristic (my output)');
     }
   }
 }
 
 function handlePhone1Data(value) {
   receivedValue = value;
-  console.log('Received from Phone 1:', value);
+  console.log('Received from Browser 1:', value);
 }
 
 function draw() {
@@ -1373,7 +1373,7 @@ function draw() {
   // Display
   fill(0);
   textSize(16);
-  text('I am Phone 2', width/2, 80);
+  text('I am Browser 2', width/2, 80);
   
   fill(200, 100, 0);
   textSize(20);
@@ -1382,7 +1382,7 @@ function draw() {
   
   fill(0, 100, 200);
   textSize(20);
-  text('Receiving from Phone 1:', width/2, 250);
+  text('Receiving from Browser 1:', width/2, 250);
   text(receivedValue, width/2, 280);
   
   // Visual feedback
@@ -1393,12 +1393,12 @@ function draw() {
 
 **Key Points for p5.js to p5.js:**
 - Arduino acts as a bridge/relay between two p5.js clients
-- Both phones connect to the same Arduino
-- Each phone has its own characteristic for sending
-- Each phone listens to the other's characteristic via notifications
-- Data flows: Phone 1 → Arduino → Phone 2 and vice versa
-- **Phone 1** uses `mouseX` (horizontal movement)
-- **Phone 2** uses `mouseY` (vertical movement)
+- Both browsers connect to the same Arduino
+- Each browser has its own characteristic for sending
+- Each browser listens to the other's characteristic via notifications
+- Data flows: Browser 1 → Arduino → Browser 2 and vice versa
+- **Browser 1** uses `mouseX` (horizontal movement)
+- **Browser 2** uses `mouseY` (vertical movement)
 
 **Alternative Without Arduino:**
 While the Web Bluetooth API doesn't natively support peripheral mode in most browsers, you could use:
@@ -1412,13 +1412,13 @@ For most beginner use cases, the Arduino bridge method shown above is the most r
 
 ## Summary: The Communication Patterns
 
-### 1. **Phone Controls Arduino** (BLEWrite)
+### 1. **Browser Controls Arduino** (BLEWrite)
 - p5.js writes → Arduino receives
 - Use: Control LEDs, motors, servos
 - Arduino: `BLEWrite`, check with `.written()`
 - p5.js: `myBLE.write()`
 
-### 2. **Arduino Sends to Phone** (BLERead or BLENotify)
+### 2. **Arduino Sends to Browser** (BLERead or BLENotify)
 - Arduino writes → p5.js reads
 - Use: Display sensor data
 - Arduino: `BLERead` or `BLENotify`, update with `.writeValue()`
@@ -1431,8 +1431,8 @@ For most beginner use cases, the Arduino bridge method shown above is the most r
 
 ### 4. **p5.js to p5.js** (Arduino Bridge)
 - Two p5.js instances communicate via Arduino relay
-- Each phone writes to its own characteristic
-- Each phone listens to the other's characteristic
+- Each browser writes to its own characteristic
+- Each browser listens to the other's characteristic
 - Arduino passes data between them automatically
 
 ---
