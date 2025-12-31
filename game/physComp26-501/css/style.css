@@ -1,0 +1,157 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #000;
+}
+
+/* Desktop: center canvas with flexbox */
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+canvas {
+  display: block;
+}
+
+/* Debug GUI Styles */
+.debug-slider {
+  width: 200px;
+  z-index: 1001;
+  position: relative;
+}
+
+.slider-label {
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1001;
+  position: relative;
+}
+
+/* Keyboard Control Buttons */
+.control-btn {
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #000;
+  border: 2px solid #000;
+  border-radius: 8px;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  z-index: 10;
+}
+
+.player-btn {
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #000;
+  color: #fff;
+  border: 2px solid #fff;
+}
+
+.player-btn:hover {
+  background-color: #222;
+  transform: scale(1.05);
+}
+
+.player-btn:active {
+  background-color: #444;
+  transform: scale(0.95);
+}
+
+.game-control-btn {
+  width: 120px;
+  height: 50px;
+  padding: 10px 20px;
+  font-size: 18px;
+  background-color: #000;
+  color: #fff;
+  border: 2px solid #fff;
+}
+
+.game-control-btn:hover {
+  background-color: #222;
+  transform: scale(1.05);
+}
+
+.game-control-btn:active {
+  background-color: #444;
+  transform: scale(0.95);
+}
+
+/* Mobile Settings Button */
+.mobile-settings-btn {
+  width: 120px;
+  height: 50px;
+  padding: 10px 15px;
+  background-color: #000;
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 1001;
+  position: absolute;
+}
+
+.mobile-settings-btn:hover {
+  background-color: #222;
+}
+
+/* Settings Overlay */
+.settings-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+  display: none;
+}
+
+/* Mobile: portrait mode with canvas at top */
+@media (max-width: 768px) {
+  html {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+  }
+  
+  body {
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior: none;
+    display: block;
+  }
+  
+  canvas {
+    display: block;
+    position: relative;
+    margin: 0 auto;
+  }
+}

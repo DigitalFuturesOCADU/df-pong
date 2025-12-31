@@ -1,10 +1,16 @@
-![Game Start](./game/images/gameStart.png)
+![Game Start](./game/cc25/assets/gameStart.png)
 
 # DF Pong
 
 **A Bluetooth Low Energy multiplayer Pong game designed for custom Arduino controllers.**
 
-[Play the Game](https://digitalfuturesocadu.github.io/df-pong/game)
+## Game Versions
+
+| Version | Description | Link |
+|---------|-------------|------|
+| **CC25** | Creation & Computation 2025 | [Play](https://digitalfuturesocadu.github.io/df-pong/game/cc25/) |
+| **PhysComp26-501** | Physical Computing 2026 - Section 501 | [Play](https://digitalfuturesocadu.github.io/df-pong/game/physComp26-501/) |
+| **PhysComp26-502** | Physical Computing 2026 - Section 502 | [Play](https://digitalfuturesocadu.github.io/df-pong/game/physComp26-502/) |
 
 ## Overview
 
@@ -67,7 +73,7 @@ All settings persist in browser's local storage.
 
 ## Setup
 
-### For Students
+### For Players
 
 #### 1. Configure Your Arduino Device Number
 
@@ -85,7 +91,7 @@ Each player must set a unique device number (1-25) in their Arduino controller:
 
 #### 2. Connect to the Game
 
-1. Go to [https://digitalfuturesocadu.github.io/df-pong/](https://digitalfuturesocadu.github.io/df-pong/)
+1. Go to your class's game URL (see [Game Versions](#game-versions) above)
 2. Select your device number from the dropdown (e.g., "1: Your Name")
 3. Click "Connect"
 4. Select your Arduino from the browser's Bluetooth picker
@@ -97,7 +103,7 @@ Each player must set a unique device number (1-25) in their Arduino controller:
 
 #### Update Player Names
 
-Edit `game/players-config.json` to assign names to device numbers:
+Each game version has its own `players-config.json` file. Edit the one in your version's folder (e.g., `game/cc25/players-config.json`):
 
 ```json
 {
