@@ -147,11 +147,9 @@ class GameController {
                 break;
 
             case this.STATE.WON:
-                background(0);
-                textSize(bigText);
-                text(this.winner, width/2, height/2 - bigText/2);
+                background(0);    
                 textSize(medText);
-                text("WINS!", width/2, height/2 + medText);
+                text(this.winner + " WINS!", width/2, height/2);
                 break;
         }
         pop();
@@ -161,231 +159,386 @@ class GameController {
         return this.currentState === this.STATE.PLAYING;
     }
 
-    get isCountdown() {
-        return this.currentState === this.STATE.COUNTDOWN;
-    }
-
-    get isWaiting() {
-        return this.currentState === this.STATE.WAITING;
-    }
-
-    get isWon() {
-        return this.currentState === this.STATE.WON;
-    }
-
-    get isPaused() {
-        return this.currentState === this.STATE.PAUSED;
-    }
-
-    createMobileSettingsButton() {
-        this.mobileSettingsButton = createButton('Settings');
-        this.mobileSettingsButton.class('mobile-settings-btn');
-        this.mobileSettingsButton.mousePressed(() => this.toggleSettings());
-        this.mobileSettingsButton.style('display', 'none');
-    }
-
     createDebugGUI() {
-        this.settingsOverlay = createDiv('');
-        this.settingsOverlay.class('settings-overlay');
-        this.settingsOverlay.style('display', 'none');
-        
-        const closeBtn = createButton('✕');
-        closeBtn.parent(this.settingsOverlay);
-        closeBtn.style('position', 'absolute');
-        closeBtn.style('top', '20px');
-        closeBtn.style('right', '20px');
-        closeBtn.style('font-size', '24px');
-        closeBtn.style('background', 'none');
-        closeBtn.style('border', 'none');
-        closeBtn.style('color', '#fff');
-        closeBtn.style('cursor', 'pointer');
-        closeBtn.mousePressed(() => this.toggleSettings());
-    }
+        // Create sliders and labels
+        this.p1Slider = createSlider(1, 100, parseInt(localStorage.getItem('player1MoveMultiplier'), 10) || 10);
+        this.p2Slider = createSlider(1, 100, parseInt(localStorage.getItem('player2MoveMultiplier')) || 10);
+        this.pointsSlider = createSlider(1, 21, parseInt(localStorage.getItem('pointsToWin')) || 10);
+        this.speedIncrementSlider = createSlider(0.01, 1, parseFloat(localStorage.getItem('speedIncrement')) || 0.15, 0.01);
 
-    toggleSettings() {
-        this.debugGUIVisible = !this.debugGUIVisible;
-        this.settingsOverlay.style('display', this.debugGUIVisible ? 'block' : 'none');
+        this.p1Label = createElement('div', 'P1 Speed: ' + this.p1Slider.value());
+        this.p2Label = createElement('div', 'P2 Speed: ' + this.p2Slider.value());
+        this.pointsLabel = createElement('div', 'Points to Win: ' + this.pointsSlider.value());
+        this.speedIncrementLabel = createElement('div', 'Puck Speed Increment: ' + this.speedIncrementSlider.value());
+
+        // Style elements
+        this.p1Slider.class('debug-slider');
+        this.p2Slider.class('debug-slider');
+        this.pointsSlider.class('debug-slider');
+        this.speedIncrementSlider.class('debug-slider');
+        this.p1Label.class('slider-label');
+        this.p2Label.class('slider-label');
+        this.pointsLabel.class('slider-label');
+        this.speedIncrementLabel.class('slider-label');
+
+        // Add event listeners
+        this.p1Slider.input(() => {
+            localStorage.setItem('player1MoveMultiplier', this.p1Slider.value());
+            this.p1Label.html('P1 Speed: ' + this.p1Slider.value());
+            bleController.player1MoveMultiplier = this.p1Slider.value();
+        });
+
+        this.p2Slider.input(() => {
+            localStorage.setItem('player2MoveMultiplier', this.p2Slider.value());
+            this.p2Label.html('P2 Speed: ' + this.p2Slider.value());
+            bleController.player2MoveMultiplier = this.p2Slider.value();
+        });
+
+        this.pointsSlider.input(() => {
+            localStorage.setItem('pointsToWin', this.pointsSlider.value());
+            this.pointsLabel.html('Points to Win: ' + this.pointsSlider.value());
+            this.winningScore = this.pointsSlider.value();
+        });
+
+        this.speedIncrementSlider.input(() => {
+            localStorage.setItem('speedIncrement', this.speedIncrementSlider.value());
+            this.speedIncrementLabel.html('Puck Speed Increment: ' + this.speedIncrementSlider.value());
+            puck.speedIncrement = this.speedIncrementSlider.value();
+        });
+
+        // Initially hide controls
+        this.setDebugGUIVisible(false);
+        this.updateDebugGUIPositions();
     }
 
     createKeyboardControls() {
-        // Player 1 controls
+        // Player 1 Up button
         this.keyboardControls.p1Up = createButton('▲');
         this.keyboardControls.p1Up.class('control-btn player-btn');
+        this.keyboardControls.p1Up.mousePressed(() => left.move(-10));
+        this.keyboardControls.p1Up.mouseReleased(() => left.move(0));
+        this.keyboardControls.p1Up.touchStarted(() => { left.move(-10); return false; });
+        this.keyboardControls.p1Up.touchEnded(() => { left.move(0); return false; });
         
+        // Player 1 Down button
         this.keyboardControls.p1Down = createButton('▼');
         this.keyboardControls.p1Down.class('control-btn player-btn');
+        this.keyboardControls.p1Down.mousePressed(() => left.move(10));
+        this.keyboardControls.p1Down.mouseReleased(() => left.move(0));
+        this.keyboardControls.p1Down.touchStarted(() => { left.move(10); return false; });
+        this.keyboardControls.p1Down.touchEnded(() => { left.move(0); return false; });
         
-        // Player 2 controls
+        // Player 2 Up button
         this.keyboardControls.p2Up = createButton('▲');
         this.keyboardControls.p2Up.class('control-btn player-btn');
+        this.keyboardControls.p2Up.mousePressed(() => right.move(-10));
+        this.keyboardControls.p2Up.mouseReleased(() => right.move(0));
+        this.keyboardControls.p2Up.touchStarted(() => { right.move(-10); return false; });
+        this.keyboardControls.p2Up.touchEnded(() => { right.move(0); return false; });
         
+        // Player 2 Down button
         this.keyboardControls.p2Down = createButton('▼');
         this.keyboardControls.p2Down.class('control-btn player-btn');
+        this.keyboardControls.p2Down.mousePressed(() => right.move(10));
+        this.keyboardControls.p2Down.mouseReleased(() => right.move(0));
+        this.keyboardControls.p2Down.touchStarted(() => { right.move(10); return false; });
+        this.keyboardControls.p2Down.touchEnded(() => { right.move(0); return false; });
         
-        // Game control buttons
-        this.keyboardControls.gameButton = createButton('Start');
+        // Game control button (Start/Pause/Reset)
+        this.keyboardControls.gameButton = createButton('START');
         this.keyboardControls.gameButton.class('control-btn game-control-btn');
+        this.keyboardControls.gameButton.mousePressed(() => this.handleGameButtonClick());
+        this.keyboardControls.gameButton.touchStarted(() => { this.handleGameButtonClick(); return false; });
         
-        this.keyboardControls.resetButton = createButton('Reset');
+        // Reset button (shown only when paused)
+        this.keyboardControls.resetButton = createButton('RESET');
         this.keyboardControls.resetButton.class('control-btn game-control-btn');
-        
-        // Event handlers for paddle movement
-        this.setupPaddleControls();
-        
-        // Game button handlers
-        this.keyboardControls.gameButton.mousePressed(() => this.handleGameButton());
         this.keyboardControls.resetButton.mousePressed(() => this.resetGame());
+        this.keyboardControls.resetButton.touchStarted(() => { this.resetGame(); return false; });
+        this.keyboardControls.resetButton.hide(); // Initially hidden
         
         this.updateKeyboardControlPositions();
     }
-
-    setupPaddleControls() {
-        // Touch/mouse handlers for continuous movement
-        const setupControl = (button, paddle, direction) => {
-            let interval = null;
-            
-            const startMove = (e) => {
-                if (e) e.preventDefault();
-                paddle.move(direction * 8);
-                interval = setInterval(() => paddle.move(direction * 8), 16);
-            };
-            
-            const stopMove = (e) => {
-                if (e) e.preventDefault();
-                paddle.move(0);
-                if (interval) {
-                    clearInterval(interval);
-                    interval = null;
-                }
-            };
-            
-            button.elt.addEventListener('mousedown', startMove);
-            button.elt.addEventListener('mouseup', stopMove);
-            button.elt.addEventListener('mouseleave', stopMove);
-            button.elt.addEventListener('touchstart', startMove, { passive: false });
-            button.elt.addEventListener('touchend', stopMove, { passive: false });
-        };
-        
-        // Delay setup until paddles exist
-        setTimeout(() => {
-            if (typeof left !== 'undefined' && typeof right !== 'undefined') {
-                setupControl(this.keyboardControls.p1Up, left, -1);
-                setupControl(this.keyboardControls.p1Down, left, 1);
-                setupControl(this.keyboardControls.p2Up, right, -1);
-                setupControl(this.keyboardControls.p2Down, right, 1);
-            }
-        }, 100);
-    }
-
-    handleGameButton() {
-        switch(this.currentState) {
-            case this.STATE.WAITING:
-                this.startCountdown();
-                break;
-            case this.STATE.PLAYING:
-                this.pauseGame();
-                break;
-            case this.STATE.PAUSED:
-                this.resumeGame();
-                break;
-            case this.STATE.WON:
-                this.resetGame();
-                break;
+    
+    handleGameButtonClick() {
+        if (this.currentState === this.STATE.PLAYING) {
+            this.pauseGame();
+        } else if (this.currentState === this.STATE.PAUSED || this.currentState === this.STATE.WAITING) {
+            this.resumeGame();
+        } else if (this.currentState === this.STATE.WON) {
+            this.resetGame();
         }
     }
-
+    
     updateGameButtonLabel() {
         if (!this.keyboardControls.gameButton) return;
         
         switch(this.currentState) {
             case this.STATE.WAITING:
-                this.keyboardControls.gameButton.html('Start');
-                break;
             case this.STATE.COUNTDOWN:
-                this.keyboardControls.gameButton.html('...');
+                this.keyboardControls.gameButton.html('START');
+                this.keyboardControls.resetButton.hide();
                 break;
             case this.STATE.PLAYING:
-                this.keyboardControls.gameButton.html('Pause');
+                this.keyboardControls.gameButton.html('PAUSE');
+                this.keyboardControls.resetButton.hide();
                 break;
             case this.STATE.PAUSED:
-                this.keyboardControls.gameButton.html('Resume');
+                this.keyboardControls.gameButton.html('RESUME');
+                this.keyboardControls.resetButton.show();
                 break;
             case this.STATE.WON:
-                this.keyboardControls.gameButton.html('New Game');
+                this.keyboardControls.gameButton.html('RESET');
+                this.keyboardControls.resetButton.hide();
                 break;
         }
     }
-
+    
     updateKeyboardControlPositions() {
-        const canvasRect = document.querySelector('canvas')?.getBoundingClientRect();
-        if (!canvasRect) return;
-        
-        const isMobile = window.innerWidth <= 768;
-        const btnSize = 50;
-        const padding = 10;
+        const canvasRect = document.querySelector('canvas').getBoundingClientRect();
+        const isMobile = windowWidth <= 768;
+        const buttonSize = 50;
+        const spacing = 10;
         
         if (isMobile) {
-            // Mobile: Controls at top of screen
-            const topY = canvasRect.top - btnSize - padding;
+            // Mobile: Player controls at screen edges, game button centered
+            const centerX = windowWidth / 2;
+            const startY = canvasRect.bottom + 10; // Reduced from 20
+            const edgeMargin = 10; // Small margin from screen edge
             
-            // P1 controls on left
-            this.keyboardControls.p1Up.position(padding, topY - btnSize - 5);
-            this.keyboardControls.p1Down.position(padding, topY);
+            // Position buttons based on paused state
+            if (this.currentState === this.STATE.PAUSED) {
+                // Two buttons side by side, gap centered
+                const buttonWidth = 120;
+                const gap = 10;
+                this.keyboardControls.gameButton.position(
+                    centerX - buttonWidth - (gap / 2),
+                    startY
+                );
+                this.keyboardControls.resetButton.position(
+                    centerX + (gap / 2),
+                    startY
+                );
+            } else {
+                // Single button centered
+                this.keyboardControls.gameButton.position(
+                    centerX - 60,
+                    startY
+                );
+                this.keyboardControls.resetButton.position(
+                    centerX + 5,
+                    startY
+                );
+            }
             
-            // P2 controls on right
-            const rightX = window.innerWidth - btnSize - padding;
-            this.keyboardControls.p2Up.position(rightX, topY - btnSize - 5);
-            this.keyboardControls.p2Down.position(rightX, topY);
+            // Player controls below game button, at screen edges
+            const playerY = startY + 50; // Reduced from 60
             
-            // Game controls in center
-            const centerX = window.innerWidth / 2;
-            this.keyboardControls.gameButton.position(centerX - 125, topY);
-            this.keyboardControls.resetButton.position(centerX + 5, topY);
+            // Player 1 controls on left edge
+            this.keyboardControls.p1Up.position(
+                edgeMargin,
+                playerY
+            );
+            this.keyboardControls.p1Down.position(
+                edgeMargin,
+                playerY + buttonSize + spacing
+            );
+            
+            // Player 2 controls on right edge
+            this.keyboardControls.p2Up.position(
+                windowWidth - buttonSize - edgeMargin,
+                playerY
+            );
+            this.keyboardControls.p2Down.position(
+                windowWidth - buttonSize - edgeMargin,
+                playerY + buttonSize + spacing
+            );
         } else {
-            // Desktop: Controls beside the canvas
-            const midY = canvasRect.top + canvasRect.height / 2;
+            // Desktop: Player controls at canvas corners, game button centered below
             
-            // P1 controls on left of canvas
-            const p1X = canvasRect.left - btnSize - padding;
-            this.keyboardControls.p1Up.position(p1X, midY - btnSize - 5);
-            this.keyboardControls.p1Down.position(p1X, midY + 5);
+            // Calculate vertical center position for player controls
+            const totalControlHeight = buttonSize + spacing + buttonSize; // Two buttons with spacing
+            const centerY = canvasRect.top + (canvasRect.height / 2) - (totalControlHeight / 2);
             
-            // P2 controls on right of canvas
-            const p2X = canvasRect.right + padding;
-            this.keyboardControls.p2Up.position(p2X, midY - btnSize - 5);
-            this.keyboardControls.p2Down.position(p2X, midY + 5);
+            // Player 1 controls - left side of canvas, vertically centered
+            this.keyboardControls.p1Up.position(
+                canvasRect.left - buttonSize - spacing,
+                centerY
+            );
+            this.keyboardControls.p1Down.position(
+                canvasRect.left - buttonSize - spacing,
+                centerY + buttonSize + spacing
+            );
             
-            // Game controls below canvas center
-            const bottomY = canvasRect.bottom + 60;
-            this.keyboardControls.gameButton.position(canvasRect.left + canvasRect.width/2 - 125, bottomY);
-            this.keyboardControls.resetButton.position(canvasRect.left + canvasRect.width/2 + 5, bottomY);
+            // Player 2 controls - right side of canvas, vertically centered
+            this.keyboardControls.p2Up.position(
+                canvasRect.right + spacing,
+                centerY
+            );
+            this.keyboardControls.p2Down.position(
+                canvasRect.right + spacing,
+                centerY + buttonSize + spacing
+            );
+            
+            // Position buttons based on paused state
+            const buttonWidth = 120;
+            const gap = 10;
+            const baseY = canvasRect.bottom + 20;
+            
+            if (this.currentState === this.STATE.PAUSED) {
+                // Three buttons: Settings (left), Resume (center-left), Reset (center-right)
+                const totalWidth = buttonWidth * 3 + gap * 2;
+                const startX = canvasRect.left + (canvasRect.width / 2) - (totalWidth / 2);
+                
+                // Settings on far left
+                this.mobileSettingsButton.position(startX, baseY);
+                
+                // Resume and Reset centered
+                this.keyboardControls.gameButton.position(
+                    startX + buttonWidth + gap,
+                    baseY
+                );
+                this.keyboardControls.resetButton.position(
+                    startX + buttonWidth * 2 + gap * 2,
+                    baseY
+                );
+            } else {
+                // Two buttons: Settings (left), Start/Pause (right)
+                const totalWidth = buttonWidth * 2 + gap;
+                const startX = canvasRect.left + (canvasRect.width / 2) - (totalWidth / 2);
+                
+                // Settings on left
+                this.mobileSettingsButton.position(startX, baseY);
+                
+                // Start/Pause on right
+                this.keyboardControls.gameButton.position(
+                    startX + buttonWidth + gap,
+                    baseY
+                );
+                
+                // Reset button hidden but positioned
+                this.keyboardControls.resetButton.position(
+                    startX + buttonWidth * 2 + gap * 2,
+                    baseY
+                );
+            }
+        }
+    }
+    
+    updateKeyboardControlVisibility(bleController) {
+        const showP1Controls = !bleController.isPlayer1Connected();
+        const showP2Controls = !bleController.isPlayer2Connected();
+        
+        if (showP1Controls) {
+            this.keyboardControls.p1Up.show();
+            this.keyboardControls.p1Down.show();
+        } else {
+            this.keyboardControls.p1Up.hide();
+            this.keyboardControls.p1Down.hide();
         }
         
-        // Settings button position
-        if (this.mobileSettingsButton) {
-            this.mobileSettingsButton.position(canvasRect.right - 130, canvasRect.top + 10);
+        if (showP2Controls) {
+            this.keyboardControls.p2Up.show();
+            this.keyboardControls.p2Down.show();
+        } else {
+            this.keyboardControls.p2Up.hide();
+            this.keyboardControls.p2Down.hide();
+        }
+        
+        // Game button always visible
+        this.keyboardControls.gameButton.show();
+    }
+
+    createMobileSettingsButton() {
+        // Create settings toggle button for mobile
+        this.mobileSettingsButton = createButton('Settings');
+        this.mobileSettingsButton.class('mobile-settings-btn');
+        this.mobileSettingsButton.mousePressed(() => {
+            // Pause game if playing when opening settings
+            if (!this.debugGUIVisible && this.currentState === this.STATE.PLAYING) {
+                this.pauseGame();
+            }
+            
+            this.debugGUIVisible = !this.debugGUIVisible;
+            this.setDebugGUIVisible(this.debugGUIVisible);
+            this.updateSettingsOverlay();
+        });
+        
+        // Create overlay div
+        this.settingsOverlay = createElement('div');
+        this.settingsOverlay.class('settings-overlay');
+        this.settingsOverlay.hide();
+        
+        this.updateMobileSettingsButton();
+    }
+
+    updateMobileSettingsButton() {
+        const canvasRect = document.querySelector('canvas').getBoundingClientRect();
+        const buttonWidth = 120;
+        const isMobile = windowWidth <= 768;
+        
+        this.mobileSettingsButton.show(); // Show on both desktop and mobile
+        
+        if (isMobile) {
+            const centerX = windowWidth / 2;
+            const startY = canvasRect.bottom + 10;
+            const settingsY = startY + 70; // More spacing: button height 50 + 20 spacing
+            
+            this.mobileSettingsButton.position(
+                centerX - (buttonWidth / 2),
+                settingsY
+            );
+        }
+        // Desktop positioning is handled in updateKeyboardControlPositions()
+    }
+
+    updateSettingsOverlay() {
+        const isMobile = windowWidth <= 768;
+        if (isMobile && this.debugGUIVisible) {
+            this.settingsOverlay.show();
+        } else {
+            this.settingsOverlay.hide();
         }
     }
 
-    updateKeyboardControlVisibility(bleController) {
-        const isMobile = window.innerWidth <= 768;
+    setDebugGUIVisible(visible) {
+        console.log('Setting debug GUI visible:', visible);
+        this.debugGUIVisible = visible;
+        const display = visible ? 'block' : 'none';
+        this.p1Slider.style('display', display);
+        this.p2Slider.style('display', display);
+        this.pointsSlider.style('display', display);
+        this.speedIncrementSlider.style('display', display);
+        this.p1Label.style('display', display);
+        this.p2Label.style('display', display);
+        this.pointsLabel.style('display', display);
+        this.speedIncrementLabel.style('display', display);
         
-        // Show paddle controls only if BLE not connected
-        const showP1Controls = !bleController.player1Connected;
-        const showP2Controls = !bleController.player2Connected;
-        
-        this.keyboardControls.p1Up.style('display', showP1Controls ? 'flex' : 'none');
-        this.keyboardControls.p1Down.style('display', showP1Controls ? 'flex' : 'none');
-        this.keyboardControls.p2Up.style('display', showP2Controls ? 'flex' : 'none');
-        this.keyboardControls.p2Down.style('display', showP2Controls ? 'flex' : 'none');
-        
-        // Always show game controls
-        this.keyboardControls.gameButton.style('display', 'flex');
-        this.keyboardControls.resetButton.style('display', 'flex');
-        
-        // Show settings on mobile
-        if (this.mobileSettingsButton) {
-            this.mobileSettingsButton.style('display', isMobile ? 'block' : 'none');
+        // Update positions and overlay when showing
+        if (visible) {
+            this.updateDebugGUIPositions();
         }
+        this.updateSettingsOverlay();
+    }
+
+    updateDebugGUIPositions() {
+        const padding = 20;
+        const sliderSpacing = 50;
+        
+        // Position from the top-left of the screen
+        const leftX = padding;
+        const topY = padding;
+
+        this.p1Slider.position(leftX, topY);
+        this.p1Label.position(leftX, topY - 20);
+
+        this.p2Slider.position(leftX, topY + sliderSpacing);
+        this.p2Label.position(leftX, topY + sliderSpacing - 20);
+
+        this.pointsSlider.position(leftX, topY + sliderSpacing * 2);
+        this.pointsLabel.position(leftX, topY + sliderSpacing * 2 - 20);
+
+        this.speedIncrementSlider.position(leftX, topY + sliderSpacing * 3);
+        this.speedIncrementLabel.position(leftX, topY + sliderSpacing * 3 - 20);
     }
 }

@@ -39,18 +39,12 @@ class BLEController {
     
     // Players configuration
     this.playersConfig = null;
-    this.configPath = 'players-config.json'; // Can be overridden by instances
-    this.loadPlayersConfig();
-  }
-  
-  setConfigPath(path) {
-    this.configPath = path;
     this.loadPlayersConfig();
   }
   
   async loadPlayersConfig() {
     try {
-      const response = await fetch(this.configPath);
+      const response = await fetch('players-config.json');
       this.playersConfig = await response.json();
       console.log('Players config loaded:', this.playersConfig);
       // Recreate dropdowns if they already exist
@@ -154,338 +148,473 @@ class BLEController {
     if (isMobile) {
       // Mobile: Stack connection controls at bottom, leaving space for game controls at top
       const centerX = window.innerWidth / 2;
-      const canvasBottom = canvasRect.bottom;
-      const buttonSpacing = 55;
-      const selectorSpacing = 35;
-      const baseY = canvasBottom + 20;
-      
-      // P1 controls on left side
-      this.p1DeviceSelect.position(10, baseY);
-      this.p1Button.position(10, baseY + selectorSpacing);
-      
-      // P2 controls on right side
-      const rightX = window.innerWidth - 130;
-      this.p2DeviceSelect.position(rightX, baseY);
-      this.p2Button.position(rightX, baseY + selectorSpacing);
-    } else {
-      // Desktop: controls below the canvas
-      const canvasBottom = canvasRect.bottom + 20;
-      const selectWidth = 150;
+      const dropdownWidth = 200;
       const buttonWidth = 100;
-      const padding = 30;
+      const verticalSpacing = 10; // Reduced from 20
+      const playerSpacing = 20; // Reduced from 40
       
-      // Player 1 controls - left side
-      this.p1DeviceSelect.position(canvasRect.left + padding, canvasBottom);
-      this.p1Button.position(canvasRect.left + padding + selectWidth + 10, canvasBottom);
+      // Start from below canvas + space for game controls (START button + player buttons)
+      const gameControlsHeight = 140; // Reduced from 180
+      const startY = canvasRect.bottom + gameControlsHeight;
       
-      // Player 2 controls - right side
-      this.p2DeviceSelect.position(canvasRect.right - padding - selectWidth - buttonWidth - 10, canvasBottom);
-      this.p2Button.position(canvasRect.right - padding - buttonWidth, canvasBottom);
+      // Player 1: Centered, stacked vertically
+      this.p1DeviceSelect.position(
+        centerX - (dropdownWidth / 2),
+        startY
+      );
+      this.p1Button.position(
+        centerX - (buttonWidth / 2),
+        startY + 50 + verticalSpacing
+      );
+      
+      // Player 2: Below Player 1, centered, stacked vertically
+      const p2StartY = startY + 50 + verticalSpacing + 50 + playerSpacing;
+      this.p2DeviceSelect.position(
+        centerX - (dropdownWidth / 2),
+        p2StartY
+      );
+      this.p2Button.position(
+        centerX - (buttonWidth / 2),
+        p2StartY + 50 + verticalSpacing
+      );
+      
+    } else {
+      // Desktop: Horizontal layout below canvas
+      const bottomY = canvasRect.bottom + 15;
+      const dropdownWidth = 200; // Increased for longer names
+      const buttonWidth = 100;
+      const horizontalSpacing = 20; // Increased spacing
+      
+      // Player 1: Aligned to left edge of canvas
+      this.p1DeviceSelect.position(canvasRect.left, bottomY);
+      this.p1Button.position(canvasRect.left + dropdownWidth + horizontalSpacing, bottomY);
+      
+      // Player 2: Aligned to right edge of canvas
+      this.p2Button.position(canvasRect.right - buttonWidth, bottomY);
+      this.p2DeviceSelect.position(canvasRect.right - buttonWidth - dropdownWidth - horizontalSpacing, bottomY);
     }
   }
-  
+
   setupButtonStyles() {
-    // Get p5.js generated style element or create styles
-    const style = document.createElement('style');
-    style.textContent = `
-      .p1-button, .p2-button {
-        padding: 10px 20px;
-        font-size: 16px;
-        font-weight: bold;
-        border: 2px solid #fff;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        background-color: #000;
-        color: #fff;
+    let buttonStyle = document.createElement('style');
+    buttonStyle.textContent = `
+      button, select {
+      padding: 10px;
+      border: 2px solid white;
+      border-radius: 5px;
+      cursor: pointer;
+      position: fixed;
+      font-weight: bold;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      background-color: black;
+      color: white;
       }
-      
-      .p1-button:hover, .p2-button:hover {
-        background-color: #222;
-      }
-      
-      .p1-button.connected {
-        background-color: #2ecc40;
-        border-color: #2ecc40;
-        color: #000;
-      }
-      
-      .p2-button.connected {
-        background-color: #ff4136;
-        border-color: #ff4136;
-        color: #fff;
-      }
-      
       .device-select {
-        padding: 8px 12px;
-        font-size: 14px;
-        border: 2px solid #fff;
-        border-radius: 5px;
-        background-color: #000;
-        color: #fff;
-        cursor: pointer;
-        min-width: 120px;
+      background-color: black;
+      color: white;
+      font-size: 14px;
+      padding: 8px;
+      border: 2px solid white;
+      min-width: 200px;
+      }
+      .p1-button, .p2-button {
+      background-color: black;
+      color: white;
+      font-size: 16px;
+      border: 2px solid white;
+      min-width: 100px;
+      }
+      .p1-button:hover, .p2-button:hover {
+      background-color: #222;
+      }
+      .connected {
+      color: #0f0 !important;
       }
       
-      .device-select:focus {
-        outline: none;
-        border-color: #0074d9;
+      /* Mobile responsive styles */
+      @media (max-width: 768px) {
+        button, select {
+          font-size: 14px;
+          padding: 12px;
+          background-color: black !important;
+        }
+        .device-select {
+          font-size: 14px;
+          min-width: 200px;
+          background-color: black !important;
+          color: white !important;
+        }
+        .p1-button, .p2-button {
+          font-size: 16px;
+          min-width: 100px;
+          background-color: black !important;
+          color: white !important;
+        }
+        }
+        .connected {
+          background-color: rgba(0, 0, 0, 0.95) !important;
+        }
       }
     `;
-    document.head.appendChild(style);
+    document.head.appendChild(buttonStyle);
   }
-  
-  handleButtonClick(playerNumber) {
-    if (playerNumber === 1) {
-      if (this.player1Connected) {
-        this.disconnect(1);
-      } else {
-        this.player1DeviceNumber = parseInt(this.p1DeviceSelect.value());
-        if (this.player1DeviceNumber > 0) {
-          this.connectToBLE(1);
-        } else {
-          alert('Please select a device number for Player 1');
-        }
+
+  handleButtonClick(player) {
+    const isConnected = player === 1 ? this.player1Connected : this.player2Connected;
+    if (!isConnected) {
+      // Get selected device number
+      const deviceSelect = player === 1 ? this.p1DeviceSelect : this.p2DeviceSelect;
+      const deviceNumber = parseInt(deviceSelect.value());
+      
+      if (deviceNumber === 0 || isNaN(deviceNumber)) {
+        alert(`Please select a device number (1-25) for Player ${player} first!`);
+        return;
       }
+      
+      this.connectToBle(player, deviceNumber);
     } else {
-      if (this.player2Connected) {
-        this.disconnect(2);
-      } else {
-        this.player2DeviceNumber = parseInt(this.p2DeviceSelect.value());
-        if (this.player2DeviceNumber > 0) {
-          this.connectToBLE(2);
-        } else {
-          alert('Please select a device number for Player 2');
-        }
-      }
+      this.disconnectBle(player);
     }
   }
-  
-  connectToBLE(playerNumber) {
-    const deviceNumber = playerNumber === 1 ? this.player1DeviceNumber : this.player2DeviceNumber;
-    const serviceUUID = this.generateServiceUUID(deviceNumber);
-    const characteristicUUID = this.generateCharacteristicUUID(deviceNumber);
-    
-    console.log(`Connecting player ${playerNumber} to device ${deviceNumber}`);
-    console.log(`Service UUID: ${serviceUUID}`);
-    console.log(`Characteristic UUID: ${characteristicUUID}`);
-    
-    if (playerNumber === 1) {
-      this.myBLE1.connect(serviceUUID, (error, characteristics) => {
-        if (error) {
-          console.error('BLE connection error:', error);
-          return;
-        }
-        this.player1Connected = true;
-        this.updateButtonState(1);
-        this.createConnectionParticles(1);
-        
-        // Get player name from config
-        if (this.playersConfig) {
-          const player = this.playersConfig.players.find(p => p.deviceNumber === deviceNumber);
-          if (player) {
-            this.player1Name = player.name;
-          }
-        }
-        
-        // Start reading characteristic
-        this.startReading(1, characteristicUUID);
-      });
-    } else {
-      this.myBLE2.connect(serviceUUID, (error, characteristics) => {
-        if (error) {
-          console.error('BLE connection error:', error);
-          return;
-        }
-        this.player2Connected = true;
-        this.updateButtonState(2);
-        this.createConnectionParticles(2);
-        
-        // Get player name from config
-        if (this.playersConfig) {
-          const player = this.playersConfig.players.find(p => p.deviceNumber === deviceNumber);
-          if (player) {
-            this.player2Name = player.name;
-          }
-        }
-        
-        // Start reading characteristic
-        this.startReading(2, characteristicUUID);
-      });
+
+  async connectToBle(player, deviceNumber) {
+    const ble = player === 1 ? this.myBLE1 : this.myBLE2;
+    const gattOperationInProgress = player === 1 ? this.gattOperationInProgress1 : this.gattOperationInProgress2;
+
+    if (gattOperationInProgress) {
+      console.log('GATT operation already in progress for player', player);
+      return;
     }
-  }
-  
-  startReading(playerNumber, characteristicUUID) {
-    const ble = playerNumber === 1 ? this.myBLE1 : this.myBLE2;
+
+    if (player === 1) {
+      this.gattOperationInProgress1 = true;
+      this.player1DeviceNumber = deviceNumber;
+    } else {
+      this.gattOperationInProgress2 = true;
+      this.player2DeviceNumber = deviceNumber;
+    }
+
+    // Generate UUIDs based on device number
+    const serviceUuid = this.generateServiceUUID(deviceNumber);
+    const characteristicUuid = this.generateCharacteristicUUID(deviceNumber);
     
-    ble.startNotifications(
-      ble.device.gatt.getPrimaryService(this.generateServiceUUID(
-        playerNumber === 1 ? this.player1DeviceNumber : this.player2DeviceNumber
-      )).then(service => service.getCharacteristic(characteristicUUID)),
-      (data) => this.handleData(playerNumber, data),
-      'string'
-    );
-    
-    // Fallback: poll for data
-    setInterval(() => {
-      if (playerNumber === 1 && this.player1Connected && !this.gattOperationInProgress1) {
-        this.gattOperationInProgress1 = true;
-        ble.read(characteristicUUID, 'string', (error, data) => {
-          this.gattOperationInProgress1 = false;
-          if (!error && data) {
-            this.handleData(1, data);
-          }
-        });
-      } else if (playerNumber === 2 && this.player2Connected && !this.gattOperationInProgress2) {
-        this.gattOperationInProgress2 = true;
-        ble.read(characteristicUUID, 'string', (error, data) => {
-          this.gattOperationInProgress2 = false;
-          if (!error && data) {
-            this.handleData(2, data);
-          }
-        });
-      }
-    }, 50);
-  }
-  
-  handleData(playerNumber, data) {
+    console.log(`Connecting to Device #${deviceNumber}`);
+    console.log(`Service UUID: ${serviceUuid}`);
+    console.log(`Characteristic UUID: ${characteristicUuid}`);
+
     try {
-      const value = parseInt(data);
-      if (!isNaN(value)) {
-        if (playerNumber === 1) {
-          this.player1Movement = value;
-        } else {
-          this.player2Movement = value;
+      // Connect using the unique service UUID - this filters to only devices with this UUID
+      const characteristics = await ble.connect(serviceUuid);
+      const movementCharacteristic = characteristics.find(c => c.uuid === characteristicUuid);
+      if (!movementCharacteristic) {
+        console.log('Required characteristic not found');
+        throw new Error('Characteristic not found');
+      }
+
+      await ble.startNotifications(movementCharacteristic, this.handleMovementData.bind(this, player));
+
+      // Store player number instead of device name
+      const deviceId = ble.device.id;
+      const playerNumber = deviceNumber;
+      
+      // Get player name from config
+      let playerName = `Player #${playerNumber}`;
+      if (this.playersConfig && this.playersConfig.players) {
+        const playerData = this.playersConfig.players.find(p => p.deviceNumber === playerNumber);
+        if (playerData) {
+          playerName = playerData.name;
         }
       }
-    } catch (e) {
-      console.error('Error parsing BLE data:', e);
+      
+      console.log(`Connected to ${playerName} (Device #${playerNumber}, ID: ${deviceId})`);
+
+      if (player === 1) {
+        this.player1Connected = true;
+        this.player1Name = playerName;
+        this.player1DeviceId = deviceId;
+        this.player1DeviceNumber = playerNumber;
+        this.p1Button.addClass('connected');
+        this.p1Button.html('Disconnect');
+        this.handshakeComplete1 = false;
+        this.gattOperationInProgress1 = false;
+        // Trigger particle effect and sound
+        this.createConnectionParticles(1);
+        if (typeof ding !== 'undefined' && ding) {
+          ding.play();
+        }
+      } else {
+        this.player2Connected = true;
+        this.player2Name = playerName;
+        this.player2DeviceId = deviceId;
+        this.player2DeviceNumber = playerNumber;
+        this.p2Button.addClass('connected');
+        this.p2Button.html('Disconnect');
+        this.handshakeComplete2 = false;
+        this.gattOperationInProgress2 = false;
+        // Trigger particle effect and sound
+        this.createConnectionParticles(2);
+        if (typeof ding !== 'undefined' && ding) {
+          ding.play();
+        }
+      }
+
+      ble.onDisconnected(() => {
+        this.handleDisconnect(player);
+        if (player === 1) {
+          this.gattOperationInProgress1 = false;
+          this.player1RSSI = null;
+        } else {
+          this.gattOperationInProgress2 = false;
+          this.player2RSSI = null;
+        }
+      });
+    } catch (error) {
+      console.log('Error:', error);
+      alert(`Failed to connect to Player #${deviceNumber}. Make sure:\n1. Device is powered on\n2. Device number in Arduino is set to ${deviceNumber}\n3. Device is not already connected`);
+      if (player === 1) {
+        this.gattOperationInProgress1 = false;
+      } else {
+        this.gattOperationInProgress2 = false;
+      }
     }
   }
+
+  disconnectBle(player) {
+    const ble = player === 1 ? this.myBLE1 : this.myBLE2;
+    ble.disconnect();
+    this.handleDisconnect(player);
+  }
   
-  disconnect(playerNumber) {
-    if (playerNumber === 1) {
-      this.myBLE1.disconnect();
+  // Send identification signal to flash LED/buzz
+  async identifyDevice(player) {
+    const ble = player === 1 ? this.myBLE1 : this.myBLE2;
+    const isConnected = player === 1 ? this.player1Connected : this.player2Connected;
+    const deviceNumber = player === 1 ? this.player1DeviceNumber : this.player2DeviceNumber;
+    
+    if (!isConnected) {
+      console.log('Device not connected');
+      return;
+    }
+    
+    // Get the correct characteristic UUID for this device
+    const characteristicUuid = this.generateCharacteristicUUID(deviceNumber);
+    const characteristic = ble.characteristics.find(c => c.uuid === characteristicUuid);
+    
+    if (characteristic) {
+      // Send a rapid sequence to trigger LED flash/buzz pattern
+      // Send value 1, then 2, then 1, then 2 (creates a distinctive pattern)
+      try {
+        await ble.write(characteristic, new Uint8Array([1]));
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await ble.write(characteristic, new Uint8Array([2]));
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await ble.write(characteristic, new Uint8Array([1]));
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await ble.write(characteristic, new Uint8Array([2]));
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await ble.write(characteristic, new Uint8Array([0])); // Stop
+        console.log(`Identification signal sent to player ${player}`);
+      } catch (error) {
+        console.log('Error sending identification signal:', error);
+      }
+    }
+  }
+
+  handleMovementData(player, data) {
+    if (this.debug) console.log(`Player ${player} data:`, data);
+    
+    let rawValue = Number(data);
+    let value;
+    if (rawValue === 1) {
+      value = 1;  // UP
+    } else if (rawValue === 2) {
+      value = -1; // DOWN
+    } else if (rawValue === 3) {
+      if (this.debug) console.log('Hello handshake received');
+      this.sendHelloHandshake(player);
+      return;  // HELLO HANDSHAKE
+    } else {
+      value = 0;  // STOP
+    }
+    
+    if (this.debug) console.log(`Player ${player} movement:`, value);
+    
+    if (player === 1) {
+      this.player1Movement = value;
+    } else {
+      this.player2Movement = value;
+    }
+  }
+
+  sendHelloHandshake(player) {
+    const ble = player === 1 ? this.myBLE1 : this.myBLE2;
+    const deviceNumber = player === 1 ? this.player1DeviceNumber : this.player2DeviceNumber;
+    const characteristicUuid = this.generateCharacteristicUUID(deviceNumber);
+    const characteristic = ble.characteristics.find(c => c.uuid === characteristicUuid);
+    
+    if (!characteristic) {
+      console.log('Characteristic not found for handshake');
+      return;
+    }
+    
+    // Add a small delay to avoid GATT operation conflicts
+    setTimeout(() => {
+      try {
+        ble.write(characteristic, new Uint8Array([3]), (error) => {
+          if (error) {
+            console.log('Handshake write error:', error);
+            return;
+          }
+          if (player === 1) {
+            this.handshakeComplete1 = true;
+          } else {
+            this.handshakeComplete2 = true;
+          }
+        });
+      } catch (error) {
+        console.log('Error in handshake:', error);
+      }
+    }, 100); // 100ms delay
+  }
+
+  handleDisconnect(player) {
+    if (player === 1) {
       this.player1Connected = false;
       this.player1Movement = 0;
-      this.player1Name = "Player 1";
-      this.handshakeComplete1 = false;
+      this.player1DeviceId = null;
+      this.p1Button.removeClass('connected');
+      this.p1Button.html('Connect');
     } else {
-      this.myBLE2.disconnect();
       this.player2Connected = false;
       this.player2Movement = 0;
-      this.player2Name = "Player 2";
-      this.handshakeComplete2 = false;
+      this.player2DeviceId = null;
+      this.p2Button.removeClass('connected');
+      this.p2Button.html('Connect');
     }
-    this.updateButtonState(playerNumber);
   }
-  
-  updateButtonState(playerNumber) {
-    if (playerNumber === 1) {
-      if (this.player1Connected) {
-        this.p1Button.html('Disconnect');
-        this.p1Button.addClass('connected');
-        this.p1DeviceSelect.attribute('disabled', '');
-      } else {
-        this.p1Button.html('Connect');
-        this.p1Button.removeClass('connected');
-        this.p1DeviceSelect.removeAttribute('disabled');
-      }
+
+  drawDebug() {
+    if (!this.debug) return;
+    
+    text(`Player 1: ${this.player1Connected ? 'Connected' : 'Disconnected'}`, width/4, 30);
+    text(`Player 2: ${this.player2Connected ? 'Connected' : 'Disconnected'}`, 3*width/4, 30);
+    text(`Player: ${this.player1Name}`, width/4, 60);
+    text(`Player: ${this.player2Name}`, 3*width/4, 60);
+    
+    // Display device numbers is now redundant since player name shows it
+    
+    this.drawPlayerDebug(this.player1Movement, width/4, 75);
+    this.drawPlayerDebug(this.player2Movement, 3*width/4, 75);
+  }
+
+  drawPlayerDebug(movement, x, baseY) {
+    text(`Movement: ${movement}`, x, baseY);
+    
+    push();
+    translate(x, baseY + 30);
+    if (movement === 0) {
+      fill(128);
+      circle(0, 0, 20);
     } else {
-      if (this.player2Connected) {
-        this.p2Button.html('Disconnect');
-        this.p2Button.addClass('connected');
-        this.p2DeviceSelect.attribute('disabled', '');
+      fill(0, 255, 0);
+      circle(0, movement * -20, 20);
+    }
+    pop();
+  }
+
+  createConnectionParticles(player) {
+    const x = player === 1 ? width/4 : 3*width/4;
+    const y = height/2;
+    const particleCount = 100; // Increased from 30 to 100
+    
+    for (let i = 0; i < particleCount; i++) {
+      const angle = random(TWO_PI);
+      const speed = random(4, 12); // Increased from (2, 6) to (4, 12)
+      const particle = {
+        x: x,
+        y: y,
+        vx: cos(angle) * speed,
+        vy: sin(angle) * speed,
+        life: 1.0,
+        size: random(4, 12) // Increased from (3, 8) to (4, 12)
+      };
+      
+      if (player === 1) {
+        this.player1Particles.push(particle);
       } else {
-        this.p2Button.html('Connect');
-        this.p2Button.removeClass('connected');
-        this.p2DeviceSelect.removeAttribute('disabled');
+        this.player2Particles.push(particle);
       }
     }
   }
-  
+
+  updateAndDrawParticles() {
+    // Update and draw Player 1 particles
+    for (let i = this.player1Particles.length - 1; i >= 0; i--) {
+      const p = this.player1Particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 0.02;
+      p.vx *= 0.98; // Slight slowdown
+      p.vy *= 0.98;
+      
+      if (p.life <= 0) {
+        this.player1Particles.splice(i, 1);
+      } else {
+        push();
+        noStroke();
+        fill(255, 255, 255, p.life * 255);
+        circle(p.x, p.y, p.size * p.life);
+        pop();
+      }
+    }
+    
+    // Update and draw Player 2 particles
+    for (let i = this.player2Particles.length - 1; i >= 0; i--) {
+      const p = this.player2Particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 0.02;
+      p.vx *= 0.98;
+      p.vy *= 0.98;
+      
+      if (p.life <= 0) {
+        this.player2Particles.splice(i, 1);
+      } else {
+        push();
+        noStroke();
+        fill(255, 255, 255, p.life * 255);
+        circle(p.x, p.y, p.size * p.life);
+        pop();
+      }
+    }
+  }
+
   getPlayer1Movement() {
     return this.player1Movement * this.player1MoveMultiplier;
   }
-  
+
   getPlayer2Movement() {
     return this.player2Movement * this.player2MoveMultiplier;
   }
-  
+
+  getPointsToWin() {
+    return this.pointsToWin;
+  }
+
   set debug(value) {
     this._debug = value;
   }
-  
+
   get debug() {
     return this._debug;
   }
-  
-  createConnectionParticles(playerNumber) {
-    const particles = playerNumber === 1 ? this.player1Particles : this.player2Particles;
-    const x = playerNumber === 1 ? width * 0.25 : width * 0.75;
-    const y = height / 2;
-    
-    for (let i = 0; i < 30; i++) {
-      particles.push({
-        x: x,
-        y: y,
-        vx: random(-5, 5),
-        vy: random(-5, 5),
-        life: 60,
-        color: playerNumber === 1 ? color(46, 204, 64) : color(255, 65, 54)
-      });
-    }
+
+  isPlayer1Connected() {
+    return this.player1Connected;
   }
-  
-  updateParticles() {
-    this.updateParticleArray(this.player1Particles);
-    this.updateParticleArray(this.player2Particles);
-  }
-  
-  updateParticleArray(particles) {
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
-      p.x += p.vx;
-      p.y += p.vy;
-      p.life--;
-      
-      if (p.life <= 0) {
-        particles.splice(i, 1);
-      }
-    }
-  }
-  
-  drawParticles() {
-    noStroke();
-    this.drawParticleArray(this.player1Particles);
-    this.drawParticleArray(this.player2Particles);
-  }
-  
-  drawParticleArray(particles) {
-    for (const p of particles) {
-      const alpha = map(p.life, 0, 60, 0, 255);
-      fill(red(p.color), green(p.color), blue(p.color), alpha);
-      ellipse(p.x, p.y, 8);
-    }
-  }
-  
-  drawDebug() {
-    if (!this._debug) return;
-    
-    push();
-    fill(255);
-    textSize(12);
-    textAlign(LEFT, TOP);
-    
-    const y = 60;
-    text(`P1 Connected: ${this.player1Connected}`, 10, y);
-    text(`P1 Movement: ${this.player1Movement}`, 10, y + 15);
-    text(`P1 Name: ${this.player1Name}`, 10, y + 30);
-    
-    text(`P2 Connected: ${this.player2Connected}`, 10, y + 50);
-    text(`P2 Movement: ${this.player2Movement}`, 10, y + 65);
-    text(`P2 Name: ${this.player2Name}`, 10, y + 80);
-    
-    pop();
+
+  isPlayer2Connected() {
+    return this.player2Connected;
   }
 }

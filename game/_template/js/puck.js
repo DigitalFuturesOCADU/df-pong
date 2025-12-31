@@ -1,6 +1,5 @@
 class Puck {
-    constructor(assetsPath) {
-        this.assetsPath = assetsPath || '../shared/assets/';
+    constructor() {
         this.x = width / 2;
         this.y = height / 2;
         this.xspeed = 0;
@@ -81,7 +80,7 @@ class Puck {
                 this.yspeed = this.baseSpeed * this.speedMultiplier * sin(angle);
                 this.x = p.x + p.w/2 + this.r;
                 this.speedMultiplier += this.speedIncrement;
-                if (typeof song !== 'undefined') song.play(); // Play paddle sound
+                song.play(); // Play paddle sound
             }
             
         }
@@ -98,7 +97,7 @@ class Puck {
                 this.yspeed = this.baseSpeed * this.speedMultiplier * sin(angle);
                 this.x = p.x - p.w/2 - this.r;
                 this.speedMultiplier += this.speedIncrement;
-                if (typeof song !== 'undefined') song.play(); // Play paddle sound
+                song.play(); // Play paddle sound
             }
         }
     }
@@ -124,11 +123,11 @@ class Puck {
     edges(bleController) {
         if (this.y < 0 || this.y > height) {
             this.yspeed *= -1;
-            if (typeof song2 !== 'undefined') song2.play(); // Play wall sound
+            song2.play(); // Play wall sound
         }
         
         if (this.x - this.r > width) {
-            if (typeof ding !== 'undefined') ding.play(); // Play score sound
+            ding.play(); // Play score sound
             leftscore++;
             if (bleController) {
                 bleController.createConnectionParticles(1); // Particle effect for player 1
@@ -137,7 +136,7 @@ class Puck {
         }
         
         if (this.x + this.r < 0) {
-            if (typeof ding !== 'undefined') ding.play(); // Play score sound
+            ding.play(); // Play score sound
             rightscore++;
             if (bleController) {
                 bleController.createConnectionParticles(2); // Particle effect for player 2
