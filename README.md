@@ -75,27 +75,82 @@ All settings persist in browser's local storage.
 
 ### For Players
 
-#### 1. Configure Your Arduino Device Number
+#### Option A: Using the DFPongController Library (Recommended)
 
-Each player must set a unique device number (1-25) in their Arduino controller:
+The easiest way to create a controller is using the [DFPongController Arduino Library](https://github.com/DigitalFuturesOCADU/df-pong-controller).
+
+**Install the Library:**
+1. Open Arduino IDE
+2. Go to **Sketch > Include Library > Manage Libraries...**
+3. Search for "**DFPongController**"
+4. Click **Install**
+
+**Supported Boards:**
+- Arduino UNO R4 WiFi
+- Arduino Nano 33 IoT
+- Arduino Nano 33 BLE / BLE Sense
+- ESP32 / ESP32-S3 / ESP32-C3 (requires NimBLE-Arduino library)
+
+**Quick Start:**
+```cpp
+#include <DFPongController.h>
+
+DFPongController controller;
+
+void setup() {
+    pinMode(2, INPUT_PULLUP);  // UP button
+    pinMode(3, INPUT_PULLUP);  // DOWN button
+    
+    controller.setControllerNumber(1);  // ← CHANGE THIS (1-242)
+    controller.setStatusLED(LED_BUILTIN);
+    controller.begin();
+}
+
+void loop() {
+    controller.update();  // Required every loop!
+    
+    if (!digitalRead(2)) {
+        controller.sendControl(UP);
+    } else if (!digitalRead(3)) {
+        controller.sendControl(DOWN);
+    } else {
+        controller.sendControl(NEUTRAL);
+    }
+}
+```
+
+See library examples in `controller/examples/BLE/DFpong_Library_TwoButton/` and `controller/examples/BLE/DFpong_Library_StartTemplate/`.
+
+#### Option B: Using the Raw BLE Examples
+
+For more control or learning purposes, you can use the raw BLE examples:
 
 1. Open `controller/examples/BLE/DFpong_controller_2button/DFpong_controller_2button.ino`
 2. Find this line at the top:
    ```cpp
    const int DEVICE_NUMBER = 1;  // ← CHANGE THIS!
    ```
-3. Change the number to your assigned device (1-25)
-4. Upload the sketch to your Arduino Nano 33 IoT
+3. Change the number to your assigned device (1-242)
+4. Upload the sketch to your Arduino
 
-**Important:** Remember your device number - you'll use it throughout the semester!
+**Important:** Remember your controller number - you'll use it to connect!
 
-#### 2. Connect to the Game
+#### Test Your Controller
+
+Before playing a game, test your controller is working:
+
+1. Go to the **[Controller Test Page](https://digitalfuturesocadu.github.io/df-pong/game/test/)**
+2. Select your controller number from the dropdown
+3. Click "Connect"
+4. Verify your controller inputs move the paddle
+
+#### Connect to the Game
 
 1. Go to your class's game URL (see [Game Versions](#game-versions) above)
-2. Select your device number from the dropdown (e.g., "1: Your Name")
+2. Select your controller number from the dropdown (e.g., "1: Your Name")
 3. Click "Connect"
 4. Select your Arduino from the browser's Bluetooth picker
-5. The button will turn black and say "Disconnect" when connected
+5. The button will turn green and say "Disconnect" when connected
 
 
 
