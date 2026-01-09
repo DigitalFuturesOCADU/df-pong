@@ -44,7 +44,7 @@ class BLEController {
   
   async loadPlayersConfig() {
     try {
-      const response = await fetch('players-config.json');
+      const response = await fetch('players-config.json?v=' + Date.now());
       this.playersConfig = await response.json();
       console.log('Players config loaded:', this.playersConfig);
       // Recreate dropdowns if they already exist
