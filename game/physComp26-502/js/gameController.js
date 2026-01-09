@@ -142,7 +142,8 @@ class GameController {
                 break;
 
             case this.STATE.PAUSED:
-                textSize(medText);
+                textSize(medText * 1.5);  // 50% larger
+                fill(255, 153);  // 60% opacity (153/255 ≈ 0.6)
                 text("GAME PAUSED", width/2, height/2);
                 break;
 
