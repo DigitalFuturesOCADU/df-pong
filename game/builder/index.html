@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#121211" />
+  <title>DF Pong · Settings Builder</title>
+  <link rel="stylesheet" href="../engine/2026/css/style.css" />
+  <link rel="stylesheet" href="builder.css" />
+  <script>window.DFPONG = { instance: 'builder', engine: '../engine/2026/' };</script>
+  <script src="../engine/2026/js/settings.js"></script>
+  <script src="../engine/2026/js/audio.js"></script>
+</head>
+<body>
+  <main class="builder">
+    <header class="builder-head">
+      <p class="kicker">DF Pong · DFPongController 2.x</p>
+      <h1>Settings Builder</h1>
+      <p class="lede">
+        Design how your controller shows up in the game: your color, your sounds, your paddle, and the rules you'd like to play by.
+        Then copy the code into your sketch. Every setting is optional.
+      </p>
+    </header>
+
+    <div class="builder-grid">
+      <form class="panel builder-form" autocomplete="off">
+        <section>
+          <h2>You</h2>
+          <label class="field">Name in the game <span class="opt">optional · up to 20 characters</span>
+            <input name="name" type="text" maxlength="20" placeholder="uses the class list name" />
+          </label>
+          <div class="field">
+            <span>Color</span>
+            <div class="color-row">
+              <input name="useColor" type="checkbox" aria-label="Use a custom color" />
+              <input name="color" type="color" value="#ece8df" />
+              <code class="color-out"></code>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>Your paddle</h2>
+          <div class="field slider">
+            <label><input name="useMoveSpeed" type="checkbox" /> Move speed</label>
+            <output data-for="moveSpeed"></output>
+            <input name="moveSpeed" type="range" min="1" max="100" value="10" />
+            <small>10 is normal. Higher moves faster.</small>
+          </div>
+          <div class="field slider">
+            <label><input name="usePaddleSize" type="checkbox" /> Paddle size</label>
+            <output data-for="paddleSize"></output>
+            <input name="paddleSize" type="range" min="50" max="200" value="100" />
+            <small>Percent of a normal paddle.</small>
+          </div>
+        </section>
+
+        <section class="sounds">
+          <h2>Your sounds</h2>
+          <!-- filled by builder.js -->
+        </section>
+
+        <section>
+          <h2>Rules you'd like</h2>
+          <p class="help">These are requests. If your opponent asks for something different, the game settles it when the match starts (usually by meeting in the middle). The host can also lock rules.</p>
+          <div class="requests"><!-- filled by builder.js --></div>
+        </section>
+      </form>
+
+      <aside class="builder-side">
+        <section class="panel preview-panel">
+          <div class="preview-head">
+            <h2>Preview</h2>
+            <button class="btn" type="button" data-test="hit">Test a hit</button>
+          </div>
+          <canvas class="preview" width="720" height="420" aria-label="Paddle preview"></canvas>
+        </section>
+
+        <section class="panel">
+          <div class="preview-head">
+            <h2>Your code</h2>
+            <button class="btn primary" type="button" data-copy>Copy</button>
+          </div>
+          <p class="help">Paste these lines into <code>setup()</code>, before <code>controller.begin()</code>.</p>
+          <pre class="code"><code></code></pre>
+          <p class="help json-size"></p>
+        </section>
+
+        <section class="panel hosting">
+          <h2>Using your own sound file</h2>
+          <ol>
+            <li>Keep it short (under a second is best for hits) and under 2&nbsp;MB. mp3, wav and ogg all work.</li>
+            <li>Put the file in a <b>public GitHub repository</b>.</li>
+            <li>Use either address:
+              <ul>
+                <li><code>https://raw.githubusercontent.com/<i>you</i>/<i>repo</i>/main/<i>sound.mp3</i></code></li>
+                <li><code>https://<i>you</i>.github.io/<i>repo</i>/<i>sound.mp3</i></code> (with GitHub Pages on)</li>
+              </ul>
+            </li>
+            <li>Paste it above and press <b>Test</b>. If it says <b>ready</b>, it will work in the game.</li>
+          </ol>
+          <p class="help">
+            Other sites often block games from loading their files ("CORS"). Those may still play, but without the
+            game's pitch and stereo effects, or not at all. Make sure you have the rights to any sound you use: record
+            your own, or use public-domain sounds (for example from the Internet Archive or Wikimedia Commons).
+          </p>
+        </section>
+      </aside>
+    </div>
+  </main>
+  <script src="builder.js"></script>
+</body>
+</html>

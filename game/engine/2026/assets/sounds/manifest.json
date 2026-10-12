@@ -1,0 +1,32 @@
+{
+  "about": "Recorded sounds. Every name can be used by players (setHitSound(\"name\")); 'roles' picks what the game itself plays. Sources and licences: CREDITS.md",
+  "roles": {
+    "paddle": "pingpong",
+    "wall": "tick",
+    "score": "bell",
+    "countdown": "pip",
+    "go": "pipgo",
+    "serve": "quindar",
+    "win": "flourish",
+    "cheer": "applause",
+    "ambience": "hall"
+  },
+  "sounds": {
+    "pingpong": { "file": "pingpong.mp3", "credit": "D. D. Teoli Jr. A.C., Internet Archive (Public Domain Mark)" },
+    "claves": { "file": "claves.mp3", "credit": "Wikimedia Commons, Claves.ogg (public domain)" },
+    "tick": { "file": "tick.mp3", "credit": "Marble Toast, Wikimedia Commons (CC0)" },
+    "bell": { "file": "bell.mp3", "credit": "Work With Sounds / Museum of Municipal Engineering, CC BY 4.0, trimmed" },
+    "gong": { "file": "gong.mp3", "credit": "D. D. Teoli Jr. A.C., Internet Archive (Public Domain Mark)" },
+    "bikebell": { "file": "bikebell.mp3", "credit": "Marcus Speckin, Soundscape Leuphana, Wikimedia Commons (CC0)" },
+    "flourish": { "file": "flourish.mp3", "credit": "US Army Band, Wikimedia Commons (public domain)" },
+    "applause": { "file": "applause.mp3", "credit": "Pierre Marshall, Wikimedia Commons (CC0)" },
+    "pip": { "file": "pip.mp3", "credit": "Membeth, Wikimedia Commons (CC0)" },
+    "pipgo": { "file": "pipgo.mp3", "credit": "Membeth, Wikimedia Commons (CC0)" },
+    "quindar": { "file": "quindar.mp3", "credit": "NASA, Wikimedia Commons (public domain)" },
+    "clock": { "file": "clock.mp3", "credit": "LA2, Wikimedia Commons (public domain)" },
+    "hall": { "file": "hall.mp3", "credit": "Peter Cusack, radio aporee via Internet Archive (Public Domain Mark)", "list": false },
+    "classic": { "file": "classic.wav", "credit": "DF Pong 2024" },
+    "wall": { "file": "wall.wav", "credit": "DF Pong 2024" },
+    "ding": { "file": "ding.mp3", "credit": "DF Pong 2024" }
+  }
+}
