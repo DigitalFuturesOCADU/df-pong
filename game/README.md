@@ -1,27 +1,34 @@
-# DF Pong: game pages
+# DF Pong: game versions
 
-Every class gets its own page (its own URL, player list, and saved settings). Since 2026 the game code
-lives in one shared, versioned engine, and each class page is just two small files.
+Every class gets its own folder, with its own copy of the game. A new version never changes an older one,
+so a link from a past class keeps working exactly as it did.
 
 ```
 game/
-├── engine/2026/          the 2026 game engine (shared)
-├── cc26/                 a class page
-│   ├── index.html        title, instance id, which engine to use
-│   └── players-config.json
-├── test/                 controller test page (test mode)
-├── builder/              Settings Builder (for students)
-├── admin/                admin panel (for hosts)
-├── _template/            copy this to make a new class page
-└── cc25/ physComp26-501/ physComp26-502/
-                          2025 pages, each with its own frozen copy of the 2025 code
+├── cc26/                 Creation & Computation 2026 (the 2026 game)
+│   ├── index.html        page settings: title, instance id, admin relay, default rules
+│   ├── players-config.json
+│   ├── js/               the game code
+│   ├── css/
+│   ├── assets/sounds/    recorded sounds, manifest.json, CREDITS.md
+│   ├── builder/          Settings Builder (for students)
+│   ├── admin/            admin panel (for hosts)
+│   └── tests/            engine tests with simulated controllers
+├── physComp26-501/       Physical Computing 2026, section 501 (2025 game)
+├── physComp26-502/       Physical Computing 2026, section 502 (2025 game)
+├── cc25/                 Creation & Computation 2025 (2025 game)
+├── test/                 2025 controller test page
+├── _template/            2025 template
+└── builder/, admin/      forward old links to cc26/builder/ and cc26/admin/
 ```
 
-## Make a page for a new class
+## Make a new version
 
-1. Copy `_template/` and rename it, e.g. `game/cc27/`.
-2. In `index.html`, set `instance` (a short id, used for saved settings and the admin room) and `title`.
-3. Put the class list in `players-config.json` (same format as previous years):
+Copy the most recent version's folder, then rename it with the course and year:
+
+1. Copy `cc26/` to, for example, `physComp27-501/`.
+2. In `index.html`, change `instance` (a short id, also used for saved settings and the admin room) and `title`.
+3. Put the class list in `players-config.json` (same format every year):
 
    ```json
    {
@@ -34,39 +41,40 @@ game/
 
    Numbers can be anything from 1 to 242. Students can also type a number that isn't on the list.
 
+Because the copy has its own `js/`, `css/` and `assets/`, you can change it freely without touching
+any other class.
+
 Options in `index.html`:
 
 | Option | Meaning |
 |---|---|
 | `instance` | Short id. Settings are saved per instance; it's also the admin room name. |
 | `title` | Shown in the lobby and the browser tab. |
-| `engine` | Path to the engine, e.g. `'../engine/2026/'`. |
+| `engine` | Where the game files are, relative to the page (`'./'`: this folder). |
 | `roster` | The players file (default `players-config.json`). |
 | `relay` | Admin relay for other devices, e.g. `'wss://pong-relay.example.com'`, or `'same-origin'` when served by `server/relay.js`. |
 | `defaults` | Starting house rules: `pointsToWin`, `puckSpeed`, `speedIncrement`. |
 | `testMode` | Opens *Controller details* and makes player 2 the computer. |
 
-URL parameters override these: `?relay=…`, `?room=…`, `?debug=1`, `?test=1`.
+URL parameters override these: `?test=1` (controller test mode), `?relay=…`, `?room=…`, `?debug=1`.
 
-## Versions and backwards compatibility
+## Backwards compatibility
 
-- **Pages are never upgraded in place.** The 2025 pages keep their own copy of the 2025 code and still work
-  exactly as they did.
-- **Engines are versioned by year.** For 2027, copy `engine/2026/` to `engine/2027/`, make changes there, and
-  point the new class pages at it. Fixes to the 2026 engine reach every 2026 page at once.
-- **Every controller generation must keep working** in every new engine: 2024 (shared UUID, name from the
-  device), 2025 (per-number UUID), 2026 (plus the config characteristic). See
-  [../docs/PROTOCOL.md](../docs/PROTOCOL.md). The engine tests (`engine/2026/tests/`) simulate all three.
+- **Older folders are never edited.** Each one keeps the code it shipped with.
+- **Every controller generation keeps working** in every new version: 2024 (shared UUID, name from the
+  device), 2025 (per-number UUID), 2026 (plus the config characteristic with custom settings). See
+  [../docs/PROTOCOL.md](../docs/PROTOCOL.md). `cc26/tests/` simulates all three.
+- A 2026 controller works in the 2025 pages too; it just plays without its custom settings.
 
-## The 2026 engine
+## The 2026 game (`cc26/js/`)
 
-Plain JavaScript files, loaded in order by each page (no build step). Each file has one job:
+Plain JavaScript files, loaded in order by `index.html` (no build step). Each file has one job:
 
 | File | Job |
 |---|---|
 | `settings.js` | What can be customized, validation, house rules, settling rule requests |
 | `ble.js` | Web Bluetooth: finding a controller by number, handshake, config, auto-reconnect |
-| `audio.js` | Web Audio: synthesized and recorded sounds, custom sounds from URLs, pitch/pan by game state |
+| `audio.js` | Web Audio: recorded and synthesized sounds, custom sounds from URLs, pitch/pan by game state |
 | `arena.js` | Physics in a fixed 1200 × 800 world at 120 steps per second; the computer player |
 | `effects.js` | Sparks, rings, shake, confetti, flashes |
 | `render.js` | Draws the arena with p5 into a 2D buffer |
@@ -82,17 +90,17 @@ and a paddle speed of 10 feel the same as before, now on every screen size and r
 
 ### Sounds
 
-`engine/2026/assets/sounds/manifest.json` lists the recorded sounds (public-domain, CC0 and CC BY recordings
-from the Internet Archive and Wikimedia Commons; see `CREDITS.md` there). Each name can be used by players
+`cc26/assets/sounds/manifest.json` lists the recorded sounds (public-domain, CC0 and CC BY recordings from
+the Internet Archive and Wikimedia Commons; see `CREDITS.md` there). Each name can be used by players
 (`setHitSound("name")`); the `roles` section picks what the game plays for hits, walls, points, the countdown,
-the serve, the win, and the ambient room sound. More sounds are synthesized in `audio.js`, and every role
-falls back to a synthesized sound if a file can't load.
+the serve, the win, and the room sound. More sounds are synthesized in `audio.js`, and every role falls back
+to a synthesized sound if a file can't load.
 
 ### Tests
 
-Run `node server/relay.js` and open http://localhost:5501/game/engine/2026/tests/. The page runs the real
-`settings.js` and `ble.js` against simulated 2024, 2025, 2026 and library-1.2-on-ESP32 controllers, including
-dropped connections and busy-GATT conditions.
+Run `node server/relay.js` and open http://localhost:5501/game/cc26/tests/. The page runs the real
+`settings.js` and `ble.js` against simulated 2024, 2025, 2026 and library-1.2-on-ESP32 controllers,
+including dropped connections, echoing ArduinoBLE controllers and busy-GATT conditions.
 
 ## Running locally
 

@@ -10,15 +10,18 @@ color, sounds, paddle size and speed, and ask for the rules they'd like to play 
 
 ## Play
 
-| Version | | Engine |
+| Version | | Folder |
 |---|---|---|
-| **CC26** · Creation & Computation 2026 | [Play](https://digitalfuturesocadu.github.io/df-pong/game/cc26/) | 2026 |
-| **Controller test** · try your controller against the computer | [Open](https://digitalfuturesocadu.github.io/df-pong/game/test/) | 2026 |
-| **Settings Builder** · design your custom settings, test sound addresses, get the code | [Open](https://digitalfuturesocadu.github.io/df-pong/game/builder/) | 2026 |
-| **Admin panel** · change rules and run the game from another window or device | [Open](https://digitalfuturesocadu.github.io/df-pong/game/admin/) | 2026 |
-| CC25 · Creation & Computation 2025 | [Play](https://digitalfuturesocadu.github.io/df-pong/game/cc25/) | 2025 (frozen) |
-| PhysComp26-501 · Physical Computing 2026, section 501 | [Play](https://digitalfuturesocadu.github.io/df-pong/game/physComp26-501/) | 2025 (frozen) |
-| PhysComp26-502 · Physical Computing 2026, section 502 | [Play](https://digitalfuturesocadu.github.io/df-pong/game/physComp26-502/) | 2025 (frozen) |
+| **CC26** · Creation & Computation 2026 | [Play](https://digitalfuturesocadu.github.io/df-pong/game/cc26/) | `game/cc26/` |
+| CC26 controller test · try your controller against the computer, see its settings | [Open](https://digitalfuturesocadu.github.io/df-pong/game/cc26/?test=1) | `game/cc26/` |
+| CC26 Settings Builder · design your custom settings, test sound addresses, get the code | [Open](https://digitalfuturesocadu.github.io/df-pong/game/cc26/builder/) | `game/cc26/builder/` |
+| CC26 admin panel · change rules and run the game from another window or device | [Open](https://digitalfuturesocadu.github.io/df-pong/game/cc26/admin/) | `game/cc26/admin/` |
+| PhysComp26-501 · Physical Computing 2026, section 501 | [Play](https://digitalfuturesocadu.github.io/df-pong/game/physComp26-501/) | `game/physComp26-501/` |
+| PhysComp26-502 · Physical Computing 2026, section 502 | [Play](https://digitalfuturesocadu.github.io/df-pong/game/physComp26-502/) | `game/physComp26-502/` |
+| CC25 · Creation & Computation 2025 | [Play](https://digitalfuturesocadu.github.io/df-pong/game/cc25/) | `game/cc25/` |
+| Controller test (2025) | [Open](https://digitalfuturesocadu.github.io/df-pong/game/test/) | `game/test/` |
+
+Every version lives in its own folder with its own copy of the code, so a new version never changes an older one.
 
 Controllers need **Chrome or Edge** on a computer or Android phone (Web Bluetooth). Safari, Firefox and
 iPhones/iPads can still play with the keyboard, touch, or against the computer.
@@ -74,7 +77,7 @@ More examples (click control, gravity, chorded buttons, live settings…) come w
 
 ### 2. Make it yours (optional)
 
-Open the **[Settings Builder](https://digitalfuturesocadu.github.io/df-pong/game/builder/)**, choose a color,
+Open the **[Settings Builder](https://digitalfuturesocadu.github.io/df-pong/game/cc26/builder/)**, choose a color,
 sounds and paddle, and paste the code it gives you into `setup()` before `controller.begin()`:
 
 ```cpp
@@ -99,7 +102,7 @@ controller.requestPointsToWin(7);                   // a request: your opponent 
 Settings can change while you play: the game picks up changes live (try mapping a sensor to your color).
 
 **Built-in sounds:** recorded (from public archives): `pingpong`, `claves`, `tick`, `bell`, `gong`, `bikebell`, `flourish`, `applause`, `pip`, `pipgo`, `quindar`, `clock`
-([credits](game/engine/2026/assets/sounds/CREDITS.md)); synthesized: `blip`, `boop`, `pluck`, `click`, `laser`,
+([credits](game/cc26/assets/sounds/CREDITS.md)); synthesized: `blip`, `boop`, `pluck`, `click`, `laser`,
 `drum`, `chirp`, `zap`, `thud`, `wood`, `glass`, `coin`; and the originals: `classic`, `wall`, `ding`.
 
 **Your own sound:** put a short mp3/wav/ogg (under 2 MB) in a public GitHub repo and use its
@@ -112,7 +115,7 @@ lock a rule.
 
 ### 3. Connect and play
 
-1. Open your class's game page (or the [controller test](https://digitalfuturesocadu.github.io/df-pong/game/test/)).
+1. Open your class's game page (or the [controller test](https://digitalfuturesocadu.github.io/df-pong/game/cc26/?test=1)).
 2. Pick your number (e.g. "12 · Kate"), press **Connect**, choose your controller in the browser's list.
 3. Move your controller: your paddle moves right there in the lobby, so you can check it works.
 4. Press **Start match** (or Space).
@@ -196,17 +199,18 @@ A short handshake (both sides send `3`) confirms a game is listening before the 
 
 ```
 game/
-├── engine/2026/        the 2026 game: shared by every 2026 page (see game/README.md)
+├── cc26/               Creation & Computation 2026: the whole 2026 game (see game/README.md)
+│   ├── index.html      page settings (title, instance id, admin relay…)
+│   ├── players-config.json
 │   ├── js/             settings, ble, audio, arena, effects, render, postfx, player, game, ui, sketch
 │   ├── css/
-│   ├── assets/sounds/  recorded sounds + manifest.json
+│   ├── assets/sounds/  recorded sounds, manifest.json, CREDITS.md
+│   ├── builder/        Settings Builder
+│   ├── admin/          admin panel
 │   └── tests/          engine tests with simulated controllers (open in a browser)
-├── cc26/               a 2026 class page: index.html + players-config.json
-├── test/               controller test page (2026 engine, test mode)
-├── builder/            Settings Builder
-├── admin/              admin panel
-├── _template/          copy this to make a new class page
-└── cc25/, physComp26-501/, physComp26-502/   2025 pages, frozen as they were
+├── physComp26-501/, physComp26-502/, cc25/   earlier versions, each self-contained
+├── test/, _template/   the 2025 controller test page and template
+└── builder/, admin/    forward old links to cc26/builder/ and cc26/admin/
 server/relay.js         optional relay for the admin panel (no dependencies)
 docs/PROTOCOL.md        controllers ↔ game ↔ admin, in detail
 controller/examples/    raw BLE examples and sensor strategies

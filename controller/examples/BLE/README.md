@@ -33,7 +33,7 @@ The two copies in this folder ([DFpong_Library_TwoButton](DFpong_Library_TwoButt
 
 ### Custom settings
 
-Use the **[Settings Builder](https://digitalfuturesocadu.github.io/df-pong/game/builder/)** to choose your
+Use the **[Settings Builder](https://digitalfuturesocadu.github.io/df-pong/game/cc26/builder/)** to choose your
 settings, test a sound address, and copy the code. For example:
 
 ```cpp
@@ -89,4 +89,4 @@ To add custom settings to a raw sketch, add a second characteristic as described
 - [DFPongController library](https://github.com/DigitalFuturesOCADU/df-pong-controller)
 - [DF Pong](https://digitalfuturesocadu.github.io/df-pong/)
 - [Controller test](https://digitalfuturesocadu.github.io/df-pong/game/test/)
-- [Settings Builder](https://digitalfuturesocadu.github.io/df-pong/game/builder/)
+- [Settings Builder](https://digitalfuturesocadu.github.io/df-pong/game/cc26/builder/)

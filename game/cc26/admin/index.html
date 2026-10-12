@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#121211" />
+  <title>DF Pong · Admin</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="admin.css" />
+  <script>window.DFPONG = { instance: 'admin' };</script>
+  <script src="../js/settings.js"></script>
+  <script src="../js/admin-link.js"></script>
+</head>
+<body>
+  <div class="admin">
+    <header class="admin-head">
+      <div>
+        <p class="kicker">DF Pong</p>
+        <h1>Admin</h1>
+      </div>
+      <form class="connect-form">
+        <label>Room <input name="room" type="text" autocomplete="off" spellcheck="false" placeholder="cc26" required /></label>
+        <label>Relay <input name="relay" type="text" autocomplete="off" spellcheck="false" placeholder="this browser only" /></label>
+        <label class="key-field">Key <input name="key" type="password" autocomplete="off" placeholder="optional" /></label>
+        <button class="btn" type="submit">Connect</button>
+      </form>
+      <p class="link-status"></p>
+    </header>
+
+    <section class="games"></section>
+
+    <div class="admin-grid">
+      <section class="panel">
+        <h2>Commands</h2>
+        <div class="button-row commands">
+          <button class="btn primary" data-command="start">Start</button>
+          <button class="btn" data-command="pause">Pause</button>
+          <button class="btn" data-command="resume">Resume</button>
+          <button class="btn" data-command="reset">Restart</button>
+          <button class="btn ghost" data-command="lobby">Back to lobby</button>
+        </div>
+        <p class="help target-help">Commands go to every game in the room.</p>
+      </section>
+
+      <section class="panel">
+        <h2>House rules</h2>
+        <div class="rules-form"></div>
+        <label class="stacked">When the two players ask for different rules
+          <select name="policy"></select>
+        </label>
+      </section>
+
+      <section class="panel">
+        <h2>Let controllers customize</h2>
+        <div class="permissions-form"></div>
+      </section>
+    </div>
+
+    <footer class="admin-foot">
+      <button class="btn primary big send">Send rules to games</button>
+      <p class="help">Rules and permissions are applied when you press Send. Locked rules ignore what players ask for.</p>
+    </footer>
+  </div>
+  <script src="admin.js"></script>
+</body>
+</html>

@@ -18,8 +18,8 @@ It serves the whole repo and the relay on port 5501 and prints the addresses to 
 
 ```
 Game:   http://localhost:5501/game/cc26/?relay=same-origin
-Admin:  http://localhost:5501/game/admin/?room=cc26&relay=same-origin
-Admin from another device on this network: http://10.0.0.29:5501/game/admin/?room=cc26&relay=same-origin
+Admin:  http://localhost:5501/game/cc26/admin/?room=cc26&relay=same-origin
+Admin from another device on this network: http://10.0.0.29:5501/game/cc26/admin/?room=cc26&relay=same-origin
 ```
 
 - Open the **game** on the laptop driving the projector (`localhost`, so Web Bluetooth works).

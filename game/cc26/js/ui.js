@@ -310,7 +310,7 @@ class UI {
           </section>
 
           <footer class="settings-foot">
-            <a class="set-link" href="https://github.com/DigitalFuturesOCADU/df-pong/blob/main/game/engine/2026/assets/sounds/CREDITS.md" target="_blank" rel="noopener">Sound credits</a>
+            <a class="set-link" href="https://github.com/DigitalFuturesOCADU/df-pong/blob/main/game/cc26/assets/sounds/CREDITS.md" target="_blank" rel="noopener">Sound credits</a>
             <button type="button" class="btn ghost" data-action="reset-settings">Reset to defaults</button>
             <button type="button" class="btn primary" data-action="settings">Done</button>
           </footer>
@@ -468,7 +468,7 @@ class UI {
     panel.querySelector('[data-house="ambience"]').addEventListener('change', (e) => this.house.merge({ ambience: e.target.checked }));
     panel.querySelector('[data-house="reduced"]').addEventListener('change', (e) => this.house.merge({ effects: e.target.checked ? 'reduced' : 'full' }));
 
-    const adminUrl = new URL('../../admin/', new URL(DFP.engine, location.href));
+    const adminUrl = new URL('admin/', new URL(DFP.engine, location.href)); // cc26/admin/
     adminUrl.searchParams.set('room', DFP.room);
     if (DFP.relay) adminUrl.searchParams.set('relay', DFP.relay);
     panel.querySelector('[data-admin-link]').href = adminUrl.href;

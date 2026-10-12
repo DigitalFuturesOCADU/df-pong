@@ -1,7 +1,7 @@
 # DF Pong Protocol Reference (2026)
 
 This document is the single source of truth for how controllers, the game, and the
-admin panel talk to each other. The game (`game/engine/2026/`), the Arduino library
+admin panel talk to each other. The game (`game/cc26/`), the Arduino library
 ([df-pong-controller](https://github.com/DigitalFuturesOCADU/df-pong-controller)),
 and the admin relay (`server/`) all implement this spec.
 
@@ -165,7 +165,7 @@ browser, and `bell` and `gong` fall back to synthesized versions if their record
 - Synthesized: `blip`, `boop`, `pluck`, `click`, `laser`, `drum`, `chirp`, `zap`, `thud`, `wood`, `glass`, `coin`
 - Originals (2024): `classic`, `wall`, `ding`
 
-`game/engine/2026/assets/sounds/manifest.json` is the authoritative list. Names are case-insensitive. A name the game doesn't know falls
+`game/cc26/assets/sounds/manifest.json` is the authoritative list. Names are case-insensitive. A name the game doesn't know falls
 back to the default sound (and the lobby says so).
 
 ---
@@ -199,7 +199,7 @@ Requests that change mid-match apply to the next match.
 
 ## 6. Admin protocol
 
-The admin panel (`game/admin/`) changes house rules and permissions and can send
+The admin panel (`game/cc26/admin/`) changes house rules and permissions and can send
 commands. It can reach the game two ways:
 
 - **Same browser**: `BroadcastChannel` named `dfpong:<room>` — zero setup.

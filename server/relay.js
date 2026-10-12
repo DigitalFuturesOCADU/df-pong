@@ -326,8 +326,8 @@ server.listen(PORT, () => {
   console.log('\nDF Pong relay running');
   if (SERVE_STATIC) {
     console.log(`  Game:   http://localhost:${PORT}/game/cc26/?relay=same-origin`);
-    console.log(`  Admin:  http://localhost:${PORT}/game/admin/?room=cc26&relay=same-origin`);
-    lan.forEach((ip) => console.log(`  Admin from another device on this network: http://${ip}:${PORT}/game/admin/?room=cc26&relay=same-origin`));
+    console.log(`  Admin:  http://localhost:${PORT}/game/cc26/admin/?room=cc26&relay=same-origin`);
+    lan.forEach((ip) => console.log(`  Admin from another device on this network: http://${ip}:${PORT}/game/cc26/admin/?room=cc26&relay=same-origin`));
   }
   console.log(`  Relay:  ws://localhost:${PORT}/relay`);
   console.log(ADMIN_KEY ? '  Admin key required.' : '  No admin key set (anyone on the network can be admin). Set ADMIN_KEY to require one.');
