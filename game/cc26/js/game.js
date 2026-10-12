@@ -28,7 +28,7 @@ class Game {
 
     this.players = [1, 2].map((slot) => new Player(slot, { house, sound, onChange: (p, what, info) => this.onPlayerChange(p, what, info) }));
     this.paddles = [new Paddle('left'), new Paddle('right')];
-    this.cpus = this.paddles.map((p) => new CpuBrain(p, 0.82));
+    this.cpus = this.paddles.map((p) => new CpuBrain(p, 0.85, 0.12));
     this.puck = new Puck();
     this.keys = new Set();
 
@@ -291,6 +291,11 @@ class Game {
     this.players.forEach((player, i) => {
       const paddle = this.paddles[i];
       paddle.speed = player.moveSpeed;
+      const cpu = this.cpus[i];
+      // A side set to Computer plays at its chosen difficulty; the lobby's demo uses a steady 0.85
+      const level = this.house.data.cpuLevel[i];
+      cpu.skill = player.mode === 'cpu' ? CPU_LEVELS.skill(level) : 0.85;
+      cpu.miss = player.mode === 'cpu' ? CPU_LEVELS.miss(level) : 0.12;
       paddle.sizePct = player.paddleSize;
 
       if (this.state === 'paused') {
@@ -312,6 +317,7 @@ class Game {
         paddle.target = player.touchY;
       } else if (player.mode === 'cpu' || (this.state === 'lobby' && !practicing)) {
         paddle.dir = 0;
+        paddle.speed = player.moveSpeed * (0.7 + 0.3 * cpu.skill); // easier computers are slower too
         this.cpus[i].update(this.puck, dt);
       } else {
         paddle.target = null;

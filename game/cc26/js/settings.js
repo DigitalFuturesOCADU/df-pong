@@ -89,6 +89,17 @@ const BUILTIN_SOUNDS = [
   'chirp', 'zap', 'thud', 'wood', 'glass', 'coin', 'gong',
 ];
 
+// Computer opponent difficulty
+const CPU_LEVELS = {
+  min: 1,
+  max: 10,
+  /** reaction speed: 0.4 (slow) … 1 (fastest) */
+  skill: (level) => 0.4 + (0.6 * (level - 1)) / 9,
+  /** chance of misplaying a return: 45% at level 1, falling evenly to 0% at level 10 */
+  miss: (level) => (0.45 * (10 - level)) / 9,
+  label: (level) => (level <= 3 ? 'Easy' : level <= 6 ? 'Medium' : level <= 8 ? 'Hard' : 'Expert'),
+};
+
 const MAX_CONFIG_BYTES = 512;
 
 // Only an object's own keys count ("constructor" or "__proto__" must never look like a setting or a sound).
@@ -311,6 +322,7 @@ class HouseRules {
       policy: 'average',
       permissions: { name: true, color: true, moveSpeed: true, paddleSize: true, sounds: true, requests: true },
       paddleSpeed: [10, 10], // used by keyboard players, and by controllers that don't set moveSpeed
+      cpuLevel: [6, 6], // computer difficulty for each side, 1 (easy) to 10 (expert)
       volume: 0.8,
       muted: false,
       ambience: true,
@@ -363,6 +375,12 @@ class HouseRules {
       for (const key of Object.keys(PERMISSIONS)) {
         if (typeof update.permissions[key] === 'boolean') d.permissions[key] = update.permissions[key];
       }
+    }
+    if (Array.isArray(update.cpuLevel)) {
+      update.cpuLevel.slice(0, 2).forEach((v, i) => {
+        const n = Math.round(Number(v));
+        if (Number.isFinite(n)) d.cpuLevel[i] = Math.min(CPU_LEVELS.max, Math.max(CPU_LEVELS.min, n));
+      });
     }
     if (Array.isArray(update.paddleSpeed)) {
       update.paddleSpeed.slice(0, 2).forEach((v, i) => {

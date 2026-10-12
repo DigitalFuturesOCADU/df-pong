@@ -218,6 +218,11 @@ class UI {
             <button data-mode="cpu">Computer</button>
           </div>
         </div>
+        <div class="cpu-difficulty" hidden>
+          <label for="cpu-level-${slot}">Difficulty</label>
+          <input id="cpu-level-${slot}" type="range" min="${CPU_LEVELS.min}" max="${CPU_LEVELS.max}" step="1">
+          <output for="cpu-level-${slot}"></output>
+        </div>
         <ul class="chips"></ul>
         <ul class="messages"></ul>
       </section>`;
@@ -410,6 +415,15 @@ class UI {
         }
         connect.blur();
       });
+
+      const level = card.querySelector('.cpu-difficulty input');
+      level.addEventListener('input', () => {
+        const levels = [...this.house.data.cpuLevel];
+        levels[i] = Number(level.value);
+        this.house.merge({ cpuLevel: levels });
+      });
+      // Arrow keys move the slider; Space should still start the match
+      level.addEventListener('change', () => level.blur());
 
       card.querySelectorAll('[data-mode]').forEach((b) =>
         b.addEventListener('click', () => {
@@ -674,6 +688,11 @@ class UI {
     connect.classList.toggle('primary', !!player.target && kind !== 'controller' && !busy);
 
     card.querySelector('.forget').hidden = status !== 'lost';
+    const difficulty = card.querySelector('.cpu-difficulty');
+    difficulty.hidden = kind !== 'cpu';
+    const level = this.house.data.cpuLevel[player.index];
+    difficulty.querySelector('input').value = level;
+    difficulty.querySelector('output').textContent = `${level} · ${CPU_LEVELS.label(level)}`;
     card.querySelectorAll('[data-mode]').forEach((b) => b.classList.toggle('active', b.dataset.mode === player.mode));
 
     card.querySelector('.chips').innerHTML = kind === 'controller' ? this.chipsHTML(player) : '';

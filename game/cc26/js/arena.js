@@ -163,11 +163,16 @@ class Puck {
   }
 }
 
-/** A simple computer player: predicts where the puck will arrive, with some human-like error. */
+/**
+ * A simple computer player: predicts where the puck will arrive, with some human-like error.
+ *   skill  0–1: how quickly it reacts
+ *   miss   0–1: the chance its aim is off by more than the paddle can cover on a return
+ */
 class CpuBrain {
-  constructor(paddle, skill = 0.8) {
+  constructor(paddle, skill = 0.8, miss = 0.1) {
     this.paddle = paddle;
     this.skill = skill;
+    this.miss = miss;
     this.error = 0;
     this.thinkTimer = 0;
     this.lastDirection = 0;
@@ -180,7 +185,10 @@ class CpuBrain {
     if (direction !== this.lastDirection) {
       // New rally direction: pick a fresh aiming mistake.
       this.lastDirection = direction;
-      this.error = (Math.random() * 2 - 1) * (1 - this.skill) * p.h * 1.4;
+      // Aim off by up to ±spread: beyond `reach` the paddle misses, which happens with probability `miss`
+      const reach = p.h / 2 + puck.r * 0.75;
+      const spread = this.miss > 0 ? reach / (1 - Math.min(this.miss, 0.9)) : reach * 0.5;
+      this.error = (Math.random() * 2 - 1) * spread;
     }
     this.thinkTimer -= dt;
     if (this.thinkTimer > 0) return;

@@ -128,7 +128,8 @@ lock a rule.
 | Rematch | `Space` or `Enter` | |
 | Settings · controller details · mute · full screen | `C` · `D` · `M` · `F` | top-right buttons |
 
-A player without a controller can use the keyboard or touch, or hand their side to the **computer**.
+A player without a controller can use the keyboard or touch, or hand their side to the **computer**, with a
+difficulty slider from 1 (Easy) to 10 (Expert).
 
 If a controller drops out mid-match (battery, interference, reset), the game pauses and reconnects to it
 automatically. No need to pick it again.
