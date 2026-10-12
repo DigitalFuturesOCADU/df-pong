@@ -1,0 +1,165 @@
+body {
+  overflow: auto;
+}
+
+.admin {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  padding: clamp(16px, 3vw, 36px) 16px 48px;
+  display: grid;
+  gap: 20px;
+}
+
+.admin h1 {
+  margin: 2px 0 0;
+  font-size: clamp(32px, 5vw, 48px);
+  letter-spacing: -0.03em;
+}
+
+.admin h2 {
+  margin: 0 0 14px;
+  font-size: 17px;
+}
+
+.admin-head {
+  display: grid;
+  gap: 14px;
+}
+
+.connect-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+}
+
+.connect-form label {
+  display: grid;
+  gap: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  flex: 1 1 160px;
+}
+
+.connect-form .key-field {
+  flex: 0 1 140px;
+}
+
+.connect-form input {
+  font-family: var(--sans);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.link-status {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--dim);
+}
+
+.games {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+  gap: 14px;
+}
+
+.games .empty {
+  color: var(--dim);
+  font-size: 14px;
+}
+
+.game-card {
+  display: grid;
+  gap: 12px;
+}
+
+.game-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.game-card.stale {
+  opacity: 0.5;
+}
+
+.game-card.targeted {
+  border-color: var(--ink);
+}
+
+.state-badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  color: var(--dim);
+}
+
+.state-badge[data-state='playing'],
+.state-badge[data-state='serve'] {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.state-badge[data-state='paused'] {
+  border-style: dashed;
+  color: var(--ink);
+}
+
+.admin-players {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-player {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.admin-player .swatch {
+  flex: none;
+  height: 40px;
+  width: 8px;
+  border-radius: 3px;
+  background: var(--player);
+}
+
+.admin-player-name {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.admin-player .score {
+  margin-left: 6px;
+  color: var(--player);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-player .help {
+  margin: 2px 0 0;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.commands {
+  justify-content: flex-start;
+}
+
+.admin-foot {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}

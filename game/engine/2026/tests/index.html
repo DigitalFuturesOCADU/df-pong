@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>DF Pong engine tests</title>
+  <style>
+    body { background: #121211; color: #ece8df; font: 14px/1.5 ui-monospace, Menlo, monospace; padding: 24px; }
+    .pass { color: #93b98c; } .fail { color: #d4806a; } h2 { font-size: 15px; margin-top: 24px; }
+  </style>
+  <script>window.DFPONG = { instance: 'tests' };</script>
+  <script src="../js/settings.js"></script>
+  <script src="../js/ble.js"></script>
+</head>
+<body>
+  <h1>DF Pong engine tests</h1>
+  <p>Runs the real <code>settings.js</code> and <code>ble.js</code> against simulated controllers. No hardware needed.</p>
+  <div id="out"></div>
+<script>
+// ---------------------------------------------------------------------------
+// Tiny test runner
+// ---------------------------------------------------------------------------
+const out = document.getElementById('out');
+const results = { pass: 0, fail: 0, failures: [] };
+let currentGroup = '';
+function group(name) { currentGroup = name; out.insertAdjacentHTML('beforeend', `<h2>${name}</h2>`); }
+function check(name, ok, detail = '') {
+  results[ok ? 'pass' : 'fail']++;
+  if (!ok) results.failures.push(`${currentGroup}: ${name} ${detail}`);
+  out.insertAdjacentHTML('beforeend', `<div class="${ok ? 'pass' : 'fail'}">${ok ? '✓' : '✗'} ${name} ${ok ? '' : detail}</div>`);
+}
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+async function until(fn, ms = 3000) {
+  const end = performance.now() + ms;
+  while (performance.now() < end) { if (fn()) return true; await wait(10); }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
+// A fake Web Bluetooth stack that behaves like Chrome: one GATT operation at
+// a time per device, notifications only after startNotifications(), etc.
+// ---------------------------------------------------------------------------
+class FakeCharacteristic extends EventTarget {
+  constructor(device, uuid, props, initial) {
+    super();
+    this.device = device; this.uuid = uuid; this.properties = props;
+    this.value = new DataView(initial.buffer);
+    this.notifying = false;
+  }
+  async op(fn) {
+    if (this.device.busy) throw new DOMException('GATT operation already in progress.', 'NetworkError');
+    if (!this.device.gatt.connected) throw new DOMException('GATT Server is disconnected.', 'NetworkError');
+    this.device.busy = true;
+    try { await wait(8); return fn(); } finally { this.device.busy = false; }
+  }
+  startNotifications() { return this.op(() => { this.notifying = true; this.device.fw.onSubscribe(this); return this; }); }
+  readValue() { return this.op(() => { this.device.stats.reads++; return this.value; }); }
+  writeValueWithResponse(data) {
+    return this.op(() => {
+      const bytes = new Uint8Array(data);
+      this.device.stats.writes++;
+      this.value = new DataView(bytes.buffer.slice(0));
+      this.device.fw.onWrite(this, bytes);
+      // ArduinoBLE re-notifies a value the browser writes to a subscribed characteristic
+      if (this.device.fw.echoesWrites) setTimeout(() => this.notify(bytes.slice()), 20);
+    });
+  }
+  notify(bytes) {
+    this.value = new DataView(bytes.buffer);
+    if (this.notifying && this.device.gatt.connected) this.dispatchEvent(new Event('characteristicvaluechanged'));
+  }
+}
+
+class FakeDevice extends EventTarget {
+  constructor(fw) {
+    super();
+    this.fw = fw; fw.device = this;
+    this.name = fw.name; this.id = Math.random().toString(36).slice(2);
+    this.busy = false;
+    this.stats = { connects: 0, reads: 0, writes: 0 };
+    const device = this;
+    this.gatt = {
+      connected: false,
+      async connect() {
+        await wait(15);
+        if (!fw.powered) throw new DOMException('Connection failed for unknown reason.', 'NetworkError');
+        device.stats.connects++;
+        this.connected = true;
+        fw.onConnect();
+        return this;
+      },
+      disconnect() { device.drop(); },
+      async getPrimaryService(uuid) {
+        await wait(5);
+        if (uuid !== fw.uuids.service) throw new DOMException('No Services matching UUID found in Device.', 'NotFoundError');
+        return { getCharacteristic: async (u) => {
+          await wait(3);
+          const c = fw.chars[u];
+          if (!c) throw new DOMException('No Characteristics matching UUID found in Service.', 'NotFoundError');
+          return c;
+        } };
+      },
+    };
+  }
+  drop() {
+    if (!this.gatt.connected) return;
+    this.gatt.connected = false;
+    Object.values(this.fw.chars).forEach((c) => (c.notifying = false));
+    this.fw.onDisconnect();
+    this.dispatchEvent(new Event('gattserverdisconnected'));
+  }
+}
+
+// Firmware models ----------------------------------------------------------
+
+/** 2024 / 2025 raw ArduinoBLE sketches: hello sent once when subscribed, then movement. */
+class RawSketchFirmware {
+  constructor({ number, name }) {
+    this.name = name; this.powered = true;
+    this.echoesWrites = true; // ArduinoBLE
+    this.uuids = controllerUUIDs(number);
+    this.handshakeComplete = false;
+  }
+  build(device) {
+    this.chars = { [this.uuids.movement]: new FakeCharacteristic(device, this.uuids.movement, { read: true, write: true, notify: true }, new Uint8Array([0])) };
+  }
+  get movement() { return this.chars[this.uuids.movement]; }
+  onConnect() { this.handshakeComplete = false; }
+  onSubscribe(c) { if (c === this.movement) setTimeout(() => this.movement.notify(new Uint8Array([3])), 5); }
+  onWrite(c, data) {
+    if (c === this.movement && data[0] === 3 && !this.handshakeComplete) {
+      this.handshakeComplete = true;
+      setTimeout(() => this.movement.notify(new Uint8Array([0])), 5);
+    }
+  }
+  onDisconnect() { this.handshakeComplete = false; }
+  send(v) { if (this.handshakeComplete) this.movement.notify(new Uint8Array([v])); }
+}
+
+/** DFPongController 1.2.0 on ESP32: hello notified before anyone subscribed (lost), never resent; 5 s timeout. */
+class Lib12EspFirmware extends RawSketchFirmware {
+  constructor(opts) { super(opts); this.echoesWrites = false; } // NimBLE doesn't echo
+  onConnect() {
+    this.handshakeComplete = false;
+    clearTimeout(this.timeout);
+    this.timeout = setTimeout(() => { if (!this.handshakeComplete) this.device.drop(); }, 1500); // 5 s in real life
+  }
+  onSubscribe() { /* the hello was already sent and lost */ }
+  onWrite(c, data) {
+    if (data[0] === 3 && !this.handshakeComplete) { this.handshakeComplete = true; clearTimeout(this.timeout); setTimeout(() => this.movement.notify(new Uint8Array([0])), 5); }
+  }
+}
+
+/** DFPongController 2.0: repeats hello until answered; publishes a JSON config characteristic. */
+class Lib20Firmware extends RawSketchFirmware {
+  constructor(opts) { super(opts); this.config = opts.config; }
+  build(device) {
+    super.build(device);
+    this.chars[this.uuids.config] = new FakeCharacteristic(device, this.uuids.config, { read: true, notify: true }, new TextEncoder().encode(this.config));
+  }
+  onSubscribe(c) {
+    if (c !== this.movement) return;
+    clearInterval(this.hello);
+    this.hello = setInterval(() => { if (!this.handshakeComplete) this.movement.notify(new Uint8Array([3])); else clearInterval(this.hello); }, 50);
+  }
+  onDisconnect() { super.onDisconnect(); clearInterval(this.hello); }
+  setConfig(text) {
+    this.config = text;
+    const bytes = new TextEncoder().encode(text);
+    // A notification only carries the first 20 bytes — the game must re-read.
+    this.chars[this.uuids.config].value = new DataView(bytes.buffer);
+    this.chars[this.uuids.config].notify(bytes.slice(0, 20));
+    this.chars[this.uuids.config].value = new DataView(bytes.buffer);
+  }
+}
+
+const fakeDevices = [];
+function addController(fw) {
+  const d = new FakeDevice(fw);
+  fw.build(d);
+  fakeDevices.push(d);
+  return d;
+}
+
+Object.defineProperty(navigator, 'bluetooth', {
+  configurable: true,
+  value: {
+    async requestDevice({ filters }) {
+      await wait(10);
+      const wanted = filters[0].services[0];
+      const d = fakeDevices.find((x) => x.fw.uuids.service === wanted);
+      if (!d) throw new DOMException('User cancelled the requestDevice() chooser.', 'NotFoundError');
+      return d;
+    },
+  },
+});
+
+// Track every error thrown by GATT operations, to prove the queue prevents collisions.
+const unhandled = [];
+window.addEventListener('unhandledrejection', (e) => unhandled.push(String(e.reason)));
+
+function makeLink() {
+  const log = { statuses: [], moves: [], configs: [], ready: 0 };
+  const link = new ControllerLink({
+    onStatus: (s) => log.statuses.push(s),
+    onMove: (d) => log.moves.push(d),
+    onConfig: (t) => log.configs.push(t),
+    onReady: () => log.ready++,
+  });
+  return { link, log };
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+async function run() {
+  group('UUIDs');
+  check('controller 1 → 0e', controllerUUIDs(1).service === '19b10010-e8f2-537e-4f6c-d104768a120e');
+  check('controller 25 → 26 (13 + 25 = 38 = 0x26)', controllerUUIDs(25).service.endsWith('26'));
+  check('controller 242 → ff', controllerUUIDs(242).service.endsWith('ff'));
+  check('2024 legacy → 14', controllerUUIDs(LEGACY_2024).service.endsWith('14') && controllerUUIDs(LEGACY_2024).movement.endsWith('14'));
+  check('config base 19b10012', controllerUUIDs(9).config === '19b10012-e8f2-537e-4f6c-d104768a1216');
+
+  group('2024 controller (shared UUID, name from device)');
+  {
+    const d = addController(new RawSketchFirmware({ number: 7, name: 'Zoe’s Banana' }));
+    const { link, log } = makeLink();
+    await link.connect(LEGACY_2024);
+    check('connected', link.status === 'connected', link.status);
+    check('generation 2024', link.generation === '2024');
+    check('device name kept', link.deviceName === 'Zoe’s Banana');
+    check('handshake completed', await until(() => log.ready === 1), `ready=${log.ready}`);
+    d.fw.send(1); d.fw.send(2); d.fw.send(0); d.fw.send(9);
+    await wait(20);
+    check('movement mapped (up -1, down +1, stop 0, unknown 0)', JSON.stringify(log.moves.slice(-4)) === '[-1,1,0,0]', JSON.stringify(log.moves));
+    check('no config for 2024', log.configs.length === 1 && log.configs[0] === null);
+    link.disconnect(); await wait(30);
+    check('user disconnect → idle', link.status === 'idle', link.status);
+    check('no reconnect after user disconnect', d.stats.connects === 1);
+    fakeDevices.length = 0;
+  }
+
+  group('2025 controller (raw sketch #12)');
+  {
+    addController(new RawSketchFirmware({ number: 12, name: 'DFPONG-12' }));
+    const { link, log } = makeLink();
+    await link.connect(12);
+    check('connected', link.status === 'connected');
+    check('generation 2025', link.generation === '2025');
+    check('handshake completed', await until(() => log.ready === 1));
+    const writes = fakeDevices[0].stats.writes;
+    await wait(2500);
+    check('no hello ping-pong with an echoing (ArduinoBLE) controller', fakeDevices[0].stats.writes - writes === 0 && writes <= 2, `${writes} writes at ready, ${fakeDevices[0].stats.writes} after 2.5 s`);
+    link.disconnect(); await wait(20);
+    fakeDevices.length = 0;
+  }
+
+  group('Hello lost on the way to the controller');
+  {
+    const fw = new RawSketchFirmware({ number: 20, name: 'DFPONG-20' });
+    let dropFirst = true;
+    const realOnWrite = fw.onWrite.bind(fw);
+    fw.onWrite = (c, data) => { if (dropFirst) { dropFirst = false; return; } realOnWrite(c, data); };
+    fw.onSubscribe = () => {}; // and the controller never says hello itself
+    addController(fw);
+    const { link, log } = makeLink();
+    await link.connect(20);
+    check('the game says hello again until the controller answers', await until(() => log.ready === 1, 3000), `ready=${log.ready}`);
+    link.disconnect(); await wait(20);
+    fakeDevices.length = 0;
+  }
+
+  group('Wrong number chosen');
+  {
+    addController(new RawSketchFirmware({ number: 12, name: 'DFPONG-12' }));
+    const { link } = makeLink();
+    const ok = await link.connect(13);
+    check('nothing found → back to idle, no error', !ok && link.status === 'idle', link.status);
+    fakeDevices.length = 0;
+  }
+
+  group('DFPongController 1.2.0 on ESP32 (hello lost before subscribe)');
+  {
+    const d = addController(new Lib12EspFirmware({ number: 5, name: 'DFPONG-5' }));
+    const { link, log } = makeLink();
+    await link.connect(5);
+    check('handshake completed by the game writing first', await until(() => log.ready === 1, 1000));
+    await wait(1700); // past the controller's handshake timeout
+    check('controller did not time out and drop', d.gatt.connected && link.status === 'connected', link.status);
+    link.disconnect(); await wait(20);
+    fakeDevices.length = 0;
+  }
+
+  group('2026 controller (config characteristic)');
+  {
+    const cfg = JSON.stringify({ v: 1, name: 'Kate', color: '#d08b5b', moveSpeed: 14, hitSound: 'pluck', pointsToWin: 7 });
+    const d = addController(new Lib20Firmware({ number: 3, name: 'DFPONG-3', config: cfg }));
+    const { link, log } = makeLink();
+    link.reconnectDelays = [50, 100, 100];
+    await link.connect(3);
+    check('generation 2026', link.generation === '2026');
+    check('config read on connect', log.configs[0] === cfg, JSON.stringify(log.configs));
+    check('handshake completed', await until(() => log.ready === 1));
+    const parsed = parseControllerConfig(log.configs[0]);
+    check('config parsed', parsed.player.name === 'Kate' && parsed.player.moveSpeed === 14 && parsed.requests.pointsToWin === 7 && parsed.issues.length === 0, JSON.stringify(parsed));
+
+    const longer = JSON.stringify({ v: 1, name: 'Kate', color: '#00ff88', hitSound: 'https://example.com/sounds/a-rather-long-file-name.mp3' });
+    d.fw.setConfig(longer);
+    check('live change: game re-reads the whole value after a (truncated) notification', await until(() => log.configs.at(-1) === longer), JSON.stringify(log.configs.at(-1)));
+
+    // Rapid changes are coalesced
+    const readsBefore = d.stats.reads;
+    for (let i = 0; i < 10; i++) d.fw.setConfig(JSON.stringify({ v: 1, moveSpeed: 10 + i }));
+    await wait(400);
+    check('rapid changes coalesced into few reads', d.stats.reads - readsBefore <= 2, `${d.stats.reads - readsBefore} reads`);
+    check('ended on the latest value', JSON.parse(log.configs.at(-1)).moveSpeed === 19);
+
+    // Movement while config reads are happening — no GATT collisions
+    d.fw.setConfig(JSON.stringify({ v: 1, moveSpeed: 33 }));
+    d.fw.send(1); d.fw.send(3); d.fw.send(2);
+    await wait(300);
+    check('no "GATT operation already in progress" errors', unhandled.length === 0, unhandled.join(' | '));
+
+    group('Drop while connecting');
+    {
+      const d2 = addController(new Lib20Firmware({ number: 40, name: 'DFPONG-40', config: '{"v":1}' }));
+      const { link: link2, log: log2 } = makeLink();
+      link2.reconnectDelays = [50, 100];
+      // Drop the link right after the movement subscription, before setup finishes.
+      const original = d2.fw.onSubscribe.bind(d2.fw);
+      let dropped = false;
+      d2.fw.onSubscribe = (c) => { original(c); if (!dropped) { dropped = true; setTimeout(() => d2.drop(), 0); } };
+      await link2.connect(40);
+      check('never reports "connected" on a dead link', await until(() => link2.status === 'connected' && d2.gatt.connected, 4000), `${link2.status} / gatt ${d2.gatt.connected}`);
+      check('2026 controller still detected after the retry', link2.generation === '2026', link2.generation);
+      link2.disconnect(); await wait(20);
+      fakeDevices.splice(fakeDevices.indexOf(d2), 1);
+    }
+
+    group('Unexpected disconnect → automatic reconnect');
+    d.drop();
+    check('reconnecting status', await until(() => log.statuses.includes('reconnecting')));
+    check('reconnected without the chooser', await until(() => link.status === 'connected', 3000), link.status);
+    check('config re-read after reconnect', await until(() => d.stats.connects === 2 && log.configs.length > 0));
+
+    group('Controller switched off → gives up and offers Reconnect');
+    d.fw.powered = false;
+    d.drop();
+    const gaveUp = await until(() => link.status === 'lost', 8000);
+    check('status becomes "lost" (not stuck reconnecting)', gaveUp, link.status);
+    d.fw.powered = true;
+    link.retry();
+    check('Reconnect button works', await until(() => link.status === 'connected', 3000), link.status);
+    link.disconnect(); await wait(20);
+    fakeDevices.length = 0;
+  }
+
+  group('Settings validation');
+  {
+    const p = parseControllerConfig('{"v":1,"moveSpeed":500,"paddleSize":"120","color":"#000010","name":"  A very very long name indeed  ","hitSound":"Pluck","scoreSound":"http://example.com/x.mp3","winSound":"cowbell","pointsToWin":3.7,"speedIncrement":-1,"future":"x"}\0\0');
+    check('clamped moveSpeed', p.player.moveSpeed === 100);
+    check('numeric string accepted', p.player.paddleSize === 120);
+    check('dark color lightened', p.player.color !== '#000010' && luminance(parseColor(p.player.color)) >= 0.09, p.player.color);
+    check('name trimmed to 20', p.player.name === 'A very very long nam', JSON.stringify(p.player.name));
+    const emoji = parseControllerConfig(JSON.stringify({ name: '🏓'.repeat(25) }));
+    check('name length counts characters (emoji not cut in half)', Array.from(emoji.player.name).length === 20 && !/\uFFFD/.test(emoji.player.name) && emoji.player.name.length === 40);
+    check('built-in name is case-insensitive', p.player.hitSound.kind === 'builtin' && p.player.hitSound.name === 'pluck');
+    check('http upgraded to https', p.player.scoreSound.url === 'https://example.com/x.mp3');
+    check('unknown built-in name rejected', !p.player.winSound && p.issues.some((i) => i.includes('cowbell')));
+    check('pointsToWin rounded', p.requests.pointsToWin === 4);
+    check('speedIncrement clamped to 0', p.requests.speedIncrement === 0);
+    check('unknown keys listed, not fatal', p.unknown.includes('future'));
+    check('invalid JSON → defaults + issue', parseControllerConfig('{oops').issues.length === 1);
+    check('empty config is fine', parseControllerConfig('').issues.length === 0);
+    check('array rejected', parseControllerConfig('[1,2]').issues.length === 1);
+
+    // Hostile or broken controller settings must never throw or masquerade as something else
+    const evil = parseControllerConfig('{"hitSound":"constructor","scoreSound":"__proto__","winSound":"toString","moveSpeed":{"toString":1},"constructor":5,"__proto__":{"x":1},"name":{"a":1}}');
+    check('inherited names are not sounds', !evil.player.hitSound && !evil.player.scoreSound && !evil.player.winSound, JSON.stringify(evil.player));
+    check('object where a number belongs → issue, no throw', evil.issues.some((i) => i.startsWith('moveSpeed')));
+    check('"constructor" is just an unknown key', evil.unknown.includes('constructor') && !('constructor' in evil.requests && evil.requests.constructor !== Object));
+    const pct = parseControllerConfig('{"hitSound":"https://a.com/100%.mp3"}');
+    check('a % in a sound URL does not throw', pct.player.hitSound && pct.player.hitSound.kind === 'url', JSON.stringify(pct));
+  }
+
+  group('Rule resolution');
+  {
+    const house = new HouseRules('tests-' + Math.random(), {});
+    const kate = { name: 'Kate', requests: { pointsToWin: 5, puckSpeed: 7 } };
+    const nick = { name: 'Nick', requests: { pointsToWin: 11 } };
+    let r = resolveMatchRules(house, [kate, nick]);
+    check('average of 5 and 11 = 8', r.rules.pointsToWin === 8);
+    check('single request used', r.rules.puckSpeed === 7);
+    check('nobody asked → house', r.rules.speedIncrement === 0.15);
+    house.merge({ policy: 'lower' }); r = resolveMatchRules(house, [kate, nick]);
+    check('lower policy', r.rules.pointsToWin === 5);
+    house.merge({ policy: 'higher' }); r = resolveMatchRules(house, [kate, nick]);
+    check('higher policy', r.rules.pointsToWin === 11);
+    house.merge({ policy: 'random' }); r = resolveMatchRules(house, [kate, nick]);
+    check('random policy picks one of the requests', [5, 11].includes(r.rules.pointsToWin));
+    house.merge({ policy: 'house' }); r = resolveMatchRules(house, [kate, nick]);
+    check('house policy ignores requests', r.rules.pointsToWin === 10 && r.rules.puckSpeed === 5);
+    house.merge({ policy: 'average', locks: { puckSpeed: true }, rules: { puckSpeed: 4 } }); r = resolveMatchRules(house, [kate, nick]);
+    check('lock beats requests', r.rules.puckSpeed === 4 && r.notes[1].source === 'locked');
+    house.merge({ permissions: { requests: false } }); r = resolveMatchRules(house, [kate, nick]);
+    check('requests switched off', r.rules.pointsToWin === 10);
+    house.merge({ rules: { pointsToWin: 999, puckSpeed: 'fast' }, policy: 'nonsense', permissions: { color: 'yes' } });
+    check('house merge validates', house.rules.pointsToWin === 21 && house.rules.puckSpeed === 4 && house.policy === 'average' && house.permissions.color === true);
+    house.merge({ policy: 'average', permissions: { requests: true }, locks: { puckSpeed: false } });
+    const avgHalf = resolveMatchRules(house, [{ name: 'A', requests: { puckSpeed: 5 } }, { name: 'B', requests: { puckSpeed: 6 } }]);
+    check('average respects step (5,6 → 5.5)', avgHalf.rules.puckSpeed === 5.5, String(avgHalf.rules.puckSpeed));
+    localStorage.removeItem(house.storageKey);
+  }
+
+  out.insertAdjacentHTML('beforeend', `<h2 class="${results.fail ? 'fail' : 'pass'}">${results.pass} passed, ${results.fail} failed</h2>`);
+  window.__results = results;
+}
+run().catch((e) => { out.insertAdjacentHTML('beforeend', `<div class="fail">Test run crashed: ${e.stack}</div>`); window.__results = { crashed: String(e.stack) }; });
+</script>
+</body>
+</html>
