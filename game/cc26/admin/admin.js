@@ -205,6 +205,16 @@ musicSelect.innerHTML = [
 ]
   .map(([value, label]) => `<option value="${value}">${esc(label)}</option>`)
   .join('');
+// Recorded tracks come from the game's music manifest
+fetch('../assets/music/manifest.json')
+  .then((res) => (res.ok ? res.json() : { tracks: {} }))
+  .then((manifest) => {
+    const options = Object.entries(manifest.tracks || {})
+      .map(([name, t]) => `<option value="${esc(name)}">${esc(t.title)} (${esc(t.mood || '')}, ${esc(t.licence || '')})</option>`)
+      .join('');
+    musicSelect.insertAdjacentHTML('beforeend', options);
+  })
+  .catch(() => {});
 
 const policySelect = document.querySelector('[name="policy"]');
 policySelect.innerHTML = Object.entries(POLICIES).map(([k, label]) => `<option value="${k}">${label}</option>`).join('');

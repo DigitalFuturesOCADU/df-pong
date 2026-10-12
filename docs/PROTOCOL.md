@@ -137,7 +137,7 @@ panel), so new keys can be added in future years without breaking anything.
 | `hitSound` | string | built-in sound name **or** `https://` URL (≤ 200 chars) | built-in | player |
 | `scoreSound` | string | same as above | built-in | player |
 | `winSound` | string | same as above | built-in | player |
-| `music` | string | music track name (`drift`, `tabletop`, `arcade`, `nightbus`, or a recorded track) **or** `https://` URL (≤ 200 chars; streamed, no size limit) | the room's music | player (see section 5) |
+| `music` | string | music track name (generated: `drift`, `tabletop`, `arcade`, `nightbus`; recorded: `gymnopedie`, `smallsteps`, `bounce`, `currents`, `palmleaf`, `spacemtv`) **or** `https://` URL (≤ 200 chars; streamed, no size limit) | the room's music | player (see section 5) |
 | `pointsToWin` | int | 1 – 21 | 10 | game request |
 | `puckSpeed` | number | 1 – 20 | 5 | game request |
 | `speedIncrement` | number | 0 – 1 | 0.15 | game request |

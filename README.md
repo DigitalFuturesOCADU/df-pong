@@ -95,7 +95,7 @@ controller.requestPointsToWin(7);                   // a request: your opponent 
 | `setMoveSpeed(1–100)` | How fast your paddle moves (10 is normal) |
 | `setPaddleSize(50–200)` | Paddle height in percent |
 | `setHitSound(…)`, `setScoreSound(…)`, `setWinSound(…)` | A built-in sound name or an `https://` address |
-| `setMusic(…)` | Background music: `drift`, `tabletop`, `arcade`, `nightbus`, or an `https://` address (library 2.1) |
+| `setMusic(…)` | Background music: a track name (e.g. `nightbus`, `gymnopedie`) or an `https://` address (library 2.1) |
 | `requestPointsToWin(1–21)` | Ask for a match length |
 | `requestPuckSpeed(1–20)` | Ask for a starting puck speed |
 | `requestSpeedIncrement(0–1)` | Ask for how much faster the puck gets per hit |
@@ -112,8 +112,10 @@ Anything that fails to load falls back to the default sound, and the game says w
 
 **Music:** the lobby's ♪ Music tile (and the settings panel) lists every choice with its source. By default
 it's *Players' choice*: if one player brought music it plays, and if both did, their picks **alternate each point**.
-Anyone at the computer can instead choose just one player's pick, a specific track, or Off. The built-in tracks
-are generated live by the game and pick up energy as a rally builds.
+Anyone at the computer can instead choose just one player's pick, a specific track, or Off. Four tracks are
+generated live by the game and pick up energy as a rally builds (`drift`, `tabletop`, `arcade`, `nightbus`); six
+are recordings from public archives (`gymnopedie`, `smallsteps`, `bounce`, `currents`, `palmleaf`, `spacemtv`;
+[credits](game/cc26/assets/music/CREDITS.md)).
 
 **When players ask for different rules**, the game settles it as the match starts and shows a *Match rules*
 card: by default it meets in the middle (5 and 11 → 8). The host can switch to a coin flip, lower, higher, or

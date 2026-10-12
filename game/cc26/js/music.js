@@ -396,7 +396,7 @@ const GENERATED_TRACKS = {
     title: 'Drift',
     mood: 'calm',
     bpm: 70,
-    level: 0.55,
+    level: 0.67, // levels matched to the recordings (about -24 dB RMS)
     closed: 1800,
     open: 5000,
     play(kit, step, t, len, intensity) {
@@ -423,7 +423,7 @@ const GENERATED_TRACKS = {
     title: 'Tabletop',
     mood: 'steady groove',
     bpm: 112,
-    level: 0.5,
+    level: 0.58,
     closed: 1500,
     open: 7000,
     play(kit, step, t, len, intensity) {
@@ -444,7 +444,7 @@ const GENERATED_TRACKS = {
     title: 'Arcade',
     mood: 'bright',
     bpm: 128,
-    level: 0.38,
+    level: 0.88,
     closed: 2500,
     open: 8000,
     play(kit, step, t, len, intensity) {
@@ -469,7 +469,7 @@ const GENERATED_TRACKS = {
     title: 'Night Bus',
     mood: 'lo-fi',
     bpm: 82,
-    level: 0.5,
+    level: 0.71,
     swing: 0.28,
     closed: 1600,
     open: 4500,

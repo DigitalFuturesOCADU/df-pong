@@ -1808,6 +1808,10 @@ input[type='checkbox'] {
   margin-right: auto;
   font-size: 13px;
   color: var(--dim);
+}
+
+.set-link a {
+  color: var(--dim);
   text-underline-offset: 2px;
 }
 

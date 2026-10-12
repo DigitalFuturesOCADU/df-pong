@@ -334,7 +334,7 @@ class UI {
           </section>
 
           <footer class="settings-foot">
-            <a class="set-link" href="https://github.com/DigitalFuturesOCADU/df-pong/blob/main/game/cc26/assets/sounds/CREDITS.md" target="_blank" rel="noopener">Sound credits</a>
+            <span class="set-link">Credits: <a href="https://github.com/DigitalFuturesOCADU/df-pong/blob/main/game/cc26/assets/sounds/CREDITS.md" target="_blank" rel="noopener">sounds</a> · <a href="https://github.com/DigitalFuturesOCADU/df-pong/blob/main/game/cc26/assets/music/CREDITS.md" target="_blank" rel="noopener">music</a></span>
             <button type="button" class="btn ghost" data-action="reset-settings">Reset to defaults</button>
             <button type="button" class="btn primary" data-action="settings">Done</button>
           </footer>

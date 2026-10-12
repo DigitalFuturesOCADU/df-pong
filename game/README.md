@@ -11,6 +11,7 @@ game/
 │   ├── js/               the game code
 │   ├── css/
 │   ├── assets/sounds/    recorded sounds, manifest.json, CREDITS.md
+│   ├── assets/music/     recorded music tracks, manifest.json, CREDITS.md
 │   ├── builder/          Settings Builder (for students)
 │   ├── admin/            admin panel (for hosts)
 │   └── tests/            engine tests with simulated controllers
