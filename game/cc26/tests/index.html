@@ -10,6 +10,7 @@
   <script>window.DFPONG = { instance: 'tests' };</script>
   <script src="../js/settings.js"></script>
   <script src="../js/ble.js"></script>
+  <script src="../js/music.js"></script>
 </head>
 <body>
   <h1>DF Pong engine tests</h1>
@@ -408,6 +409,46 @@ async function run() {
     house.merge({ policy: 'average', permissions: { requests: true }, locks: { puckSpeed: false } });
     const avgHalf = resolveMatchRules(house, [{ name: 'A', requests: { puckSpeed: 5 } }, { name: 'B', requests: { puckSpeed: 6 } }]);
     check('average respects step (5,6 → 5.5)', avgHalf.rules.puckSpeed === 5.5, String(avgHalf.rules.puckSpeed));
+    localStorage.removeItem(house.storageKey);
+  }
+
+  group('Music');
+  {
+    for (const [name, t] of Object.entries(GENERATED_TRACKS)) MUSIC_LIBRARY[name] = { title: t.title, mood: t.mood, source: GENERATED_SOURCE, generated: true };
+    check('track names are case-insensitive', parseMusicSetting('NightBus').name === 'nightbus');
+    check('a sound name is not music', /is a sound/.test(parseMusicSetting('pingpong').error || ''));
+    check('unknown name rejected', !!parseMusicSetting('polka').error);
+    check('https link accepted', parseMusicSetting('https://example.com/song.mp3').kind === 'url');
+    check('config key "music" validated', parseControllerConfig('{"music":"arcade"}').player.music.name === 'arcade');
+
+    const house = new HouseRules('tests-music-' + Math.random(), {});
+    const drift = trackFromName('drift');
+    const kate = { name: 'Kate', music: trackFromName('tabletop') };
+    const nick = { name: 'Nick', music: trackFromName('arcade') };
+    const nobody = [{ name: 'A', music: null }, { name: 'B', music: null }];
+    let m = resolveMusic(house, nobody, drift);
+    check("players' choice, nobody brought music → room default", m.mode === 'single' && m.tracks[0].name === 'drift' && !m.fromPlayers);
+    m = resolveMusic(house, [kate, nobody[1]], drift);
+    check("one player's music plays", m.mode === 'single' && m.tracks[0].name === 'tabletop' && m.label === "Kate's pick");
+    m = resolveMusic(house, [kate, nick], drift);
+    check('both → alternate each point', m.mode === 'alternate' && m.tracks.map((t) => t.name).join() === 'tabletop,arcade');
+    m = resolveMusic(house, [kate, { name: 'Nick', music: trackFromName('tabletop') }], drift);
+    check('both picked the same → just play it', m.mode === 'single' && m.label === 'Both picked');
+    house.merge({ music: 'p2' });
+    m = resolveMusic(house, [kate, nick], drift);
+    check('choose one: player 2', m.mode === 'single' && m.tracks[0].name === 'arcade');
+    m = resolveMusic(house, [kate, nobody[1]], drift);
+    check("choose one falls back when that player has no music", m.mode === 'single' && m.tracks[0].name === 'tabletop');
+    house.merge({ music: 'off' });
+    check('off', resolveMusic(house, [kate, nick], drift).mode === 'off');
+    house.merge({ music: 'nightbus' });
+    m = resolveMusic(house, [kate, nick], drift);
+    check('a chosen track overrides the players', m.tracks[0].name === 'nightbus' && !m.fromPlayers);
+    house.merge({ music: 'auto', permissions: { music: false } });
+    m = resolveMusic(house, [kate, nick], drift);
+    check('custom music switched off → room default', m.tracks[0].name === 'drift');
+    house.merge({ music: '<script>' });
+    check('invalid choice ignored', house.data.music === 'auto');
     localStorage.removeItem(house.storageKey);
   }
 

@@ -11,13 +11,17 @@
 const SOUND_KEYS = { hit: 'hitSound', score: 'scoreSound', win: 'winSound' };
 
 class Player {
-  constructor(slot, { house, sound, onChange }) {
+  constructor(slot, { house, sound, music, onChange }) {
     this.slot = slot;
     this.index = slot - 1;
     this.side = slot === 1 ? 'left' : 'right';
     this.defaultColor = slot === 1 ? PALETTE.p1 : PALETTE.p2;
     this.house = house;
     this.sound = sound;
+    this.musicPlayer = music;
+    this.music = null; // a playable track from this player's controller, once checked
+    this.musicStatus = null; // {state: 'loading'|'ok'|'error', label, error}
+    this.musicId = null;
     this.onChange = onChange;
 
     this.target = null; // chosen controller: a number, LEGACY_2024, or null
@@ -75,6 +79,7 @@ class Player {
     for (const [key, s] of Object.entries(this.soundStatus)) {
       if (s.state === 'error') list.push(`${SOUND_KEYS[key]} "${s.label}" ${s.error} — using default`);
     }
+    if (this.musicStatus?.state === 'error') list.push(`music "${this.musicStatus.label}" ${this.musicStatus.error} — using the room's music`);
     return list;
   }
 
@@ -167,6 +172,26 @@ class Player {
     for (const [key, settingKey] of Object.entries(SOUND_KEYS)) {
       this.loadSound(key, allow.sounds ? wants[settingKey] : undefined);
     }
+    this.loadMusic(allow.music ? wants.music : undefined);
+  }
+
+  async loadMusic(setting) {
+    const id = setting ? setting.url || setting.name : null;
+    if (this.musicId === id) return;
+    this.musicId = id;
+    if (!setting || !this.musicPlayer) {
+      this.music = null;
+      this.musicStatus = null;
+      this.changed('music');
+      return;
+    }
+    this.musicStatus = { state: 'loading', label: setting.label };
+    this.changed('music');
+    const result = await this.musicPlayer.probe(setting);
+    if (this.musicId !== id) return;
+    this.music = result.ok ? trackFromSetting(setting) : null;
+    this.musicStatus = result.ok ? { state: 'ok', label: setting.label } : { state: 'error', label: setting.label, error: result.error };
+    this.changed('music');
   }
 
   async loadSound(key, setting) {
@@ -206,6 +231,7 @@ class Player {
       paddleSize: this.paddleSize,
       requests: this.requests,
       sounds: Object.fromEntries(Object.entries(this.soundStatus).map(([k, s]) => [k, s.state === 'ok' ? s.label : `${s.label} (${s.state})`])),
+      music: this.musicStatus ? this.musicStatus.label : null,
       issues: this.issues,
     };
   }

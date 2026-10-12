@@ -4,6 +4,7 @@
  */
 
 const sound = new SoundEngine(DFP.engine);
+const music = new MusicPlayer(sound);
 const form = document.querySelector('.builder-form');
 const f = form.elements;
 
@@ -57,8 +58,15 @@ sound.ready.then(() => {
   const options = `<optgroup label="Built-in sounds">${names.map((n) => `<option value="${n}">${n}</option>`).join('')}</optgroup>
     <optgroup label="Your own"><option value="url">Web address…</option></optgroup>`;
   SOUND_ROWS.forEach((row) => form.querySelector(`[name="${row.key}-mode"]`).insertAdjacentHTML('beforeend', options));
-  restore();
-  update();
+  music.ready.then(() => {
+    const tracks = Object.entries(MUSIC_LIBRARY)
+      .map(([name, t]) => `<option value="${name}">${t.title}${t.mood ? ' · ' + t.mood : ''}</option>`)
+      .join('');
+    f['music-mode'].insertAdjacentHTML('beforeend', `<optgroup label="The game's music">${tracks}</optgroup>
+      <optgroup label="Your own"><option value="url">Web address…</option></optgroup>`);
+    restore();
+    update();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -81,6 +89,13 @@ function collect() {
       s[row.key] = mode;
     }
   }
+  const musicMode = f['music-mode'].value;
+  if (musicMode === 'url') {
+    const url = f['music-url'].value.trim();
+    if (url) s.music = url;
+  } else if (musicMode) {
+    s.music = musicMode;
+  }
   for (const key of Object.keys(GAME_SETTINGS)) {
     if (f[`ask-${key}`].checked) s[key] = Number(f[key].value);
   }
@@ -98,6 +113,7 @@ function codeFor(s) {
   if (s.moveSpeed !== undefined) lines.push(`  controller.setMoveSpeed(${s.moveSpeed});`);
   if (s.paddleSize !== undefined) lines.push(`  controller.setPaddleSize(${s.paddleSize});`);
   for (const row of SOUND_ROWS) if (s[row.key]) lines.push(`  controller.${row.method}(${cString(s[row.key])});`);
+  if (s.music) lines.push(`  controller.setMusic(${cString(s.music)});`);
   for (const [key, method] of Object.entries(REQUEST_METHODS)) {
     if (s[key] === undefined) continue;
     const value = key === 'speedIncrement' ? s[key].toFixed(2) : key === 'puckSpeed' ? String(s[key]) : s[key];
@@ -117,6 +133,7 @@ function update() {
   SOUND_ROWS.forEach((row) => {
     form.querySelector(`[data-key="${row.key}"] .url-row`).hidden = f[`${row.key}-mode`].value !== 'url';
   });
+  form.querySelector('[data-key="music"] .url-row').hidden = f['music-mode'].value !== 'url';
 
   const settings = collect();
   const json = JSON.stringify({ v: 1, ...settings });
@@ -190,6 +207,48 @@ form.addEventListener('click', async (e) => {
   setStatus(key, message, tone);
   if (result.ok && result.sound) sound.play(result.sound, { gain: 0.9, maxDuration: SOUND_ROWS.find((r) => r.key === key).limit });
   else if (result.ok && play) sound.play(key === 'hitSound' ? 'classic' : key === 'scoreSound' ? 'ding' : 'bell', { gain: 0.8 });
+});
+
+// Music: play a preview (press again to stop), or test a web address the way the game will
+form.addEventListener('click', async (e) => {
+  const play = e.target.closest('[data-music-play]');
+  const test = e.target.closest('[data-music-test]');
+  if (!play && !test) return;
+  sound.unlock();
+  if (play && music.current) {
+    music.stop({ fade: 0.6 });
+    play.textContent = 'Play';
+    return;
+  }
+  const mode = f['music-mode'].value;
+  let setting = null;
+  if (mode === 'url') {
+    setting = parseMusicSetting(f['music-url'].value.trim() || ' ');
+  } else if (mode) {
+    setting = { kind: 'builtin', name: mode, label: mode };
+  }
+  if (!setting) {
+    setStatus('music', 'Choose a track first (with no choice, the room decides).');
+    return;
+  }
+  if (setting.error) {
+    setStatus('music', `Can't use this: ${setting.error}.`, 'bad');
+    return;
+  }
+  setStatus('music', 'Checking…');
+  const result = await music.probe(setting);
+  if (!result.ok) {
+    setStatus('music', `Can't use this: it ${result.error}. The game would play the room's music instead.`, 'bad');
+    return;
+  }
+  const track = trackFromSetting(setting);
+  setStatus('music', `Ready ✓ — ${track.kind === 'link' ? 'works in the game' : trackSource(track)}.`, 'good');
+  if (play || test) {
+    await music.preview(track, 20);
+    const button = form.querySelector('[data-music-play]');
+    button.textContent = 'Stop';
+    setTimeout(() => (button.textContent = 'Play'), 20000);
+  }
 });
 
 document.querySelector('[data-copy]').addEventListener('click', async (e) => {

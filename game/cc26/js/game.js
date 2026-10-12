@@ -20,13 +20,16 @@ const KEYS = {
 };
 
 class Game {
-  constructor({ house, sound, effects }) {
+  constructor({ house, sound, effects, music }) {
     this.house = house;
     this.sound = sound;
+    this.music = music;
+    this.musicPlan = { mode: 'off', tracks: [], label: 'Off', detail: '' };
+    this.musicIndex = 0;
     this.fx = effects;
     this.listeners = {};
 
-    this.players = [1, 2].map((slot) => new Player(slot, { house, sound, onChange: (p, what, info) => this.onPlayerChange(p, what, info) }));
+    this.players = [1, 2].map((slot) => new Player(slot, { house, sound, music, onChange: (p, what, info) => this.onPlayerChange(p, what, info) }));
     this.paddles = [new Paddle('left'), new Paddle('right')];
     this.cpus = this.paddles.map((p) => new CpuBrain(p, 0.85, 0.12));
     this.puck = new Puck();
@@ -121,6 +124,8 @@ class Game {
     );
     this.rules = resolved.rules;
     this.ruleNotes = resolved.notes;
+    this.musicPlan = this.resolveMusic();
+    this.musicIndex = Math.random() < 0.5 ? 0 : 1; // when alternating, who goes first is a coin flip
     this.score = [0, 0];
     this.winner = null;
     this.rally = 0;
@@ -131,7 +136,7 @@ class Game {
     this.emit('score');
     this.emit('rules');
 
-    const worthShowing = resolved.notes.some((n) => n.source !== 'house');
+    const worthShowing = resolved.notes.some((n) => n.source !== 'house') || this.musicPlan.fromPlayers;
     if (worthShowing) this.setState('rules');
     else this.startCountdown();
   }
@@ -151,7 +156,7 @@ class Game {
     this.countdownValue = 3;
     this.setState('countdown');
     this.sound.countdown(3);
-    if (this.house.data.ambience) this.sound.startAmbience();
+    this.startMusic();
   }
 
   beginServe(direction, afterCountdown = false) {
@@ -170,6 +175,7 @@ class Game {
     this.pausedFrom = this.state;
     this.pauseReason = reason || '';
     this.sound.stopAmbience();
+    this.music?.duck(true);
     this.setState('paused');
   }
 
@@ -180,7 +186,8 @@ class Game {
       this.emit('state', this.state);
       return;
     }
-    if (this.house.data.ambience) this.sound.startAmbience();
+    this.music?.duck(false);
+    if (this.house.data.ambience && this.musicPlan.mode === 'off') this.sound.startAmbience();
     if (this.pausedFrom === 'countdown') this.startCountdown();
     else this.setState(this.pausedFrom || 'playing');
   }
@@ -210,6 +217,8 @@ class Game {
 
   toLobby() {
     this.sound.stopAmbience();
+    this.music?.stop({ fade: 1 });
+    this.music?.duck(false);
     this.fx.stopCelebration();
     this.score = [0, 0];
     this.emit('score');
@@ -283,7 +292,10 @@ class Game {
     }
 
     this.fx.update(simDt, this.puck, this.state === 'playing' || this.state === 'lobby');
-    if (this.state === 'playing') this.sound.setIntensity(this.intensity);
+    if (this.state === 'playing') {
+      this.sound.setIntensity(this.intensity);
+      this.music?.setIntensity(this.intensity);
+    }
   }
 
   applyInputs(dt) {
@@ -384,6 +396,12 @@ class Game {
       return;
     }
     this.beginServe(i === 0 ? 1 : -1); // the player who conceded receives
+    if (this.musicPlan.mode === 'alternate') {
+      this.musicIndex++;
+      this.startMusic();
+      const owner = this.players[this.musicIndex % 2];
+      this.toast(`♪ ${owner.name}'s music`);
+    }
     if (this.matchPointFor !== -1) this.sound.matchPoint();
   }
 
@@ -391,6 +409,7 @@ class Game {
     this.winner = i;
     this.stats.duration = performance.now() - this.stats.startedAt;
     this.sound.stopAmbience();
+    this.music?.stop({ fade: 0.8 });
     this.sound.win(this.players[i]);
     this.fx.win(this.players[i].rgb, this.players[i].side);
     [0.25, 0.38, 0.51, 0.64].forEach((t) => this.fx.after(t, () => this.sound.confettiPop()));
@@ -436,6 +455,40 @@ class Game {
     this.emit('players', { player, what });
   }
 
+  // -------------------------------------------------------------------------
+  // Music
+  // -------------------------------------------------------------------------
+
+  /** The room's default track when nobody has chosen anything. */
+  defaultTrack() {
+    return trackFromName('drift');
+  }
+
+  resolveMusic() {
+    return resolveMusic(this.house, this.players.map((p) => ({ name: p.name, music: p.music })), this.defaultTrack());
+  }
+
+  /** Start (or switch to) the track this point should have. Room sound only plays when there's no music. */
+  startMusic() {
+    const plan = this.musicPlan;
+    if (!this.music || plan.mode === 'off') {
+      this.music?.stop();
+      if (this.house.data.ambience) this.sound.startAmbience();
+      return;
+    }
+    this.sound.stopAmbience();
+    this.music.duck(false);
+    this.music.play(plan.tracks[this.musicIndex % plan.tracks.length], { fade: plan.mode === 'alternate' ? 1.2 : 2 });
+  }
+
+  /** In the lobby: play a few seconds of what the current choice would play. */
+  previewMusic() {
+    if (this.state !== 'lobby' || !this.music) return;
+    const plan = this.resolveMusic();
+    if (plan.mode === 'off') this.music.stop({ fade: 0.6 });
+    else this.music.preview(plan.tracks[0], 10);
+  }
+
   /** Everything the admin panel needs to know. */
   snapshot() {
     return {
@@ -447,6 +500,8 @@ class Game {
       locks: this.house.locks,
       policy: this.house.policy,
       permissions: this.house.permissions,
+      musicChoice: this.house.data.music,
+      music: this.resolveMusic().label,
     };
   }
 }

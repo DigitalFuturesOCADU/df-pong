@@ -10,6 +10,7 @@
   <script>window.DFPONG = { instance: 'builder', engine: '../' };</script>
   <script src="../js/settings.js"></script>
   <script src="../js/audio.js"></script>
+  <script src="../js/music.js"></script>
 </head>
 <body>
   <main class="builder">
@@ -58,6 +59,24 @@
         <section class="sounds">
           <h2>Your sounds</h2>
           <!-- filled by builder.js -->
+        </section>
+
+        <section class="music-section">
+          <h2>Your music</h2>
+          <p class="help">Background music while you play. If your opponent brings music too, the game swaps between
+            your picks each point, or whoever is at the computer can choose one.</p>
+          <div class="sound-row" data-key="music">
+            <label for="music-mode">Music</label>
+            <div class="sound-controls">
+              <select id="music-mode" name="music-mode"><option value="">None (the room's music plays)</option></select>
+              <button class="btn" type="button" data-music-play>Play</button>
+            </div>
+            <div class="url-row" hidden>
+              <input name="music-url" type="url" inputmode="url" placeholder="https://…/song.mp3" spellcheck="false" />
+              <button class="btn" type="button" data-music-test>Test</button>
+            </div>
+            <p class="sound-status" aria-live="polite"></p>
+          </div>
         </section>
 
         <section>

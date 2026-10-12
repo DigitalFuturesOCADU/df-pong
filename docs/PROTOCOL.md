@@ -137,6 +137,7 @@ panel), so new keys can be added in future years without breaking anything.
 | `hitSound` | string | built-in sound name **or** `https://` URL (≤ 200 chars) | built-in | player |
 | `scoreSound` | string | same as above | built-in | player |
 | `winSound` | string | same as above | built-in | player |
+| `music` | string | music track name (`drift`, `tabletop`, `arcade`, `nightbus`, or a recorded track) **or** `https://` URL (≤ 200 chars; streamed, no size limit) | the room's music | player (see section 5) |
 | `pointsToWin` | int | 1 – 21 | 10 | game request |
 | `puckSpeed` | number | 1 – 20 | 5 | game request |
 | `speedIncrement` | number | 0 – 1 | 0.15 | game request |
@@ -195,6 +196,22 @@ result is shown on the "Match Rules" card before the countdown:
 
 Requests that change mid-match apply to the next match.
 
+### Music
+
+Music is shared too, but instead of averaging, the room picks from a list shown on the lobby's
+Music tile (and in the settings panel), each with its source:
+
+| Choice | What plays |
+|---|---|
+| **Players' choice** (default) | One player brought music → theirs. Both did → **they alternate each point** (a coin flip decides who starts). Nobody did → the room's default track (`drift`). |
+| *Kate's pick* / *Nick's pick* | Only that player's music ("choose one"). Listed when that player brought music. |
+| Off | No music (the room sound plays during rallies instead). |
+| a track | That track, whatever the players brought. |
+
+The Match Rules card shows the outcome when players brought music. Music starts with the countdown,
+is muffled while paused, and fades out for the win fanfare. The host can turn off custom music
+for everyone with the **Music** permission.
+
 ---
 
 ## 6. Admin protocol
@@ -225,9 +242,10 @@ only forwards `admin:*` messages from authenticated admin sockets, and only forw
 ```json
 {"type":"admin:rules",
  "rules":{"pointsToWin":7,"puckSpeed":5,"speedIncrement":0.15},
+ "music":"auto",
  "locks":{"pointsToWin":true},
  "policy":"average",
- "permissions":{"name":true,"color":true,"moveSpeed":true,"paddleSize":false,"sounds":true,"requests":true}}
+ "permissions":{"name":true,"color":true,"moveSpeed":true,"paddleSize":false,"sounds":true,"music":true,"requests":true}}
 
 {"type":"admin:command","command":"start|pause|resume|reset|lobby|rematch","target":"g-4f2a"}
 

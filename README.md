@@ -95,6 +95,7 @@ controller.requestPointsToWin(7);                   // a request: your opponent 
 | `setMoveSpeed(1–100)` | How fast your paddle moves (10 is normal) |
 | `setPaddleSize(50–200)` | Paddle height in percent |
 | `setHitSound(…)`, `setScoreSound(…)`, `setWinSound(…)` | A built-in sound name or an `https://` address |
+| `setMusic(…)` | Background music: `drift`, `tabletop`, `arcade`, `nightbus`, or an `https://` address (library 2.1) |
 | `requestPointsToWin(1–21)` | Ask for a match length |
 | `requestPuckSpeed(1–20)` | Ask for a starting puck speed |
 | `requestSpeedIncrement(0–1)` | Ask for how much faster the puck gets per hit |
@@ -108,6 +109,11 @@ Settings can change while you play: the game picks up changes live (try mapping 
 **Your own sound:** put a short mp3/wav/ogg (under 2 MB) in a public GitHub repo and use its
 `raw.githubusercontent.com` or GitHub Pages address. The Settings Builder's **Test** button tells you if it will work.
 Anything that fails to load falls back to the default sound, and the game says why.
+
+**Music:** the lobby's ♪ Music tile (and the settings panel) lists every choice with its source. By default
+it's *Players' choice*: if one player brought music it plays, and if both did, their picks **alternate each point**.
+Anyone at the computer can instead choose just one player's pick, a specific track, or Off. The built-in tracks
+are generated live by the game and pick up energy as a rally builds.
 
 **When players ask for different rules**, the game settles it as the match starts and shows a *Match rules*
 card: by default it meets in the middle (5 and 11 → 8). The host can switch to a coin flip, lower, higher, or

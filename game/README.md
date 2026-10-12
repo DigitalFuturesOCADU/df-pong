@@ -75,6 +75,7 @@ Plain JavaScript files, loaded in order by `index.html` (no build step). Each fi
 | `settings.js` | What can be customized, validation, house rules, settling rule requests |
 | `ble.js` | Web Bluetooth: finding a controller by number, handshake, config, auto-reconnect |
 | `audio.js` | Web Audio: recorded and synthesized sounds, custom sounds from URLs, pitch/pan by game state |
+| `music.js` | Background music: generated tracks, recorded tracks (`assets/music/`), players' music links |
 | `arena.js` | Physics in a fixed 1200 × 800 world at 120 steps per second; the computer player |
 | `effects.js` | Sparks, rings, shake, confetti, flashes |
 | `render.js` | Draws the arena with p5 into a 2D buffer |

@@ -13,7 +13,7 @@
  * Written for p5.js 2.x.
  */
 
-let house, sound, effects, game, ui, admin;
+let house, sound, music, effects, game, ui, admin;
 let world; // 2D p5.Graphics the game is drawn into
 let postfx = null; // WebGL post-processing, when available
 let useWebGL = false;
@@ -21,8 +21,9 @@ let useWebGL = false;
 async function setup() {
   house = new HouseRules(DFP.instance, DFP.defaults);
   sound = new SoundEngine(DFP.engine);
+  music = new MusicPlayer(sound);
   effects = new Effects();
-  game = new Game({ house, sound, effects });
+  game = new Game({ house, sound, effects, music });
   ui = new UI(game, { house, sound });
 
   // The canvas lives inside the arena element and follows its size.
@@ -53,6 +54,7 @@ async function setup() {
 
   // Wait for the display font so the first frames don't flash a fallback.
   document.fonts?.load(`700 100px "${DISPLAY_FONT}"`).catch(() => {});
+  music.ready.then(() => ui.renderRulesPreview()); // recorded tracks join the music choices
   ui.setRoster(await loadRoster());
 }
 
@@ -101,6 +103,7 @@ function resizeToArena() {
 
 function applyHouseSettings() {
   sound.setVolume(house.data.volume, house.data.muted);
+  music.setVolume(house.data.musicVolume, house.data.muted);
   effects.setReduced(house.data.effects === 'reduced');
   if (!house.data.ambience) sound.stopAmbience();
 }

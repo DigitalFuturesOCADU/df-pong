@@ -94,6 +94,8 @@ function cleanSnapshot(msg) {
     house: pick(msg.house, gameKeys, num),
     locks: pick(msg.locks, gameKeys, Boolean),
     policy: hasOwn(POLICIES, msg.policy) ? msg.policy : 'average',
+    musicChoice: typeof msg.musicChoice === 'string' ? msg.musicChoice.slice(0, 32) : 'auto',
+    music: text(msg.music, 40),
     permissions: pick(msg.permissions, Object.keys(PERMISSIONS), Boolean),
     players: players.map((p, i) => ({
       slot: i + 1,
@@ -145,6 +147,7 @@ function renderGames() {
             <span class="state-badge" data-state="${esc(s.state)}">${stale ? 'not responding' : esc(s.state)}</span>
           </header>
           <div class="admin-players">${players}</div>
+          <p class="help">Music: ${esc(s.music || '—')}</p>
           <p class="help">Playing to ${esc(formatSetting('pointsToWin', s.rules.pointsToWin))} · puck ${esc(formatSetting('puckSpeed', s.rules.puckSpeed))} · ${esc(formatSetting('speedIncrement', s.rules.speedIncrement))} per hit</p>
           ${showTargets ? `<button class="btn ghost target-btn" data-target="${esc(s.id)}">${target === s.id ? 'Commands go here ✓' : 'Send commands only here'}</button>` : ''}
         </article>`;
@@ -192,6 +195,17 @@ rulesForm.innerHTML = Object.entries(GAME_SETTINGS)
   )
   .join('');
 
+const musicSelect = document.querySelector('[name="music"]');
+musicSelect.innerHTML = [
+  ['auto', "Players' choice (one player's music, or alternate both each point)"],
+  ['p1', "Player 1's pick only"],
+  ['p2', "Player 2's pick only"],
+  ['off', 'Off'],
+  ...Object.entries(GENERATED_TRACKS).map(([name, t]) => [name, `${t.title} (${t.mood}, generated)`]),
+]
+  .map(([value, label]) => `<option value="${value}">${esc(label)}</option>`)
+  .join('');
+
 const policySelect = document.querySelector('[name="policy"]');
 policySelect.innerHTML = Object.entries(POLICIES).map(([k, label]) => `<option value="${k}">${label}</option>`).join('');
 
@@ -212,6 +226,7 @@ function fillForm(s) {
     if (hasOwn(s.locks, key)) setLock(rulesForm.querySelector(`[data-lock="${key}"]`), s.locks[key]);
   }
   policySelect.value = s.policy;
+  if ([...musicSelect.options].some((o) => o.value === s.musicChoice)) musicSelect.value = s.musicChoice;
   for (const key of Object.keys(PERMISSIONS)) {
     if (hasOwn(s.permissions, key)) document.querySelector(`[data-permission="${key}"]`).checked = s.permissions[key];
   }
@@ -243,7 +258,7 @@ document.querySelector('.send').addEventListener('click', () => {
   });
   const permissions = {};
   document.querySelectorAll('[data-permission]').forEach((box) => (permissions[box.dataset.permission] = box.checked));
-  link.send({ type: 'admin:rules', rules, locks, policy: policySelect.value, permissions, ...(target ? { target } : {}) });
+  link.send({ type: 'admin:rules', rules, locks, policy: policySelect.value, music: musicSelect.value, permissions, ...(target ? { target } : {}) });
   edited = false;
   const button = document.querySelector('.send');
   button.textContent = 'Sent ✓';

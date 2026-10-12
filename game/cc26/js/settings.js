@@ -64,6 +64,7 @@ const PLAYER_SETTINGS = {
   hitSound: { type: 'sound', label: 'Hit sound', permission: 'sounds' },
   scoreSound: { type: 'sound', label: 'Score sound', permission: 'sounds' },
   winSound: { type: 'sound', label: 'Win sound', permission: 'sounds' },
+  music: { type: 'music', label: 'Music', permission: 'music' },
 };
 
 const PERMISSIONS = {
@@ -72,6 +73,7 @@ const PERMISSIONS = {
   moveSpeed: 'Custom move speed',
   paddleSize: 'Custom paddle size',
   sounds: 'Custom sounds',
+  music: 'Custom music',
   requests: 'Rule requests',
 };
 
@@ -85,8 +87,12 @@ const POLICIES = {
 
 // Built-in sounds. Every name here always works (they ship with the game).
 const BUILTIN_SOUNDS = [
-  'classic', 'blip', 'boop', 'pluck', 'click', 'laser', 'drum', 'bell',
-  'chirp', 'zap', 'thud', 'wood', 'glass', 'coin', 'gong',
+  // recorded (assets/sounds; credits in CREDITS.md)
+  'pingpong', 'claves', 'tick', 'bell', 'gong', 'bikebell', 'flourish', 'applause', 'pip', 'pipgo', 'quindar', 'clock',
+  // synthesized in audio.js
+  'blip', 'boop', 'pluck', 'click', 'laser', 'drum', 'chirp', 'zap', 'thud', 'wood', 'glass', 'coin',
+  // the 2024 originals
+  'classic', 'wall', 'ding',
 ];
 
 // Computer opponent difficulty
@@ -206,6 +212,18 @@ function parseSoundSetting(value) {
   return { kind: 'url', url: url.href, label };
 }
 
+// Music is a track name from the game's music library, or a web address.
+function parseMusicSetting(value) {
+  if (typeof value !== 'string' || !value.trim()) return { error: 'should be a music name or web address' };
+  const lower = value.trim().toLowerCase();
+  if (hasOwn(window.MUSIC_LIBRARY, lower) || (typeof GENERATED_TRACKS !== 'undefined' && hasOwn(GENERATED_TRACKS, lower))) {
+    return { kind: 'builtin', name: lower, label: lower };
+  }
+  if (BUILTIN_SOUNDS.includes(lower) || hasOwn(window.SOUND_LIBRARY, lower)) return { error: `"${value.trim()}" is a sound, not a music track` };
+  if (!/[/.]/.test(value)) return { error: `"${value.trim()}" isn't one of the game's music tracks` };
+  return parseSoundSetting(value);
+}
+
 // ---------------------------------------------------------------------------
 // Controller config (the JSON a 2026 controller publishes over Bluetooth)
 // ---------------------------------------------------------------------------
@@ -293,6 +311,13 @@ function validateSetting(key, value, result) {
     const visible = ensureVisible(rgb);
     if (visible.adjusted) result.notes.push(`color ${value} lightened so it shows on the dark field`);
     target[key] = toHex(visible.color);
+  } else if (type === 'music') {
+    const music = parseMusicSetting(value);
+    if (music.error) {
+      result.issues.push(`${key}: ${music.error} — using the room's music`);
+      return;
+    }
+    target[key] = music;
   } else if (type === 'sound') {
     const sound = parseSoundSetting(value);
     if (sound.error) {
@@ -320,7 +345,9 @@ class HouseRules {
       rules,
       locks: { pointsToWin: false, puckSpeed: false, speedIncrement: false },
       policy: 'average',
-      permissions: { name: true, color: true, moveSpeed: true, paddleSize: true, sounds: true, requests: true },
+      permissions: { name: true, color: true, moveSpeed: true, paddleSize: true, sounds: true, music: true, requests: true },
+      music: 'auto', // 'auto' (players' choice) | 'off' | 'p1' | 'p2' | a track name
+      musicVolume: 0.5,
       paddleSpeed: [10, 10], // used by keyboard players, and by controllers that don't set moveSpeed
       cpuLevel: [6, 6], // computer difficulty for each side, 1 (easy) to 10 (expert)
       volume: 0.8,
@@ -389,6 +416,8 @@ class HouseRules {
       });
     }
     if (Number.isFinite(Number(update.volume))) d.volume = Math.min(1, Math.max(0, Number(update.volume)));
+    if (Number.isFinite(Number(update.musicVolume))) d.musicVolume = Math.min(1, Math.max(0, Number(update.musicVolume)));
+    if (typeof update.music === 'string' && /^[a-z0-9_-]{1,32}$/.test(update.music)) d.music = update.music;
     if (typeof update.muted === 'boolean') d.muted = update.muted;
     if (typeof update.ambience === 'boolean') d.ambience = update.ambience;
     if (update.effects === 'full' || update.effects === 'reduced') d.effects = update.effects;
@@ -475,4 +504,53 @@ function resolveMatchRules(house, players) {
     notes.push(note);
   }
   return { rules, notes, hasRequests };
+}
+
+// ---------------------------------------------------------------------------
+// Which music plays
+// ---------------------------------------------------------------------------
+
+/**
+ * The room's music choice (house.data.music) combined with what the players brought.
+ *   auto  "Players' choice": one player's music → theirs; both → alternate each point;
+ *         nobody → the room's default track
+ *   p1/p2 just that player's music (choosing one when both brought some)
+ *   off   silence
+ *   name  a track from the library, whatever the players brought
+ * @param players [{name, music}]: music is a playable track or null
+ * @returns {mode: 'off'|'single'|'alternate', tracks, label, detail, fromPlayers}
+ */
+function resolveMusic(house, players, defaultTrack) {
+  const allowed = house.permissions.music;
+  const picks = players.map((p) => (allowed && p && p.music ? p.music : null));
+  const names = players.map((p, i) => (p ? p.name : `Player ${i + 1}`));
+  const choice = house.data.music;
+  const single = (track, label, detail, fromPlayers = false) =>
+    track ? { mode: 'single', tracks: [track], label, detail, fromPlayers } : { mode: 'off', tracks: [], label: 'Off', detail: '', fromPlayers: false };
+
+  if (choice === 'off') return single(null);
+  if ((choice === 'p1' || choice === 'p2') && picks[choice === 'p1' ? 0 : 1]) {
+    const i = choice === 'p1' ? 0 : 1;
+    return single(picks[i], `${names[i]}'s pick`, picks[i].label, true);
+  }
+  if (choice !== 'auto' && choice !== 'p1' && choice !== 'p2' && hasOwn(window.MUSIC_LIBRARY, choice)) {
+    const track = trackFromName(choice);
+    return single(track, track.label, trackSource(track));
+  }
+  // Players' choice
+  if (picks[0] && picks[1]) {
+    if (trackKey(picks[0]) === trackKey(picks[1])) return single(picks[0], 'Both picked', picks[0].label, true);
+    return {
+      mode: 'alternate',
+      tracks: picks,
+      label: 'Alternating',
+      detail: `${names[0]}'s and ${names[1]}'s picks swap each point`,
+      fromPlayers: true,
+    };
+  }
+  if (picks[0] || picks[1]) {
+    const i = picks[0] ? 0 : 1;
+    return single(picks[i], `${names[i]}'s pick`, picks[i].label, true);
+  }
+  return single(defaultTrack, defaultTrack ? defaultTrack.label : 'Off', defaultTrack ? trackSource(defaultTrack) : '');
 }

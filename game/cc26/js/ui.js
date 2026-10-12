@@ -40,7 +40,7 @@ const STEPPER_STEPS = { pointsToWin: 1, puckSpeed: 0.5, speedIncrement: 0.05 };
 
 const POLICY_LABELS = { average: 'Meet in the middle', random: 'Coin flip', lower: 'Lower wins', higher: 'Higher wins', house: 'Ignore requests' };
 
-const PERMISSION_LABELS = { name: 'Names', color: 'Colors', sounds: 'Sounds', moveSpeed: 'Paddle speed', paddleSize: 'Paddle size', requests: 'Rule requests' };
+const PERMISSION_LABELS = { name: 'Names', color: 'Colors', sounds: 'Sounds', music: 'Music', moveSpeed: 'Paddle speed', paddleSize: 'Paddle size', requests: 'Rule requests' };
 
 class UI {
   constructor(game, { house, sound }) {
@@ -145,7 +145,16 @@ class UI {
                   <span class="rule-detail"></span>
                 </div>`
                 )
-                .join('')}</div>
+                .join('')}
+                <div class="rule-pill music-pill">
+                  <span class="rule-label">♪ Music</span>
+                  <div class="rule-stepper" data-stepper="music:">
+                    <button type="button" class="step" data-step="-1" aria-label="Previous music">‹</button>
+                    <span class="rule-value music-value"></span>
+                    <button type="button" class="step" data-step="1" aria-label="Next music">›</button>
+                  </div>
+                  <span class="rule-detail music-detail"></span>
+                </div></div>
               <div class="lobby-actions">
                 <button class="btn ghost big" data-action="settings">${icon('sliders')} Settings</button>
                 <button class="btn primary big" data-action="start">Start match <kbd>Space</kbd></button>
@@ -294,6 +303,16 @@ class UI {
           <section class="set-group wide">
             <h3>Controllers may set</h3>
             <div class="switches">${permissions}</div>
+          </section>
+
+          <section class="set-group wide">
+            <h3>Music</h3>
+            <div class="music-list" role="group" aria-label="Music"></div>
+            <div class="set-row volume-row">
+              <span class="set-label">Music volume</span>
+              <input type="range" min="0" max="1" step="0.05" data-music-volume aria-label="Music volume">
+              <output class="music-volume-out"></output>
+            </div>
           </section>
 
           <section class="set-group">
@@ -478,6 +497,11 @@ class UI {
       box.addEventListener('change', () => this.house.merge({ permissions: { [box.dataset.permission]: box.checked } }))
     );
     panel.querySelector('[data-volume]').addEventListener('input', (e) => this.house.merge({ volume: parseFloat(e.target.value), muted: false }));
+    panel.querySelector('[data-music-volume]').addEventListener('input', (e) => this.house.merge({ musicVolume: parseFloat(e.target.value), muted: false }));
+    panel.querySelector('.music-list').addEventListener('click', (e) => {
+      const option = e.target.closest('[data-music]');
+      if (option) this.chooseMusic(option.dataset.music);
+    });
     panel.querySelector('[data-house="muted"]').addEventListener('change', (e) => this.house.merge({ muted: e.target.checked }));
     panel.querySelector('[data-house="ambience"]').addEventListener('change', (e) => this.house.merge({ ambience: e.target.checked }));
     panel.querySelector('[data-house="reduced"]').addEventListener('change', (e) => this.house.merge({ effects: e.target.checked ? 'reduced' : 'full' }));
@@ -496,6 +520,11 @@ class UI {
       const spec = GAME_SETTINGS[key];
       const size = (STEPPER_STEPS[key] || spec.step) * boost;
       this.house.merge({ rules: { [key]: clampToStep(this.house.rules[key] + direction * size, spec) } });
+    } else if (kind === 'music') {
+      const options = this.musicOptions();
+      const current = Math.max(0, options.findIndex((o) => o.value === this.currentMusicChoice()));
+      const next = options[(current + direction + options.length) % options.length];
+      this.chooseMusic(next.value);
     } else if (kind === 'speed') {
       const i = Number(key);
       const speeds = [...this.house.data.paddleSpeed];
@@ -724,6 +753,10 @@ class UI {
       const state = st ? st.state : 'off';
       chip(`♪ ${key} · ${esc(wants[settingKey].label)}`, allow.sounds, `sound-${state}`);
     }
+    if (wants.music) {
+      const state = player.musicStatus ? player.musicStatus.state : 'off';
+      chip(`♪ music · ${esc(player.music ? player.music.label : wants.music.label)}`, allow.music, `sound-${state}`);
+    }
     for (const [key, value] of Object.entries(player.requests)) {
       chip(`asks ${GAME_SETTINGS[key].label.toLowerCase()} ${formatSetting(key, value)}`, allow.requests && this.house.policy !== 'house', 'request');
     }
@@ -768,7 +801,56 @@ class UI {
       pill.querySelector('.rule-value').textContent = value;
       pill.querySelector('.rule-detail').innerHTML = detail || 'house rule';
     }
+    this.renderMusicTile();
     this.renderSettings(); // keeps the lobby steppers' limits in sync
+  }
+
+  // -------------------------------------------------------------------------
+  // Music choice
+  // -------------------------------------------------------------------------
+
+  /** Everything you can pick, in the order the ‹ › buttons step through. */
+  musicOptions() {
+    const players = this.game.players;
+    const options = [{ value: 'auto', label: "Players' choice", source: "a player's music if they brought some; otherwise Drift" }];
+    players.forEach((p, i) => {
+      if (p.music && this.house.permissions.music) {
+        options.push({ value: `p${i + 1}`, label: `${p.name}'s pick`, source: `${p.music.label} · ${trackSource(p.music)}` });
+      }
+    });
+    options.push({ value: 'off', label: 'Off', source: 'no music' });
+    for (const [name, entry] of Object.entries(window.MUSIC_LIBRARY)) {
+      options.push({ value: name, label: entry.title, source: [entry.mood, trackSource(trackFromName(name))].filter(Boolean).join(' · ') });
+    }
+    return options;
+  }
+
+  /** The stored choice, or "Players' choice" if it points at a player's music that's gone. */
+  currentMusicChoice() {
+    const choice = this.house.data.music;
+    return this.musicOptions().some((o) => o.value === choice) ? choice : 'auto';
+  }
+
+  chooseMusic(value) {
+    this.house.merge({ music: value });
+    clearTimeout(this.previewTimer);
+    this.previewTimer = setTimeout(() => this.game.previewMusic(), 350); // let a few quick clicks settle first
+  }
+
+  renderMusicTile() {
+    const plan = this.game.resolveMusic();
+    const choice = this.currentMusicChoice();
+    const tile = this.app.querySelector('.music-pill');
+    let detail;
+    if (plan.mode === 'off') detail = 'no music';
+    else if (plan.mode === 'alternate') detail = plan.detail;
+    else if (plan.fromPlayers) detail = `${plan.tracks[0].label} · ${trackSource(plan.tracks[0])}`;
+    else detail = trackSource(plan.tracks[0]);
+    if (choice === 'auto' && !plan.fromPlayers && plan.mode !== 'off') detail = `players' choice · ${detail}`;
+    tile.querySelector('.music-value').textContent = plan.label;
+    tile.querySelector('.music-detail').textContent = detail;
+    tile.title = detail;
+    tile.classList.toggle('request', plan.fromPlayers);
   }
 
   /** Make DF PONG exactly as wide as the two player cards. */
@@ -802,7 +884,19 @@ class UI {
           </div>`;
       })
       .join('');
-    this.app.querySelector('.rule-rows').innerHTML = rows;
+    const m = g.musicPlan;
+    const musicRow = m.fromPlayers
+      ? `
+          <div class="rule-row music-row" style="--delay:${0.25 + g.ruleNotes.length * 0.35}s">
+            <span class="rule-label">Music</span>
+            <span class="asks">${g.players
+              .map((p) => (p.music && this.house.permissions.music ? `<span class="ask" style="--player:${p.color}">${esc(p.music.label)}</span>` : `<span class="ask empty">—</span>`))
+              .join('')}</span>
+            <span class="rule-result">${esc(m.label)}</span>
+            <span class="rule-source">${esc(m.mode === 'alternate' ? m.detail : `${m.tracks[0].label} · ${trackSource(m.tracks[0])}`)}</span>
+          </div>`
+      : '';
+    this.app.querySelector('.rule-rows').innerHTML = rows + musicRow;
   }
 
   renderCountdown(n) {
@@ -851,6 +945,15 @@ class UI {
     data.paddleSpeed.forEach((v, i) => setStepper(`speed:${i}`, String(v), v, PLAYER_SETTINGS.moveSpeed));
     panel.querySelectorAll('[data-policy]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.policy === data.policy)));
     panel.querySelectorAll('[data-permission]').forEach((box) => (box.checked = data.permissions[box.dataset.permission]));
+    panel.querySelector('[data-music-volume]').value = data.musicVolume;
+    panel.querySelector('.music-volume-out').textContent = Math.round(data.musicVolume * 100) + '%';
+    const choice = this.currentMusicChoice();
+    panel.querySelector('.music-list').innerHTML = this.musicOptions()
+      .map(
+        (o) => `<button type="button" class="music-option" data-music="${esc(o.value)}" aria-pressed="${o.value === choice}">
+          <span class="mo-title">${esc(o.label)}</span><span class="mo-source">${esc(o.source)}</span></button>`
+      )
+      .join('');
     panel.querySelector('[data-volume]').value = data.volume;
     panel.querySelector('.volume-out').textContent = Math.round(data.volume * 100) + '%';
     panel.querySelector('[data-house="muted"]').checked = data.muted;
