@@ -7,7 +7,7 @@
 
 const AMBER = { r: 224, g: 164, b: 88 };
 const EMBER = { r: 214, g: 104, b: 76 };
-const DISPLAY_FONT = 'Space Grotesk';
+const DISPLAY_FONT = 'IBM Plex Mono';
 
 function drawWorld(g, game, fx, view) {
   const ctx = g.drawingContext;
@@ -128,7 +128,7 @@ function drawPaddle(g, ctx, paddle, player, fx, view, intensity) {
   ctx.shadowColor = rgba(player.rgb, 0.55);
   g.noStroke();
   g.fill(color.r, color.g, color.b, alpha);
-  g.rect(x - w / 2, paddle.y - h / 2, w, h, 5);
+  g.rect(x - w / 2, paddle.y - h / 2, w, h);
   ctx.shadowBlur = 0;
 }
 

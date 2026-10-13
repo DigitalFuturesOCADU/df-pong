@@ -361,6 +361,7 @@ class Game {
       const player = this.players[i];
       this.paddles[i].hitAt = this.fx.time;
       this.fx.paddleHit(event, player.rgb, intensity);
+      this.emit('paddle', i);
       // In the lobby, only make noise when a person is actually playing.
       if (!inLobby || player.kind === 'controller' || performance.now() - player.lastInputAt < 5000) {
         this.sound.paddleHit(player, intensity);

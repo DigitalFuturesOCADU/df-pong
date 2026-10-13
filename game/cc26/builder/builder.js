@@ -295,7 +295,7 @@ function drawPreview(t) {
   g.fillStyle = 'rgba(236,232,223,0.14)';
   for (let y = 0; y < H; y += 30) g.fillRect(W / 2 - 1.5, y, 3, 16);
 
-  g.font = '600 26px "Space Grotesk", sans-serif';
+  g.font = '600 26px "IBM Plex Mono", monospace';
   g.fillStyle = rgba(mixColor(rgb, INK, 0.3), 0.85);
   g.textAlign = 'center';
   g.fillText(config.player.name || 'Your name', W * 0.27, 52);
@@ -347,7 +347,7 @@ function drawPreview(t) {
   g.shadowBlur = 10 + 26 * squash;
   g.shadowColor = rgba(rgb, 0.6);
   g.fillStyle = rgba(mixColor(rgb, WHITE_RGB, squash * 0.75), 1);
-  roundRect(g, paddle.x - w / 2 - 6 * squash, paddle.y - h / 2, w, h, 5);
+  g.fillRect(paddle.x - w / 2 - 6 * squash, paddle.y - h / 2, w, h);
   g.shadowBlur = 0;
 
   // What the game would say about these settings
@@ -365,11 +365,6 @@ function drawPreview(t) {
 const WHITE_RGB = { r: 255, g: 255, b: 255 };
 const INK = parseColor(PALETTE.ink);
 
-function roundRect(g, x, y, w, h, r) {
-  g.beginPath();
-  g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h);
-  g.fill();
-}
 
 async function playHit() {
   const result = await loadFor('hitSound');

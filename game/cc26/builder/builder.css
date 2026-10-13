@@ -91,11 +91,19 @@ body {
   gap: 12px;
 }
 
+input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type='color']::-webkit-color-swatch,
+input[type='color']::-moz-color-swatch {
+  border: 0;
+}
+
 input[type='color'] {
   width: 64px;
   height: 40px;
   padding: 2px;
-  border-radius: 8px;
   border: 1px solid var(--line-strong);
   background: var(--surface-solid);
 }
@@ -156,14 +164,12 @@ input[type='color'] {
   display: block;
   width: 100%;
   height: auto;
-  border-radius: 8px;
   box-shadow: 0 0 0 1px var(--line);
 }
 
 .code {
   margin: 0 0 10px;
   padding: 14px;
-  border-radius: 10px;
   border: 1px solid var(--line);
   background: #0f0f0e;
   font-family: var(--mono);

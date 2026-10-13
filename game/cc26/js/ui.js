@@ -124,7 +124,7 @@ class UI {
           <div class="overlay lobby" data-overlay="lobby">
             <div class="lobby-inner">
               <div class="lobby-head">
-                <h1 class="wordmark"><span class="w1">DF</span><span class="w2">PONG</span></h1>
+                <h1 class="wordmark"><span class="w1 lit">DF</span><span class="w2">PONG</span></h1>
                 <p class="lobby-title">${esc(DFP.title || '')}</p>
               </div>
               <div class="lobby-cards">
@@ -600,6 +600,7 @@ class UI {
     });
     g.on('countdown', (n) => this.renderCountdown(n));
     g.on('toast', ({ message, tone }) => this.showToast(message, tone));
+    g.on('paddle', (side) => this.lightWordmark(side));
     this.house.onChange(() => this.renderSettings());
   }
 
@@ -851,6 +852,18 @@ class UI {
     tile.querySelector('.music-detail').textContent = detail;
     tile.title = detail;
     tile.classList.toggle('request', plan.fromPlayers);
+  }
+
+  /** The background game's puck hit a paddle: light up DF (left) or PONG (right). */
+  lightWordmark(side) {
+    if (this.game.state !== 'lobby') return;
+    const words = this.app.querySelectorAll('.wordmark span');
+    words.forEach((word, i) => {
+      word.classList.toggle('lit', i === side);
+      word.classList.toggle('flash', i === side);
+    });
+    // Drop the glow on the next frame so it fades out through the transition
+    requestAnimationFrame(() => requestAnimationFrame(() => words[side].classList.remove('flash')));
   }
 
   /** Make DF PONG exactly as wide as the two player cards. */
