@@ -147,6 +147,19 @@ notification. The notification payload may be cut off at the packet size, so **t
 ignores the payload and re-reads the characteristic**. The library sends at most one
 update every 250 ms.
 
+**When a change takes effect during a match** is the host's choice (house setting `liveChanges`):
+
+| `liveChanges` | Looks and sounds (`name`, `color`, `hitSound`, `scoreSound`, `winSound`) | Handling (`moveSpeed`, `paddleSize`) |
+|---|---|---|
+| `instant` | at once | at once, even mid-rally |
+| `point` (default) | at once | at the next serve |
+| `match` | when the match ends | when the match ends |
+
+Rule requests and `music` always wait for the next match, because both players share them.
+Outside a match (lobby, win screen) every change applies at once. When the host turns a
+permission off, that applies at once too. A change that has to wait is announced on screen
+("Thunderpaddle's new paddle settings apply from the next serve").
+
 ### Keys
 
 All keys are optional. Unknown keys are ignored by the game (and listed in the debug
@@ -247,7 +260,16 @@ commands. It can reach the game two ways:
 - **Same browser**: `BroadcastChannel` named `dfpong:<room>` — zero setup.
 - **Any device**: WebSocket relay (`server/relay.js`), URL `ws(s)://host/relay`.
 
-`<room>` defaults to the game instance name (e.g. `cc26`).
+`<room>` defaults to the game instance name (e.g. `cc26`); `?room=…` on the game and admin
+addresses changes it.
+
+### Several games at once
+
+Several games can share a room: each has an `id` (kept when its tab reloads) and an optional
+**table name** (`"Table A"`, up to 24 characters), set in the game's Settings → Admin panel, with
+`?table=…` in the game's address, or from the admin panel. The admin panel shows one card per
+game and sends commands and rules to all of them, or to one (`target`). For sessions that
+should never see each other, use different rooms.
 
 Every message is a JSON object with a `type`.
 
@@ -270,20 +292,23 @@ only forwards `admin:*` messages from authenticated admin sockets, and only forw
  "music":"auto",
  "locks":{"pointsToWin":true},
  "policy":"average",
+ "liveChanges":"point",
  "permissions":{"name":true,"color":true,"moveSpeed":true,"paddleSize":false,"sounds":true,"music":true,"requests":true}}
 
 {"type":"admin:command","command":"start|pause|resume|reset|lobby|rematch","target":"g-4f2a"}
+
+{"type":"admin:table","name":"Table A","target":"g-4f2a"}   // names one game; ignored without target
 
 {"type":"admin:hello"}          // asks every game to send its state now
 ```
 
 Fields may be partial; the game merges them into its house rules and clamps every value.
-`target` is optional; without it every game in the room obeys.
+`target` is optional for rules and commands; without it every game in the room obeys.
 
 ### Game → admin
 
 ```json
-{"type":"game:state","id":"g-4f2a","instance":"cc26",
+{"type":"game:state","id":"g-4f2a","instance":"cc26","table":"Table A","liveChanges":"point",
  "state":"lobby|versus|rules|countdown|playing|paused|serve|won",
  "score":[3,5],
  "players":[{"slot":1,"name":"Thunderpaddle","person":"Kate","device":12,"gen":"2026","connected":true,

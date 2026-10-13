@@ -40,6 +40,10 @@
           <button class="btn" data-command="reset">Restart</button>
           <button class="btn ghost" data-command="lobby">Back to lobby</button>
         </div>
+        <div class="send-to" hidden>
+          <p class="help">Send to</p>
+          <div class="segmented" role="group" aria-label="Send to"></div>
+        </div>
         <p class="help target-help">Commands go to every game in the room.</p>
       </section>
 
@@ -57,11 +61,14 @@
       <section class="panel">
         <h2>Let controllers customize</h2>
         <div class="permissions-form"></div>
+        <label class="stacked">When a controller changes its settings during a match
+          <select name="liveChanges"></select>
+        </label>
       </section>
     </div>
 
     <footer class="admin-foot">
-      <button class="btn primary big send">Send rules to games</button>
+      <button class="btn primary big send">Send rules to every game</button>
       <p class="help">Rules and permissions are applied when you press Send. Locked rules ignore what players ask for.</p>
     </footer>
   </div>

@@ -67,6 +67,7 @@ class UI {
         <header class="topbar">
           <button class="brand" data-action="lobby" title="Back to player select">
             <span class="brand-mark">DF Pong</span><span class="brand-instance">${esc(DFP.title || DFP.instance)}</span>
+            <span class="brand-table" hidden></span>
           </button>
           <div class="scoreboard" aria-live="polite">
             <div class="plate" data-slot="1"><i class="chip"></i><span class="plate-name"></span><b class="plate-score">0</b></div>
@@ -316,6 +317,14 @@ class UI {
           </section>
 
           <section class="set-group wide">
+            <h3>When a controller changes its settings during a match</h3>
+            <div class="segmented live-changes" role="group" aria-label="When a controller changes its settings during a match">${Object.entries(LIVE_CHANGES)
+              .map(([key, o]) => `<button type="button" data-live="${key}" aria-pressed="false">${o.label}</button>`)
+              .join('')}</div>
+            <p class="set-note live-help"></p>
+          </section>
+
+          <section class="set-group wide">
             <h3>Music</h3>
             <div class="music-list" role="group" aria-label="Music"></div>
             <div class="set-row volume-row">
@@ -339,6 +348,11 @@ class UI {
 
           <section class="set-group">
             <h3>Admin panel</h3>
+            <label class="set-row table-row">
+              <span class="set-label">Table name</span>
+              <input type="text" maxlength="24" placeholder="e.g. Table A" data-table autocomplete="off" spellcheck="false">
+            </label>
+            <p class="set-note">Running more than one game at once? Name each one so the admin panel can tell them apart. Saved on this computer.</p>
             <p class="set-note admin-status"></p>
             <a class="btn" target="_blank" rel="noopener" data-admin-link>Open admin panel</a>
           </section>
@@ -504,6 +518,8 @@ class UI {
       if (lock) this.house.merge({ locks: { [lock.dataset.lock]: !this.house.locks[lock.dataset.lock] } });
       const policy = e.target.closest('[data-policy]');
       if (policy) this.house.merge({ policy: policy.dataset.policy });
+      const live = e.target.closest('[data-live]');
+      if (live) this.house.merge({ liveChanges: live.dataset.live });
     });
     panel.querySelectorAll('[data-permission]').forEach((box) =>
       box.addEventListener('change', () => this.house.merge({ permissions: { [box.dataset.permission]: box.checked } }))
@@ -513,6 +529,12 @@ class UI {
     panel.querySelector('.music-list').addEventListener('click', (e) => {
       const option = e.target.closest('[data-music]');
       if (option) this.chooseMusic(option.dataset.music);
+    });
+    const tableInput = panel.querySelector('[data-table]');
+    tableInput.value = DFP.table;
+    tableInput.addEventListener('input', () => this.setTable(tableInput.value, { typing: true }));
+    tableInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') tableInput.blur();
     });
     panel.querySelector('[data-house="muted"]').addEventListener('change', (e) => this.house.merge({ muted: e.target.checked }));
     panel.querySelector('[data-house="ambience"]').addEventListener('change', (e) => this.house.merge({ ambience: e.target.checked }));
@@ -649,6 +671,7 @@ class UI {
   // -------------------------------------------------------------------------
 
   renderAll() {
+    this.renderTable();
     this.renderState();
     this.renderPlayers();
     this.renderScore();
@@ -995,6 +1018,8 @@ class UI {
     }
     data.paddleSpeed.forEach((v, i) => setStepper(`speed:${i}`, String(v), v, PLAYER_SETTINGS.moveSpeed));
     panel.querySelectorAll('[data-policy]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.policy === data.policy)));
+    panel.querySelectorAll('[data-live]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.live === data.liveChanges)));
+    panel.querySelector('.live-help').textContent = `${LIVE_CHANGES[data.liveChanges].help} Rule requests and music always wait for the next match.`;
     panel.querySelectorAll('[data-permission]').forEach((box) => (box.checked = data.permissions[box.dataset.permission]));
     panel.querySelector('[data-music-volume]').value = data.musicVolume;
     panel.querySelector('.music-volume-out').textContent = Math.round(data.musicVolume * 100) + '%';
@@ -1011,6 +1036,22 @@ class UI {
     panel.querySelector('[data-house="ambience"]').checked = data.ambience;
     panel.querySelector('[data-house="reduced"]').checked = data.effects === 'reduced';
     this.app.querySelector('[data-action="mute"]').innerHTML = icon(data.muted ? 'mute' : 'volume');
+  }
+
+  /** Name this game ("Table A"), from the settings panel or the admin panel. */
+  setTable(name, { typing = false } = {}) {
+    setTableName(name);
+    this.renderTable(typing);
+    this.game.emit('table');
+  }
+
+  renderTable(typing = false) {
+    const chip = this.app.querySelector('.brand-table');
+    chip.textContent = DFP.table;
+    chip.hidden = !DFP.table;
+    const input = this.app.querySelector('[data-table]');
+    if (!typing && document.activeElement !== input) input.value = DFP.table;
+    document.title = ['DF Pong', DFP.table, DFP.title].filter(Boolean).join(' · ');
   }
 
   renderAdminStatus(status) {

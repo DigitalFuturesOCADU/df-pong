@@ -53,7 +53,13 @@ class Game {
     this.accumulator = 0;
     this.countdownValue = 3;
 
+    this.liveMode = house.data.liveChanges;
     house.onChange(() => {
+      // The host switched when changes apply, mid-match: start over with the new choice
+      if (house.data.liveChanges !== this.liveMode) {
+        this.liveMode = house.data.liveChanges;
+        if (this.matchUnderway) this.holdChanges('start');
+      }
       this.players.forEach((p) => p.apply());
       this.emit('players');
       this.emit('rules');
@@ -96,6 +102,34 @@ class Game {
   // -------------------------------------------------------------------------
   // Handy views of the game
   // -------------------------------------------------------------------------
+
+  /** From NAME vs NAME until someone wins. */
+  get matchUnderway() {
+    return ['versus', 'rules', 'countdown', 'serve', 'playing', 'paused'].includes(this.state);
+  }
+
+  /**
+   * Hold back what controllers change during a match, as the host chose (house.data.liveChanges):
+   *   instant  nothing is held
+   *   point    paddle speed and size wait for the next serve; looks and sounds change at once
+   *   match    everything waits until the match is over
+   * moment: 'start' (a match starts), 'serve' (every serve), 'end' (won, or back to the lobby)
+   */
+  holdChanges(moment) {
+    const mode = this.house.data.liveChanges;
+    const all = Object.keys(CHANGE_GROUPS);
+    this.players.forEach((p) => {
+      if (moment === 'end' || mode === 'instant') {
+        p.release(all);
+      } else if (moment === 'start') {
+        p.release(all);
+        p.hold(mode === 'match' ? all : ['handling']);
+      } else if (moment === 'serve' && mode === 'point') {
+        p.release(['handling']);
+        p.hold(['handling']);
+      }
+    });
+  }
 
   get inMatch() {
     return ['countdown', 'serve', 'playing', 'paused', 'won'].includes(this.state);
@@ -151,6 +185,7 @@ class Game {
 
     this.showRulesCard = resolved.notes.some((n) => n.source !== 'house') || this.musicPlan.fromPlayers;
     this.setState('versus');
+    this.holdChanges('start');
     // Each name lands with its player's paddle sound
     this.players.forEach((player, i) =>
       this.fx.after(0.12 + i * 0.42, () => {
@@ -193,6 +228,7 @@ class Game {
   }
 
   beginServe(direction, afterCountdown = false) {
+    this.holdChanges('serve');
     this.serveAfterCountdown = afterCountdown;
     this.serveDirection = direction;
     this.puck.place();
@@ -253,6 +289,7 @@ class Game {
   }
 
   toLobby() {
+    this.holdChanges('end');
     this.sound.stopAmbience();
     this.music?.stop({ fade: 1 });
     this.music?.duck(false);
@@ -448,6 +485,7 @@ class Game {
 
   winMatch(i) {
     this.winner = i;
+    this.holdChanges('end');
     this.stats.duration = performance.now() - this.stats.startedAt;
     this.sound.stopAmbience();
     this.music?.stop({ fade: 0.8 });
@@ -516,6 +554,16 @@ class Game {
           this.toast(`${player.name} changed their rule requests — they apply next match`);
         }
         break;
+      case 'held':
+        // A controller changed something the host is holding back (not after a disconnect)
+        if (player.kind === 'controller' && this.matchUnderway) {
+          const looks = info.groups.includes('looks');
+          const handling = info.groups.includes('handling');
+          const what = looks && handling ? 'new settings' : handling ? 'new paddle settings' : 'new look and sounds';
+          const when = this.house.data.liveChanges === 'point' && !looks ? 'from the next serve' : 'after this match';
+          this.toast(`${player.name}'s ${what} apply ${when}`);
+        }
+        break;
     }
     this.emit('players', { player, what });
   }
@@ -564,6 +612,7 @@ class Game {
       house: this.house.rules,
       locks: this.house.locks,
       policy: this.house.policy,
+      liveChanges: this.house.data.liveChanges,
       permissions: this.house.permissions,
       musicChoice: this.house.data.music,
       music: this.resolveMusic().label,

@@ -37,6 +37,20 @@ Options (environment variables):
 ADMIN_KEY=bluebird node server/relay.js
 ```
 
+## Several games at once
+
+Several games can run in the same room, for example two tables in one class:
+
+1. On each game laptop, open Settings → Admin panel and give the game a **table name** ("Table A",
+   "Table B"). It shows in the game's top bar. You can also add `&table=Table%20A` to the game's
+   address, or name each game from the admin panel.
+2. The admin panel shows one card per table. **Send to** picks where commands and rules go: all
+   games, or one table.
+
+For two sessions that should never see each other (two classes at the same time, two hosts), give
+each one its own room instead: add `&room=…` to its game and admin addresses, for example
+`?room=cc26-morning` and `?room=cc26-afternoon`.
+
 ## With the GitHub Pages game
 
 The game on GitHub Pages is served over `https`, so it can only reach a relay over secure WebSockets

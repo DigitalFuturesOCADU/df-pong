@@ -141,6 +141,13 @@ difficulty slider from 1 (Easy) to 10 (Expert).
 
 Every match starts with **NAME vs NAME**, using each controller's name from the class list.
 
+Controllers can change their settings while connected. The host decides what happens during a match
+(Settings → *When a controller changes its settings during a match*): **Right away**, **Between points**
+(the default: looks and sounds change at once, paddle speed and size at the next serve), or **Next match**.
+
+Running more than one game at once? Give each a **table name** (Settings → Admin panel) and one admin
+panel can run them all; see [server/README.md](server/README.md).
+
 The game checks every connected controller every couple of seconds. If one drops out mid-match (a loose
 wire, a flat battery, a reset), the game pauses, says which controller disconnected, and reconnects to it
 automatically. No need to pick it again. If it can't come back, the pause screen offers **Reconnect** or

@@ -179,6 +179,20 @@ code {
   text-overflow: ellipsis;
 }
 
+/* "Table A": which game this is, when several run at once */
+.brand-table {
+  flex: none;
+  align-self: center;
+  padding: 3px 7px;
+  border: 1px solid var(--line-strong);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
 .scoreboard {
   display: flex;
   align-items: center;
@@ -1825,6 +1839,11 @@ input[type='checkbox']:checked::after {
   font-size: 15px;
 }
 
+.table-row input {
+  flex: 1.4;
+  min-width: 0;
+}
+
 .stepper {
   display: flex;
   align-items: center;
@@ -1863,20 +1882,28 @@ input[type='checkbox']:checked::after {
   display: block;
 }
 
-.segmented.policy {
+.segmented.policy,
+.segmented.live-changes {
   display: flex;
   flex-wrap: wrap;
   width: 100%;
 }
 
-.segmented.policy button {
+.segmented.policy button,
+.segmented.live-changes button {
   flex: 1 1 auto;
   min-height: 42px;
   font-size: 13.5px;
 }
 
-.segmented.policy button + button {
+.segmented.policy button + button,
+.segmented.live-changes button + button,
+.send-to .segmented button + button {
   border-left: 1px solid var(--line);
+}
+
+.live-help {
+  margin-top: 8px;
 }
 
 .segmented button[aria-pressed='true'] {

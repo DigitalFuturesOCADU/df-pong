@@ -91,6 +91,36 @@ body {
   border-color: var(--ink);
 }
 
+.game-card header b {
+  font-size: 18px;
+}
+
+.game-card .rename-btn {
+  justify-self: start;
+}
+
+.games > .warn {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--warn);
+}
+
+/* Send to: All games · Table A · Table B */
+.send-to {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.send-to .help {
+  margin: 0;
+}
+
+.send-to .segmented {
+  justify-self: start;
+  flex-wrap: wrap;
+}
+
 .state-badge {
   font-family: var(--mono);
   font-size: 11px;

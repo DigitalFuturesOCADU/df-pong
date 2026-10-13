@@ -181,11 +181,24 @@ function setupKeyboard() {
 // Admin panel
 // ---------------------------------------------------------------------------
 
+/** This game's id for the admin panel. It survives reloading the tab, so the admin keeps track of it. */
+function gameId() {
+  const key = `dfpong:game-id:${DFP.room}`;
+  try {
+    let id = sessionStorage.getItem(key);
+    if (!id) sessionStorage.setItem(key, (id = `g-${Math.random().toString(36).slice(2, 6)}`));
+    return id;
+  } catch (e) {
+    return null; // AdminLink picks a random one
+  }
+}
+
 function setupAdmin() {
   admin = new AdminLink({
     role: 'game',
     room: DFP.room,
     relay: DFP.relay,
+    id: gameId(),
     onStatus: (status) => ui.renderAdminStatus(status),
     onMessage: (msg) => {
       ui.adminHeardAt = performance.now();
@@ -194,6 +207,10 @@ function setupAdmin() {
         game.toast(game.inMatch && game.state !== 'won' ? 'The host updated the rules — they apply next match' : 'The host updated the rules');
       } else if (msg.type === 'admin:command') {
         game.command(msg.command);
+      } else if (msg.type === 'admin:table' && msg.target === admin.id) {
+        // Naming a table only ever goes to one game
+        ui.setTable(msg.name);
+        game.toast(DFP.table ? `This game is now “${DFP.table}”` : 'This game has no table name now');
       }
       publishState();
     },
@@ -210,12 +227,12 @@ function setupAdmin() {
       publishState();
     }, 150);
   };
-  ['state', 'score', 'players', 'rules'].forEach((event) => game.on(event, publishSoon));
+  ['state', 'score', 'players', 'rules', 'table'].forEach((event) => game.on(event, publishSoon));
   house.onChange(publishSoon);
   setInterval(publishState, 2000);
   publishState();
 }
 
 function publishState() {
-  admin.send({ type: 'game:state', id: admin.id, instance: DFP.instance, title: DFP.title, ...game.snapshot() });
+  admin.send({ type: 'game:state', id: admin.id, instance: DFP.instance, title: DFP.title, table: DFP.table, ...game.snapshot() });
 }

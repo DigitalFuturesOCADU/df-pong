@@ -11,6 +11,13 @@
 
 const SOUND_KEYS = { hit: 'hitSound', score: 'scoreSound', win: 'winSound' };
 
+// A controller's settings, in the two groups the host can hold back during a match
+// (see Game.holdChanges): how you look and sound, and how your paddle handles.
+const CHANGE_GROUPS = {
+  looks: { name: 'name', color: 'color', hitSound: 'sounds', scoreSound: 'sounds', winSound: 'sounds' }, // key → permission
+  handling: { moveSpeed: 'moveSpeed', paddleSize: 'paddleSize' },
+};
+
 class Player {
   constructor(slot, { house, sound, music, onChange }) {
     this.slot = slot;
@@ -44,6 +51,8 @@ class Player {
     this.wasConnected = false;
 
     this.config = null; // parsed controller settings (2026 controllers)
+    this.held = { looks: null, handling: null }; // settings in use while that group is held back
+    this.pending = []; // groups with a change waiting
     this.controllerDir = 0;
     this.touchY = null; // world y while a finger is on this player's side
     this.lastInputAt = 0;
@@ -175,22 +184,53 @@ class Player {
   // Effective settings
   // -------------------------------------------------------------------------
 
+  /** What the controller is asking for right now. */
+  get wants() {
+    return (this.kind === 'controller' && this.config?.player) || {};
+  }
+
+  /** Keep using the current settings of these groups until release() (changes wait). */
+  hold(groups) {
+    groups.forEach((g) => {
+      if (!this.held[g]) this.held[g] = this.wants;
+    });
+  }
+
+  /** Let these groups follow the controller again; anything that was waiting applies now. */
+  release(groups) {
+    if (!groups.some((g) => this.held[g])) return;
+    groups.forEach((g) => (this.held[g] = null));
+    this.apply();
+  }
+
   /** Combine the controller's settings with the host's permissions. Call again whenever either changes. */
   apply() {
     const allow = this.house.permissions;
-    const wants = (this.kind === 'controller' && this.config?.player) || {};
+    const live = this.wants;
+    // While a group is held, its values come from when the hold started. Permissions still apply at once.
+    const looks = this.held.looks || live;
+    const handling = this.held.handling || live;
 
-    this.customName = allow.name ? wants.name : undefined;
-    this.color = allow.color && wants.color ? wants.color : this.defaultColor;
+    this.customName = allow.name ? looks.name : undefined;
+    this.color = allow.color && looks.color ? looks.color : this.defaultColor;
     this.rgb = parseColor(this.color);
-    this.moveSpeed = allow.moveSpeed && wants.moveSpeed !== undefined ? wants.moveSpeed : this.house.data.paddleSpeed[this.index];
-    this.paddleSize = allow.paddleSize && wants.paddleSize !== undefined ? wants.paddleSize : 100;
-    this.requests = (this.kind === 'controller' && this.config?.requests) || {};
+    this.moveSpeed = allow.moveSpeed && handling.moveSpeed !== undefined ? handling.moveSpeed : this.house.data.paddleSpeed[this.index];
+    this.paddleSize = allow.paddleSize && handling.paddleSize !== undefined ? handling.paddleSize : 100;
+    this.requests = (this.kind === 'controller' && this.config?.requests) || {}; // used when the next match starts
 
     for (const [key, settingKey] of Object.entries(SOUND_KEYS)) {
-      this.loadSound(key, allow.sounds ? wants[settingKey] : undefined);
+      this.loadSound(key, allow.sounds ? looks[settingKey] : undefined);
     }
-    this.loadMusic(allow.music ? wants.music : undefined);
+    this.loadMusic(allow.music ? live.music : undefined); // used when the next match starts
+
+    // Which held groups have a change waiting? Tell the game about new ones.
+    const differs = (a, b, key) => JSON.stringify(a[key]) !== JSON.stringify(b[key]);
+    const pending = Object.keys(CHANGE_GROUPS).filter(
+      (g) => this.held[g] && Object.entries(CHANGE_GROUPS[g]).some(([key, permission]) => allow[permission] && differs(this.held[g], live, key))
+    );
+    const added = pending.filter((g) => !this.pending.includes(g));
+    this.pending = pending;
+    if (added.length) this.changed('held', { groups: added });
   }
 
   async loadMusic(setting) {

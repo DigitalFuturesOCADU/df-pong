@@ -44,7 +44,8 @@ function connect() {
       const snapshot = cleanSnapshot(msg);
       if (!snapshot) return;
       games.set(snapshot.id, { snapshot, seenAt: performance.now() });
-      if (!edited) fillForm(msg);
+      // Show the settings of the game commands go to (or the first game, when they go to all)
+      if (!edited && snapshot.id === (target || games.keys().next().value)) fillForm(snapshot);
       renderGames();
     },
   });
@@ -88,6 +89,8 @@ function cleanSnapshot(msg) {
     id: text(msg.id, 32),
     instance: text(msg.instance),
     title: text(msg.title),
+    table: text(msg.table, 24),
+    liveChanges: hasOwn(LIVE_CHANGES, msg.liveChanges) ? msg.liveChanges : 'point',
     state: text(msg.state, 20),
     score: [num(msg.score?.[0]), num(msg.score?.[1])],
     rules: pick(msg.rules, gameKeys, num),
@@ -124,8 +127,11 @@ function renderGames() {
     return;
   }
   if (target && !games.has(target)) target = '';
-  const showTargets = games.size > 1;
-  box.innerHTML = [...games.values()]
+  renderSendTo();
+  const names = [...games.values()].map((g) => g.snapshot.table).filter(Boolean);
+  const twins = names.filter((n, i) => names.indexOf(n) !== i);
+  const warning = twins.length ? `<p class="help warn">More than one game is called “${esc(twins[0])}”. Rename one so you can tell them apart.</p>` : '';
+  box.innerHTML = warning + [...games.values()]
     .map(({ snapshot: s, seenAt }) => {
       const stale = now - seenAt > 6000;
       const players = s.players
@@ -144,17 +150,31 @@ function renderGames() {
       return `
         <article class="game-card panel ${stale ? 'stale' : ''} ${target === s.id ? 'targeted' : ''}">
           <header>
-            <div><b>${esc(s.title || s.instance)}</b> <span class="help">${esc(s.id)}</span></div>
+            <div><b>${esc(s.table || s.title || s.instance)}</b> <span class="help">${esc(s.table ? `${s.title || s.instance} · ${s.id}` : s.id)}</span></div>
             <span class="state-badge" data-state="${esc(s.state)}">${stale ? 'not responding' : esc(s.state)}</span>
           </header>
           <div class="admin-players">${players}</div>
           <p class="help">Music: ${esc(s.music || '—')}</p>
           <p class="help">Playing to ${esc(formatSetting('pointsToWin', s.rules.pointsToWin))} · puck ${esc(formatSetting('puckSpeed', s.rules.puckSpeed))} · ${esc(formatSetting('speedIncrement', s.rules.speedIncrement))} per hit</p>
-          ${showTargets ? `<button class="btn ghost target-btn" data-target="${esc(s.id)}">${target === s.id ? 'Commands go here ✓' : 'Send commands only here'}</button>` : ''}
+          <button class="btn ghost rename-btn" data-rename="${esc(s.id)}">${s.table ? 'Rename table' : 'Name this table'}</button>
         </article>`;
     })
     .join('');
-  document.querySelector('.target-help').textContent = target ? `Commands go to ${target} only.` : 'Commands go to every game in the room.';
+}
+
+const gameName = (s) => s.table || s.id;
+
+/** "Send to: All · Table A · Table B", shown when there's more than one game in the room. */
+function renderSendTo() {
+  const box = document.querySelector('.send-to');
+  box.hidden = games.size < 2;
+  const options = [['', 'All games'], ...[...games.values()].map(({ snapshot: s }) => [s.id, gameName(s)])];
+  box.querySelector('.segmented').innerHTML = options
+    .map(([id, label]) => `<button type="button" data-target="${esc(id)}" aria-pressed="${target === id}">${esc(label)}</button>`)
+    .join('');
+  const chosen = target && games.get(target);
+  document.querySelector('.target-help').textContent = chosen ? `Commands and rules go to ${gameName(chosen.snapshot)} only.` : 'Commands go to every game in the room.';
+  document.querySelector('.send').textContent = chosen ? `Send rules to ${gameName(chosen.snapshot)}` : 'Send rules to every game';
 }
 
 function describePlayer(p) {
@@ -168,11 +188,23 @@ function describePlayer(p) {
   return esc(kind + status + (extras.length ? ' · ' + extras.join(' · ') : ''));
 }
 
-document.querySelector('.games').addEventListener('click', (e) => {
+document.querySelector('.send-to').addEventListener('click', (e) => {
   const b = e.target.closest('[data-target]');
   if (!b) return;
-  target = target === b.dataset.target ? '' : b.dataset.target;
+  target = b.dataset.target;
+  edited = false;
+  const chosen = games.get(target || games.keys().next().value);
+  if (chosen) fillForm(chosen.snapshot);
   renderGames();
+});
+
+document.querySelector('.games').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-rename]');
+  if (!b || !games.has(b.dataset.rename)) return;
+  const s = games.get(b.dataset.rename).snapshot;
+  const name = prompt(`Table name for ${gameName(s)} (shown on its screen; leave empty to clear)`, s.table || '');
+  if (name === null) return;
+  link.send({ type: 'admin:table', target: s.id, name: cleanTableName(name) });
 });
 
 setInterval(renderGames, 2000);
@@ -220,6 +252,9 @@ fetch('../assets/music/manifest.json')
 const policySelect = document.querySelector('[name="policy"]');
 policySelect.innerHTML = Object.entries(POLICIES).map(([k, label]) => `<option value="${k}">${label}</option>`).join('');
 
+const liveSelect = document.querySelector('[name="liveChanges"]');
+liveSelect.innerHTML = Object.entries(LIVE_CHANGES).map(([k, o]) => `<option value="${k}">${o.label}</option>`).join('');
+
 document.querySelector('.permissions-form').innerHTML = Object.entries(PERMISSIONS)
   .map(([k, label]) => `<label class="check"><input type="checkbox" data-permission="${k}" checked> ${label}</label>`)
   .join('');
@@ -237,6 +272,7 @@ function fillForm(s) {
     if (hasOwn(s.locks, key)) setLock(rulesForm.querySelector(`[data-lock="${key}"]`), s.locks[key]);
   }
   policySelect.value = s.policy;
+  liveSelect.value = s.liveChanges;
   if ([...musicSelect.options].some((o) => o.value === s.musicChoice)) musicSelect.value = s.musicChoice;
   for (const key of Object.keys(PERMISSIONS)) {
     if (hasOwn(s.permissions, key)) document.querySelector(`[data-permission="${key}"]`).checked = s.permissions[key];
@@ -269,11 +305,11 @@ document.querySelector('.send').addEventListener('click', () => {
   });
   const permissions = {};
   document.querySelectorAll('[data-permission]').forEach((box) => (permissions[box.dataset.permission] = box.checked));
-  link.send({ type: 'admin:rules', rules, locks, policy: policySelect.value, music: musicSelect.value, permissions, ...(target ? { target } : {}) });
+  link.send({ type: 'admin:rules', rules, locks, policy: policySelect.value, liveChanges: liveSelect.value, music: musicSelect.value, permissions, ...(target ? { target } : {}) });
   edited = false;
   const button = document.querySelector('.send');
   button.textContent = 'Sent ✓';
-  setTimeout(() => (button.textContent = 'Send rules to games'), 1500);
+  setTimeout(renderSendTo, 1500);
 });
 
 document.querySelector('.commands').addEventListener('click', (e) => {

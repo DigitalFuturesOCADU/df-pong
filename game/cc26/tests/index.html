@@ -11,6 +11,7 @@
   <script src="../js/settings.js"></script>
   <script src="../js/ble.js"></script>
   <script src="../js/music.js"></script>
+  <script src="../js/player.js"></script>
 </head>
 <body>
   <h1>DF Pong engine tests</h1>
@@ -476,6 +477,62 @@ async function run() {
     house.merge({ music: '<script>' });
     check('invalid choice ignored', house.data.music === 'auto');
     localStorage.removeItem(house.storageKey);
+  }
+
+  group('Changes during a match (hold / release)');
+  {
+    const house = new HouseRules('tests-live');
+    house.reset();
+    const events = [];
+    const p = new Player(1, {
+      house,
+      sound: { load: async (s) => ({ ok: true, sound: { name: s.name } }) },
+      music: { probe: async () => ({ ok: true }) },
+      onChange: (pl, what, info) => what === 'held' && events.push(info.groups.join('+')),
+    });
+    const setConfig = (obj) => { p.config = parseControllerConfig(JSON.stringify(obj)); p.apply(); };
+    p.linkStatus = 'connected'; // pretend a controller is connected
+    setConfig({ color: '#ff4040', moveSpeed: 14, paddleSize: 120 });
+    check('settings apply when nothing is held', p.moveSpeed === 14 && p.paddleSize === 120 && p.color === '#ff4040', `${p.moveSpeed} ${p.paddleSize} ${p.color}`);
+
+    p.hold(['handling']); // "between points": handling waits for the next serve
+    setConfig({ color: '#40ff40', moveSpeed: 20, paddleSize: 150 });
+    check('held paddle settings stay', p.moveSpeed === 14 && p.paddleSize === 120, `${p.moveSpeed} ${p.paddleSize}`);
+    check('looks still change at once', p.color === '#40ff40', p.color);
+    check('the game hears about the waiting change once', events.join() === 'handling' && p.pending.join() === 'handling', events.join());
+    setConfig({ color: '#40ff40', moveSpeed: 22, paddleSize: 150 });
+    check('no repeat notice while it is still waiting', events.length === 1, events.join());
+    p.release(['handling']);
+    check('released at the serve: the latest values apply', p.moveSpeed === 22 && p.paddleSize === 150 && !p.pending.length, `${p.moveSpeed} ${p.paddleSize}`);
+
+    p.hold(['looks', 'handling']); // "next match": everything waits
+    setConfig({ color: '#4040ff', moveSpeed: 9, paddleSize: 80, name: 'Zap' });
+    check('nothing changes during the match', p.color === '#40ff40' && p.moveSpeed === 22 && p.paddleSize === 150 && p.customName === undefined, `${p.color} ${p.moveSpeed} ${p.customName}`);
+    house.merge({ permissions: { paddleSize: false } });
+    p.apply();
+    check('the host turning a permission off still applies at once', p.paddleSize === 100, p.paddleSize);
+    house.merge({ permissions: { paddleSize: true } });
+    p.release(['looks', 'handling']);
+    check('everything applies when the match ends', p.color === '#4040ff' && p.moveSpeed === 9 && p.paddleSize === 80 && p.customName === 'Zap', `${p.color} ${p.moveSpeed} ${p.paddleSize} ${p.customName}`);
+
+    house.reset();
+    try { localStorage.removeItem(house.storageKey); } catch (e) { /* ignore */ }
+  }
+
+  group('Table names');
+  {
+    check('spaces tidied', cleanTableName('  Table   A ') === 'Table A');
+    check('limited to 24 characters', cleanTableName('x'.repeat(40)).length === 24);
+    check('non-text becomes empty', cleanTableName(42) === '' && cleanTableName(null) === '');
+    const h = new HouseRules('tests-live');
+    h.merge({ liveChanges: 'match' });
+    check('liveChanges accepts a known mode', h.data.liveChanges === 'match');
+    h.merge({ liveChanges: 'constructor' });
+    check('liveChanges ignores unknown modes', h.data.liveChanges === 'match');
+    h.merge({ policy: 'constructor' });
+    check('policy ignores inherited names', h.data.policy === 'average', h.data.policy);
+    h.reset();
+    try { localStorage.removeItem(h.storageKey); } catch (e) { /* ignore */ }
   }
 
   out.insertAdjacentHTML('beforeend', `<h2 class="${results.fail ? 'fail' : 'pass'}">${results.pass} passed, ${results.fail} failed</h2>`);

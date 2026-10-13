@@ -36,6 +36,38 @@ const DFP = Object.assign(
   if (params.has('test')) DFP.testMode = params.get('test') !== '0';
 })();
 
+// Table name ("Table A"): tells games apart when several run at once in the same room.
+// Remembered by this tab (so two windows can differ) and on this computer (for new tabs);
+// ?table=… in the address overrides both.
+const TABLE_KEY = `dfpong:2026:${DFP.instance}:table`;
+
+function cleanTableName(value) {
+  return typeof value === 'string' ? Array.from(value.replace(/\s+/g, ' ').trim()).slice(0, 24).join('') : '';
+}
+
+DFP.table = (() => {
+  const fromUrl = new URLSearchParams(location.search).get('table');
+  if (fromUrl !== null) return cleanTableName(fromUrl);
+  try {
+    const thisTab = sessionStorage.getItem(TABLE_KEY);
+    return cleanTableName(thisTab !== null ? thisTab : localStorage.getItem(TABLE_KEY) || '');
+  } catch (e) {
+    return '';
+  }
+})();
+
+function setTableName(value) {
+  DFP.table = cleanTableName(value);
+  try {
+    sessionStorage.setItem(TABLE_KEY, DFP.table);
+    if (DFP.table) localStorage.setItem(TABLE_KEY, DFP.table);
+    else localStorage.removeItem(TABLE_KEY);
+  } catch (e) {
+    /* storage blocked: the name lasts until the page reloads */
+  }
+  return DFP.table;
+}
+
 // Black, white and grey. Color only appears when a controller brings its own.
 const PALETTE = {
   background: '#121211',
@@ -83,6 +115,14 @@ const POLICIES = {
   lower: 'Use the lower request',
   higher: 'Use the higher request',
   house: 'Ignore requests (house rules)',
+};
+
+// When a controller's own changes take effect during a match (house.data.liveChanges).
+// Rule requests and music always wait for the next match: both players share them.
+const LIVE_CHANGES = {
+  instant: { label: 'Right away', help: 'Everything a controller changes applies at once, even in the middle of a rally.' },
+  point: { label: 'Between points', help: 'Colors, names and sounds change at once. Paddle speed and size wait for the next serve.' },
+  match: { label: 'Next match', help: 'Nothing a controller changes applies until the match is over.' },
 };
 
 // Built-in sounds. Every name here always works (they ship with the game).
@@ -346,6 +386,7 @@ class HouseRules {
       locks: { pointsToWin: false, puckSpeed: false, speedIncrement: false },
       policy: 'average',
       permissions: { name: true, color: true, moveSpeed: true, paddleSize: true, sounds: true, music: true, requests: true },
+      liveChanges: 'point', // see LIVE_CHANGES
       music: 'auto', // 'auto' (players' choice) | 'off' | 'p1' | 'p2' | a track name
       musicVolume: 0.5,
       paddleSpeed: [10, 10], // used by keyboard players, and by controllers that don't set moveSpeed
@@ -397,7 +438,8 @@ class HouseRules {
         if (typeof update.locks[key] === 'boolean') d.locks[key] = update.locks[key];
       }
     }
-    if (typeof update.policy === 'string' && POLICIES[update.policy]) d.policy = update.policy;
+    if (typeof update.policy === 'string' && hasOwn(POLICIES, update.policy)) d.policy = update.policy;
+    if (typeof update.liveChanges === 'string' && hasOwn(LIVE_CHANGES, update.liveChanges)) d.liveChanges = update.liveChanges;
     if (update.permissions && typeof update.permissions === 'object') {
       for (const key of Object.keys(PERMISSIONS)) {
         if (typeof update.permissions[key] === 'boolean') d.permissions[key] = update.permissions[key];
