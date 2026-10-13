@@ -10,7 +10,8 @@
  * Three generations are supported:
  *   2024  one shared UUID (suffix 14); the player name is the BLE device name
  *   2025  per-number UUIDs; movement only
- *   2026  per-number UUIDs + a config characteristic with custom settings (JSON)
+ *   2026  per-number UUIDs + a config characteristic with custom settings (JSON),
+ *         and (DFPONG API 1.1, library 2.3+) an actions characteristic: position, taunts
  *
  * This file talks to the Web Bluetooth API directly (no p5.ble) so it can
  * queue GATT operations, reconnect automatically and read the config.
@@ -20,7 +21,15 @@ const BLE_UUID = {
   service: DFPONG_API.bluetooth.uuidBase.service, // 19b10010-e8f2-537e-4f6c-d104768a12
   movement: DFPONG_API.bluetooth.uuidBase.movement, // 19b10011-…
   config: DFPONG_API.bluetooth.uuidBase.config, // 19b10012-…
+  actions: DFPONG_API.bluetooth.uuidBase.actions, // 19b10013-… (experimental)
 };
+
+// Action code → name (position, positionOff, taunt…), from the DFPONG API. Planned codes aren't listed.
+const ACTION_NAMES = Object.fromEntries(
+  apiEntries(DFPONG_API.actions.codes)
+    .filter(([, a]) => a.status !== 'planned')
+    .map(([name, a]) => [a.code, name])
+);
 
 const LEGACY_2024 = 'legacy2024';
 const MOVEMENT = { NEUTRAL: 0, UP: 1, DOWN: 2, HANDSHAKE: 3 };
@@ -33,7 +42,7 @@ function uuidSuffix(target) {
 
 function controllerUUIDs(target) {
   const s = uuidSuffix(target);
-  return { service: BLE_UUID.service + s, movement: BLE_UUID.movement + s, config: BLE_UUID.config + s };
+  return { service: BLE_UUID.service + s, movement: BLE_UUID.movement + s, config: BLE_UUID.config + s, actions: BLE_UUID.actions + s };
 }
 
 const bluetoothAvailable = () => !!(navigator.bluetooth && navigator.bluetooth.requestDevice);
@@ -45,6 +54,7 @@ class ControllerLink {
    *   onMove(direction)         -1 up, 0 stop, +1 down
    *   onConfig(text)            raw JSON text from a 2026 controller (or null)
    *   onReady()                 first movement value after the handshake
+   *   onAction(action)          {type: 'position', position: 0–1} | {type: 'positionOff'} | {type: 'taunt', emote}
    */
   constructor(handlers = {}) {
     this.handlers = handlers;
@@ -54,6 +64,7 @@ class ControllerLink {
     this.device = null;
     this.movementChar = null;
     this.configChar = null;
+    this.actionsChar = null;
     this.generation = null; // '2024' | '2025' | '2026'
     this.deviceName = '';
     this.userDisconnected = false;
@@ -76,7 +87,8 @@ class ControllerLink {
     this._onDisconnected = () => this.handleDisconnect();
     this._onMovementEvent = (e) => this.handleMovement(e.target.value);
     this._onConfigEvent = () => this.scheduleConfigRead();
-    this.stats = { messages: 0, lastValue: null, lastAt: 0, rate: 0, _windowCount: 0, _windowStart: performance.now(), configReads: 0, checks: 0, lastCheckMs: null };
+    this._onActionEvent = (e) => this.handleAction(e.target.value);
+    this.stats = { messages: 0, lastValue: null, lastAt: 0, rate: 0, _windowCount: 0, _windowStart: performance.now(), configReads: 0, checks: 0, lastCheckMs: null, actions: 0, lastAction: null };
   }
 
   get isConnected() {
@@ -215,6 +227,21 @@ class ControllerLink {
       this.handlers.onConfig && this.handlers.onConfig(null);
     }
 
+    // 4. Actions (experimental): position, taunts. Optional: older controllers don't have it,
+    //    and a controller that has it works without it.
+    this.actionsChar = null;
+    if (this.generation === '2026') {
+      try {
+        const ch = await step(service.getCharacteristic(this.uuids.actions), 'finding actions');
+        ch.removeEventListener('characteristicvaluechanged', this._onActionEvent);
+        ch.addEventListener('characteristicvaluechanged', this._onActionEvent);
+        await step(this.queue(() => ch.startNotifications()), 'subscribing to actions');
+        this.actionsChar = ch;
+      } catch (e) {
+        if (e && e.name !== 'NotFoundError') this.log('actions unavailable', e);
+      }
+    }
+
     // If the controller dropped while we were setting up, this attempt failed.
     if (!this.device || !this.device.gatt.connected || !this.movementChar) throw new Error('connection dropped during setup');
   }
@@ -247,6 +274,25 @@ class ControllerLink {
     }
     const direction = value === MOVEMENT.UP ? -1 : value === MOVEMENT.DOWN ? 1 : 0;
     this.handlers.onMove && this.handlers.onMove(direction);
+  }
+
+  /** One packet from the actions characteristic: byte 0 is the action, then its bytes (see docs/API.md). */
+  handleAction(dataView) {
+    if (!dataView || dataView.byteLength < 1) return;
+    const name = ACTION_NAMES[dataView.getUint8(0)];
+    this.stats.actions++;
+    this.stats.lastAction = name || `unknown (${dataView.getUint8(0)})`;
+    if (!name || !this.handlers.onAction) return; // unknown codes are for newer games
+    const byte = (i, fallback) => (dataView.byteLength > i ? dataView.getUint8(i) : fallback);
+    if (name === 'position') {
+      const value = byte(1, null);
+      if (value === null) return; // incomplete packet
+      this.handlers.onAction({ type: 'position', position: value / 255 });
+    } else if (name === 'positionOff') {
+      this.handlers.onAction({ type: 'positionOff' });
+    } else if (name === 'taunt') {
+      this.handlers.onAction({ type: 'taunt', emote: byte(1, 0) });
+    }
   }
 
   sayHello() {
@@ -352,6 +398,7 @@ class ControllerLink {
     clearInterval(this.helloTimer);
     this.movementChar = null;
     this.configChar = null;
+    this.actionsChar = null;
     this.handlers.onMove && this.handlers.onMove(0);
     if (this.userDisconnected || !this.device) {
       this.setStatus('idle');
@@ -415,6 +462,7 @@ class ControllerLink {
     this.device = null;
     this.movementChar = null;
     this.configChar = null;
+    this.actionsChar = null;
     this.generation = null;
     this.deviceName = '';
     this.reconnectAttempt = 0;
@@ -425,6 +473,8 @@ class ControllerLink {
     this.stats.lastCheckMs = null;
     this.stats.lastValue = null;
     this.stats.configText = '';
+    this.stats.actions = 0;
+    this.stats.lastAction = null;
   }
 }
 

@@ -1,5 +1,5 @@
 /*
- * api.js — the DFPONG API 1.0: settings, names and limits this game follows.
+ * api.js — the DFPONG API 1.1: settings, names and limits this game follows.
  * Generated from api/dfpong-api.json by api/build.mjs. Edit the spec, not this file.
  *
  * settings.js builds its tables from this, so the game, the library and the docs agree.
@@ -8,7 +8,7 @@
 const DFPONG_API = Object.freeze({
   "$comment": "The DFPONG API: everything controllers, the game and the admin panel can send each other. This file is the one place to change it. After editing, run `node api/build.mjs` (see api/README.md).",
   "name": "DFPONG API",
-  "version": "1.0",
+  "version": "1.1",
   "configVersion": 1,
   "evolution": {
     "summary": "The API grows a little every year. These rules let it change without breaking the controllers, games and admin panels already out there.",
@@ -83,8 +83,12 @@ const DFPONG_API = Object.freeze({
         "minUpdateMs": 250
       },
       "actions": {
-        "status": "planned",
-        "description": "A small, fast channel for things that happen during play (taunts, absolute paddle position, power-ups). Older games won't subscribe to it."
+        "status": "experimental",
+        "since": "1.1",
+        "properties": [
+          "notify"
+        ],
+        "description": "Controller → game: things that happen during play, as small packets (see `actions`). Older games don't subscribe, so a controller can always have it."
       }
     },
     "timing": {
@@ -325,6 +329,65 @@ const DFPONG_API = Object.freeze({
     "requests": {
       "label": "Rule requests",
       "short": "Rule requests"
+    },
+    "taunts": {
+      "label": "Taunts",
+      "short": "Taunts",
+      "status": "experimental",
+      "since": "1.1"
+    }
+  },
+  "actions": {
+    "$comment": "Packets on the actions characteristic: byte 0 is the action code, then that action's bytes. Readers ignore extra bytes (so a later version can add fields) and unknown codes.",
+    "description": "Things a controller does during play, sent the moment they happen. Unlike settings, actions are not remembered: each one is a single event.",
+    "maxBytes": 20,
+    "codes": {
+      "position": {
+        "code": 1,
+        "bytes": 2,
+        "fields": {
+          "position": "0 (top) to 255 (bottom)"
+        },
+        "library": "sendPosition",
+        "minIntervalMs": 20,
+        "status": "experimental",
+        "since": "1.1",
+        "description": "Move the paddle to this height, for knobs, sliders and distance sensors. The paddle still moves at its normal speed, like a touch player's, so it isn't faster than buttons. The paddle follows positions until the controller sends UP or DOWN on the movement characteristic (NEUTRAL doesn't count) or positionOff."
+      },
+      "positionOff": {
+        "code": 2,
+        "bytes": 1,
+        "library": "stopPosition",
+        "status": "experimental",
+        "since": "1.1",
+        "description": "Stop following positions; the paddle stops and listens to UP / DOWN again."
+      },
+      "taunt": {
+        "code": 3,
+        "bytes": 2,
+        "fields": {
+          "emote": "which word to show (index into emotes, optional, default 0)"
+        },
+        "library": "sendTaunt",
+        "permission": "taunts",
+        "cooldownMs": 2000,
+        "emotes": [
+          "HA!",
+          "NICE",
+          "GG",
+          "OOPS",
+          "COME ON",
+          "WOW"
+        ],
+        "status": "experimental",
+        "since": "1.1",
+        "description": "Show a word over your paddle, with a ring and a sound. At most one every cooldownMs per player; the game ignores the rest. The host can turn taunts off."
+      },
+      "power": {
+        "code": 4,
+        "status": "planned",
+        "description": "Power-ups with cooldowns the game enforces."
+      }
     }
   },
   "policies": {
@@ -616,16 +679,21 @@ const DFPONG_API = Object.freeze({
     }
   },
   "planned": {
-    "actions": {
-      "status": "planned",
-      "description": "In-game actions over the actions characteristic: taunts (a sound and a flash, rate-limited), absolute paddle position (for potentiometers and distance sensors, still speed-limited like touch), power-ups with cooldowns the game enforces."
-    },
     "feedback": {
       "status": "planned",
       "description": "The game tells the controller which settings it accepted and why any were refused, so the Serial Monitor can show it."
     }
   },
   "changelog": [
+    {
+      "version": "1.1",
+      "date": "2026-10-13",
+      "changes": [
+        "Experimental: the actions characteristic (19b10013-…), with position (move the paddle to a height, for knobs and sensors), positionOff and taunt.",
+        "Experimental: the taunts permission.",
+        "Reserved: action code 4 for power-ups."
+      ]
+    },
     {
       "version": "1.0",
       "date": "2026-10-13",

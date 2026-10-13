@@ -179,6 +179,15 @@ class Lib20Firmware extends RawSketchFirmware {
   }
 }
 
+/** DFPongController 2.3: also has the actions characteristic (position, taunts). */
+class Lib23Firmware extends Lib20Firmware {
+  build(device) {
+    super.build(device);
+    this.chars[this.uuids.actions] = new FakeCharacteristic(device, this.uuids.actions, { notify: true }, new Uint8Array([0]));
+  }
+  sendAction(bytes) { this.chars[this.uuids.actions].notify(new Uint8Array(bytes)); }
+}
+
 const fakeDevices = [];
 function addController(fw) {
   const d = new FakeDevice(fw);
@@ -205,12 +214,13 @@ const unhandled = [];
 window.addEventListener('unhandledrejection', (e) => unhandled.push(String(e.reason)));
 
 function makeLink() {
-  const log = { statuses: [], moves: [], configs: [], ready: 0 };
+  const log = { statuses: [], moves: [], configs: [], ready: 0, actions: [] };
   const link = new ControllerLink({
     onStatus: (s) => log.statuses.push(s),
     onMove: (d) => log.moves.push(d),
     onConfig: (t) => log.configs.push(t),
     onReady: () => log.ready++,
+    onAction: (a) => log.actions.push(a),
   });
   return { link, log };
 }
@@ -305,6 +315,7 @@ async function run() {
     await link.connect(3);
     check('generation 2026', link.generation === '2026');
     check('config read on connect', log.configs[0] === cfg, JSON.stringify(log.configs));
+    check('no actions channel on library 2.0: still connected', link.actionsChar === null && link.status === 'connected');
     check('handshake completed', await until(() => log.ready === 1));
     const parsed = parseControllerConfig(log.configs[0]);
     check('config parsed', parsed.player.name === 'Kate' && parsed.player.moveSpeed === 14 && parsed.requests.pointsToWin === 7 && parsed.issues.length === 0, JSON.stringify(parsed));
@@ -381,6 +392,57 @@ async function run() {
     check('reconnects by itself', await until(() => link.status === 'connected', 3000), link.status);
     link.disconnect(); await wait(20);
     fakeDevices.length = 0;
+  }
+
+  group('Actions channel (library 2.3, experimental)');
+  {
+    const d = addController(new Lib23Firmware({ number: 44, name: 'DFPONG-44', config: '{"v":1}' }));
+    const { link, log } = makeLink();
+    await link.connect(44);
+    check('connected and subscribed to actions', link.status === 'connected' && link.actionsChar && d.fw.chars[link.uuids.actions].notifying, link.status);
+    await until(() => log.ready === 1);
+    const last = () => log.actions[log.actions.length - 1];
+    d.fw.sendAction([1, 128]);
+    check('position 128 → 0.5', last()?.type === 'position' && Math.abs(last().position - 128 / 255) < 1e-9, JSON.stringify(last()));
+    d.fw.sendAction([1, 255, 9, 9]);
+    check('extra bytes ignored (room for later fields)', last()?.position === 1, JSON.stringify(last()));
+    d.fw.sendAction([2]);
+    check('positionOff', last()?.type === 'positionOff');
+    d.fw.sendAction([3, 2]);
+    check('taunt with an emote', last()?.type === 'taunt' && last().emote === 2, JSON.stringify(last()));
+    d.fw.sendAction([3]);
+    check('taunt without an emote → 0', last()?.type === 'taunt' && last().emote === 0);
+    const count = log.actions.length;
+    d.fw.sendAction([1]);
+    d.fw.sendAction([]);
+    d.fw.sendAction([9, 1]);
+    check('incomplete, empty and unknown packets are ignored', log.actions.length === count, JSON.stringify(log.actions.slice(count)));
+    check('unknown codes show in the debug stats', link.stats.lastAction === 'unknown (9)', link.stats.lastAction);
+    check('power (planned) is not acted on yet', (d.fw.sendAction([4, 1]), log.actions.length === count));
+    link.disconnect(); await wait(20);
+    fakeDevices.length = 0;
+
+    // The player follows positions until UP or DOWN arrives
+    const house = new HouseRules('tests-actions');
+    const events = [];
+    const p = new Player(1, { house, sound: { load: async () => ({ ok: true, sound: {} }) }, music: { probe: async () => ({ ok: true }) }, onChange: (pl, what, info) => what === 'taunt' && events.push(info.emote) });
+    p.linkStatus = 'connected';
+    p.link.handlers.onAction({ type: 'position', position: 0.25 });
+    check('player steers by position', p.position === 0.25);
+    p.link.handlers.onMove(0);
+    check('NEUTRAL keeps position steering', p.position === 0.25);
+    p.link.handlers.onMove(-1);
+    check('UP switches back to buttons', p.position === null);
+    p.link.handlers.onAction({ type: 'position', position: 7 });
+    check('position is kept within 0–1', p.position === 1);
+    p.link.handlers.onAction({ type: 'positionOff' });
+    check('positionOff switches back to buttons', p.position === null);
+    p.link.handlers.onAction({ type: 'taunt', emote: 3 });
+    check('a taunt reaches the game', events.join() === '3');
+    p.linkStatus = 'idle';
+    p.link.handlers.onAction({ type: 'position', position: 0.5 });
+    check('ignored without a connected controller', p.position === null);
+    try { localStorage.removeItem(house.storageKey); } catch (e) { /* ignore */ }
   }
 
   group('Settings validation');

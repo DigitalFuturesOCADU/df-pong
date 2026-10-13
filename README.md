@@ -106,6 +106,11 @@ controller.requestPointsToWin(7);                   // a request: your opponent 
 
 Settings can change while you play: the game picks up changes live (try mapping a sensor to your color).
 
+**Actions** *(experimental, library 2.3)* are things you do during play rather than settings:
+`controller.sendPosition(analogRead(A0), 0, 1023)` steers your paddle with a knob, slider or distance sensor
+(it moves to that height at normal paddle speed), and `controller.sendTaunt(2)` pops a word up beside your
+paddle (one every 2 seconds; the host can turn taunts off). Try the library's `08_PositionControl` example.
+
 **Built-in sounds:** recorded (from public archives): `pingpong`, `claves`, `tick`, `bell`, `gong`, `bikebell`, `flourish`, `applause`, `pip`, `pipgo`, `quindar`, `clock`
 ([credits](game/cc26/assets/sounds/CREDITS.md)); synthesized: `blip`, `boop`, `pluck`, `click`, `laser`,
 `drum`, `chirp`, `zap`, `thud`, `wood`, `glass`, `coin`; and the originals: `classic`, `wall`, `ding`.

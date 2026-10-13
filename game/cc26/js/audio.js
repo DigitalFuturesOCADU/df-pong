@@ -355,6 +355,18 @@ class SoundEngine {
     this.play(this.role('score'), { pan, gain: 0.3, rate: 1.5, delay: 0.08, maxDuration: 0.8 });
   }
 
+  /** A taunt: a bright bell, panned to the player's side (their own hit sound, if they have one). */
+  taunt(player) {
+    const pan = player.side === 'left' ? -0.7 : 0.7;
+    const custom = player.sounds.hit;
+    if (custom) {
+      this.play(custom, { pan, gain: 0.8, rate: 1.3, maxDuration: SOUND_LIMITS.hit });
+      this.play(custom, { pan, gain: 0.6, rate: 1.6, delay: 0.09, maxDuration: SOUND_LIMITS.hit });
+    } else {
+      this.play(this.get('bikebell') || 'chirp', { pan, gain: 0.55, rate: 1.1 });
+    }
+  }
+
   disconnected(player) {
     this.play('boop', { pan: player.side === 'left' ? -0.6 : 0.6, gain: 0.6, rate: 0.8 });
   }

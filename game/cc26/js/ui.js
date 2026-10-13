@@ -1141,6 +1141,8 @@ class UI {
               <dt>Handshake</dt><dd>${l.status === 'connected' ? (l.handshakeAcked ? 'complete' : 'waiting for first value') : '—'}</dd>
               <dt>Last value</dt><dd>${valueName}</dd>
               <dt>Messages</dt><dd>${l.stats.messages} · ${l.stats.rate.toFixed(1)}/s</dd>
+              <dt>Steering</dt><dd>${p.position !== null ? `by position · ${Math.round(p.position * 100)}%` : 'up / down'}</dd>
+              <dt>Actions</dt><dd>${l.actionsChar ? `${l.stats.actions} received${l.stats.lastAction ? ` · last: ${esc(l.stats.lastAction)}` : ''}` : l.status === 'connected' ? 'not on this controller' : '—'}</dd>
               <dt>Still there?</dt><dd>${l.status === 'connected' ? (l.stats.lastCheckMs === null ? 'checking…' : `answered in ${l.stats.lastCheckMs} ms (${l.stats.checks} checks)${l.missedChecks ? ` · ${l.missedChecks} missed` : ''}`) : '—'}</dd>
               <dt>Paddle</dt><dd>speed ${p.moveSpeed} · size ${p.paddleSize}%</dd>
               ${uuids ? `<dt>Service</dt><dd class="mono">${uuids.service}</dd>` : ''}

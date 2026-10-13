@@ -23,6 +23,7 @@ class Effects {
     this.wash = [0, 0]; // per-side color wash after a goal
     this.scorePop = [0, 0];
     this.confetti = null;
+    this.emotes = []; // taunt words floating beside a paddle
     this.scheduled = []; // effects timed on this clock, so they follow slow motion
     this.reduced = false;
   }
@@ -63,6 +64,8 @@ class Effects {
       r.life -= dt / r.ttl;
     }
     this.rings = this.rings.filter((r) => r.life > 0);
+    for (const e of this.emotes) e.life -= dt / e.ttl;
+    this.emotes = this.emotes.filter((e) => e.life > 0);
     this.waves = this.waves.filter((w) => this.time - w.t0 < 1.4);
 
     this.trauma = Math.max(0, this.trauma - dt * 1.5);
@@ -206,6 +209,14 @@ class Effects {
     this.wave(paddle.x, paddle.y, 0.8);
   }
 
+  /** A taunt: the word pops up beside the paddle (toward the middle) and follows it. */
+  emote(paddle, text, color) {
+    this.emotes = this.emotes.filter((e) => e.paddle !== paddle); // one word per paddle
+    this.emotes.push({ paddle, text, color, life: 1, ttl: 1.6 });
+    this.ring(paddle.x, paddle.y, color, 120, 0.5, 3);
+    this.burst(paddle.x, paddle.y, { count: 18, color: [color, mixColor(color, WHITE, 0.5)], speed: [60, 320], size: [2, 4], ttl: [0.3, 0.7], drag: 0.9 });
+  }
+
   serve(x, y) {
     this.ring(x, y, INK, 60, 0.6, 2);
   }
@@ -274,6 +285,7 @@ class Effects {
   // -------------------------------------------------------------------------
 
   draw(g) {
+    this.drawEmotes(g);
     g.noFill();
     for (const r of this.rings) {
       const t = 1 - r.life;
@@ -306,6 +318,27 @@ class Effects {
     }
   }
 }
+
+Effects.prototype.drawEmotes = function (g) {
+  if (!this.emotes.length) return;
+  g.push();
+  g.noStroke();
+  g.textFont(DISPLAY_FONT);
+  g.textStyle(BOLD);
+  g.textAlign(CENTER, CENTER);
+  for (const e of this.emotes) {
+    const age = 1 - e.life;
+    const pop = age < 0.12 ? easeOutCubic(age / 0.12) : 1; // grows in quickly, then drifts up and fades
+    const toMiddle = e.paddle.side === 'left' ? 1 : -1;
+    const x = e.paddle.x + toMiddle * 170;
+    const y = Math.min(WORLD.h - 60, Math.max(60, e.paddle.y - age * 40));
+    const c = mixColor(e.color, INK, 0.25);
+    g.fill(c.r, c.g, c.b, 255 * Math.min(1, e.life * 2.5));
+    g.textSize(58 * (0.6 + 0.4 * pop));
+    g.text(e.text, x, y);
+  }
+  g.pop();
+};
 
 function lerpRange(range) {
   return Array.isArray(range) ? range[0] + Math.random() * (range[1] - range[0]) : range;

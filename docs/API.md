@@ -1,6 +1,6 @@
 <!-- Generated from api/dfpong-api.json by api/build.mjs. Edit the spec, not this file. -->
 
-# DFPONG API 1.0
+# DFPONG API 1.1
 
 The API grows a little every year. These rules let it change without breaking the controllers, games and admin panels already out there.
 
@@ -34,7 +34,7 @@ Each controller is a Bluetooth LE peripheral. The browser finds it by a service 
 |---|---|---|---|---|
 | `movement` | `19b10011-e8f2-537e-4f6c-d104768a12` | read, write, notify | stable · 1.0 | Controller → game: the paddle direction, sent as a notification when it changes. Game → controller: 3 (hello) during the handshake. The game also reads it every 1.5 s to check the controller is still there. |
 | `config` | `19b10012-e8f2-537e-4f6c-d104768a12` | read, notify | stable · 1.0 | The controller's settings as one JSON object (see `settings`). The game reads it when connecting, and reads it again whenever the controller notifies a change. |
-| `actions` | `19b10013-e8f2-537e-4f6c-d104768a12` | — | **planned** | A small, fast channel for things that happen during play (taunts, absolute paddle position, power-ups). Older games won't subscribe to it. |
+| `actions` | `19b10013-e8f2-537e-4f6c-d104768a12` | notify | **experimental** · 1.1 | Controller → game: things that happen during play, as small packets (see `actions`). Older games don't subscribe, so a controller can always have it. |
 
 Movement values (1 byte):
 
@@ -94,6 +94,23 @@ takes effect if the controller changes it mid-match (see below).
 - `puckSpeed`: Asks for this starting puck speed. 5 is normal.
 - `speedIncrement`: Asks for this much extra puck speed after every hit.
 
+## Actions
+
+Things a controller does during play, sent the moment they happen. Unlike settings, actions are not remembered: each one is a single event. Each packet is at most 20 bytes: byte 0 is the action code, then the action's bytes.
+Readers ignore extra bytes and unknown codes, so later versions can add to them.
+
+| Code | Action | Bytes | Fields | Library | Limits | Status |
+|---|---|---|---|---|---|---|
+| 1 | `position` | 2 | position: 0 (top) to 255 (bottom) | `sendPosition()` | at most every 20 ms | **experimental** · 1.1 |
+| 2 | `positionOff` | 1 | — | `stopPosition()` | — | **experimental** · 1.1 |
+| 3 | `taunt` | 2 | emote: which word to show (index into emotes, optional, default 0) | `sendTaunt()` | one per 2 s, permission `taunts` | **experimental** · 1.1 |
+| 4 | `power` | — | — | — | — | **planned** |
+
+- `position`: Move the paddle to this height, for knobs, sliders and distance sensors. The paddle still moves at its normal speed, like a touch player's, so it isn't faster than buttons. The paddle follows positions until the controller sends UP or DOWN on the movement characteristic (NEUTRAL doesn't count) or positionOff.
+- `positionOff`: Stop following positions; the paddle stops and listens to UP / DOWN again.
+- `taunt`: Show a word over your paddle, with a ring and a sound. At most one every cooldownMs per player; the game ignores the rest. The host can turn taunts off. Emotes: 0 = HA!, 1 = NICE, 2 = GG, 3 = OOPS, 4 = COME ON, 5 = WOW.
+- `power`: Power-ups with cooldowns the game enforces.
+
 ## When changes apply during a match
 
 The host chooses (house setting `liveChanges`). **looks**: Name, color and sounds. **handling**: Paddle speed and size. **next match**: Shared with the other player (rule requests, music): always waits for the next match.
@@ -117,6 +134,7 @@ Permissions (which kinds of settings controllers may use):
 | `moveSpeed` | Custom move speed |
 | `paddleSize` | Custom paddle size |
 | `requests` | Rule requests |
+| `taunts` | Taunts |
 
 Policies (how two different rule requests are settled):
 
@@ -261,10 +279,15 @@ Sent on every change and at least every 2 seconds.
 
 ## Planned
 
-- **actions** (planned): In-game actions over the actions characteristic: taunts (a sound and a flash, rate-limited), absolute paddle position (for potentiometers and distance sensors, still speed-limited like touch), power-ups with cooldowns the game enforces.
 - **feedback** (planned): The game tells the controller which settings it accepted and why any were refused, so the Serial Monitor can show it.
 
 ## Changelog
+
+### 1.1 (2026-10-13)
+
+- Experimental: the actions characteristic (19b10013-…), with position (move the paddle to a height, for knobs and sensors), positionOff and taunt.
+- Experimental: the taunts permission.
+- Reserved: action code 4 for power-ups.
 
 ### 1.0 (2026-10-13)
 

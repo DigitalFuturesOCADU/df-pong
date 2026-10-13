@@ -87,6 +87,22 @@ for (const [kind, list] of [['sounds', spec.sounds], ['music', spec.music]]) {
 for (const [name] of entries(spec.music)) {
   if (hasOwn(spec.sounds, name)) problem(`"${name}" is both a sound and a music name; the game would refuse it as music`);
 }
+for (const [key, p] of entries(spec.permissions)) checkStatus(`permissions.${key}`, p);
+
+const actionCodes = new Map();
+for (const [name, a] of entries(spec.actions.codes)) {
+  const where = `actions.${name}`;
+  checkStatus(where, a);
+  if (!Number.isInteger(a.code) || a.code < 1 || a.code > 255) problem(`${where}: code must be a whole number from 1 to 255`);
+  if (actionCodes.has(a.code)) problem(`${where}: code ${a.code} is already used by ${actionCodes.get(a.code)}`);
+  actionCodes.set(a.code, name);
+  if (a.status === 'planned') continue;
+  if (!(a.bytes >= 1 && a.bytes <= spec.actions.maxBytes)) problem(`${where}: bytes must be 1–${spec.actions.maxBytes}`);
+  if (!a.library) problem(`${where}: name the library function that sends it`);
+  if (a.permission && !hasOwn(spec.permissions, a.permission)) problem(`${where}: unknown permission "${a.permission}"`);
+  if (a.emotes && !(Array.isArray(a.emotes) && a.emotes.length)) problem(`${where}: emotes should be a list of words`);
+}
+
 for (const [key, f] of entries(spec.classList.fields)) checkStatus(`classList.${key}`, f);
 for (const [type, m] of entries(spec.admin.messages)) checkStatus(`admin.messages.${type}`, m);
 for (const [name, c] of entries(spec.bluetooth.characteristics)) {
@@ -170,6 +186,20 @@ function libraryHeader() {
   const media = [...mediaLengths][0];
   const names = (list) => entries(list).map(([n]) => `        ${cString(n)},`).join('\n');
   const timing = entries(spec.bluetooth.timing).map(([k, t]) => `    const unsigned long ${upper(k)} = ${t.value}; // ${t.description}`);
+  const actionLines = [];
+  for (const [name, a] of entries(spec.actions.codes)) {
+    if (a.status === 'planned') {
+      actionLines.push(`    // code ${a.code} is reserved for ${name} (planned)`);
+      continue;
+    }
+    actionLines.push(`    const uint8_t ACTION_${upper(name)} = ${a.code};${a.status !== 'stable' ? ` // ${a.status}` : ''}`);
+    if (a.minIntervalMs) actionLines.push(`    const unsigned long ${upper(name)}_MIN_INTERVAL_MS = ${a.minIntervalMs};`);
+    if (a.cooldownMs) actionLines.push(`    const unsigned long ${upper(name)}_COOLDOWN_MS = ${a.cooldownMs};`);
+    if (a.emotes) {
+      actionLines.push(`    const char* const ${upper(name)}_EMOTES[] = { ${a.emotes.map(cString).join(', ')} };`);
+      actionLines.push(`    const size_t ${upper(name)}_EMOTE_COUNT = ${a.emotes.length};`);
+    }
+  }
   return `// ${BANNER}
 //
 // The DFPONG API ${spec.version}: the limits and names the game and this library agree on.
@@ -180,6 +210,7 @@ function libraryHeader() {
 #define DFPONG_SPEC_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 #define DFPONG_API_VERSION ${cString(spec.version)}
 #define DFPONG_CONFIG_VERSION ${spec.configVersion}
@@ -190,6 +221,7 @@ namespace DFPongSpec {
     const char* const SERVICE_UUID_BASE = ${cString(spec.bluetooth.uuidBase.service)};
     const char* const MOVEMENT_UUID_BASE = ${cString(spec.bluetooth.uuidBase.movement)};
     const char* const CONFIG_UUID_BASE = ${cString(spec.bluetooth.uuidBase.config)};
+    const char* const ACTIONS_UUID_BASE = ${cString(spec.bluetooth.uuidBase.actions)};
     const int CONTROLLER_NUMBER_MIN = ${spec.bluetooth.controllerNumber.min};
     const int CONTROLLER_NUMBER_MAX = ${spec.bluetooth.controllerNumber.max};
     const size_t CONFIG_MAX_BYTES = ${spec.bluetooth.characteristics.config.maxBytes};
@@ -200,6 +232,10 @@ ${timing.join('\n')}
     const size_t NAME_MAX_CHARACTERS = ${nameSetting.maxLength};
     const size_t MEDIA_MAX_LENGTH = ${media}; // sound and music names or links
 ${lines.join('\n')}
+
+    // Actions (byte 0 of a packet on the actions characteristic)
+    const size_t ACTIONS_MAX_BYTES = ${spec.actions.maxBytes};
+${actionLines.join('\n')}
 
     // Built-in sound names (hitSound, scoreSound, winSound)
     const char* const SOUNDS[] = {
@@ -289,6 +325,27 @@ ${md.table(
 )}
 
 ${entries(s.settings).map(([k, x]) => `- \`${k}\`: ${x.description}`).join('\n')}`);
+
+  const act = s.actions;
+  sections.push(`## Actions
+
+${act.description} Each packet is at most ${act.maxBytes} bytes: byte 0 is the action code, then the action's bytes.
+Readers ignore extra bytes and unknown codes, so later versions can add to them.
+
+${md.table(
+  ['Code', 'Action', 'Bytes', 'Fields', 'Library', 'Limits', 'Status'],
+  entries(act.codes).map(([name, a]) => [
+    String(a.code),
+    `\`${name}\``,
+    a.bytes ? String(a.bytes) : '—',
+    entries(a.fields).map(([f, t]) => `${f}: ${t}`).join('; ') || '—',
+    a.library ? `\`${a.library}()\`` : '—',
+    [a.minIntervalMs && `at most every ${a.minIntervalMs} ms`, a.cooldownMs && `one per ${a.cooldownMs / 1000} s`, a.permission && `permission \`${a.permission}\``].filter(Boolean).join(', ') || '—',
+    statusText(a),
+  ])
+)}
+
+${entries(act.codes).map(([name, a]) => `- \`${name}\`: ${a.description}${a.emotes ? ` Emotes: ${a.emotes.map((e, i) => `${i} = ${e}`).join(', ')}.` : ''}`).join('\n')}`);
 
   sections.push(`## When changes apply during a match
 

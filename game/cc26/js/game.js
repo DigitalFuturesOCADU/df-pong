@@ -398,7 +398,11 @@ class Game {
       if (up || down) player.lastInputAt = now;
       const practicing = now - player.lastInputAt < 5000 || player.touchY !== null;
 
-      if (player.kind === 'controller') {
+      if (player.kind === 'controller' && player.position !== null) {
+        // Steering by position (a knob or sensor): move there at normal paddle speed, like touch
+        paddle.dir = 0;
+        paddle.target = paddle.h / 2 + player.position * (WORLD.h - paddle.h);
+      } else if (player.kind === 'controller') {
         paddle.target = null;
         paddle.dir = player.controllerDir;
       } else if (player.touchY !== null) {
@@ -413,6 +417,19 @@ class Game {
         paddle.dir = up === down ? 0 : up ? -1 : 1;
       }
     });
+  }
+
+  /** A player taunts: a word over their paddle, a ring and a sound. The host can turn taunts off. */
+  taunt(player, emote) {
+    const spec = DFPONG_API.actions.codes.taunt;
+    const now = performance.now();
+    if (!this.house.permissions.taunts || this.state === 'paused') return;
+    if (now - (player.lastTauntAt || -Infinity) < spec.cooldownMs) return; // too soon: ignored, not queued
+    player.lastTauntAt = now;
+    const word = spec.emotes[Number.isInteger(emote) && emote >= 0 && emote < spec.emotes.length ? emote : 0];
+    this.fx.emote(this.paddles[player.index], word, player.rgb);
+    this.sound.taunt(player);
+    this.emit('taunt', { player, word });
   }
 
   /** Once the puck is behind a paddle the point is certain — slow time down to savor it. */
@@ -553,6 +570,9 @@ class Game {
         if (info.requestsChanged && this.inMatch && this.state !== 'won') {
           this.toast(`${player.name} changed their rule requests — they apply next match`);
         }
+        break;
+      case 'taunt':
+        this.taunt(player, info.emote);
         break;
       case 'held':
         // A controller changed something the host is holding back (not after a disconnect)

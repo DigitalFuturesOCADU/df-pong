@@ -198,6 +198,25 @@ and `bell` and `gong` fall back to synthesized versions if their recordings can'
 Names are case-insensitive. A name the game doesn't know falls back to the default sound (and the
 lobby says so).
 
+### Actions characteristic (experimental, API 1.1)
+
+UUID base `19b10013-…` + the controller's suffix, `NOTIFY`. Packet layouts, codes and limits are in
+[API.md → Actions](API.md#actions); this is how they flow:
+
+1. After reading the config, the game looks for the actions characteristic. If it's there it subscribes;
+   if not (`NotFoundError`), the controller simply has no actions. A failure here never fails the connection.
+2. The library only sends actions once the handshake is complete **and** the game has subscribed to actions
+   (`actionsAvailable()`). Older games never subscribe, so a 2.3 controller sends nothing extra there.
+3. `position` (code 1): the paddle moves toward that height at its normal speed, like a touch player's.
+   It keeps following positions until an **UP or DOWN arrives on the movement characteristic**, or
+   `positionOff` (code 2). NEUTRAL doesn't end it, because the library sends one NEUTRAL by itself when a
+   sketch stops calling `sendControl()`. After an UP/DOWN or a reconnect, the library sends the current
+   position again.
+4. `taunt` (code 3): checked by the game against the `taunts` permission and a 2-second cooldown per player;
+   extra taunts are dropped, not queued. Nothing happens while the game is paused.
+5. Unknown codes and extra bytes are ignored (they show in the debug drawer), so later versions can add
+   actions and fields.
+
 ---
 
 ## 5. Settings: who decides?

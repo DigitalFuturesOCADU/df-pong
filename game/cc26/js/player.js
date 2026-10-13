@@ -41,8 +41,12 @@ class Player {
       onStatus: (status, detail) => this.handleStatus(status, detail),
       onMove: (dir) => {
         this.controllerDir = dir;
-        if (dir !== 0) this.lastInputAt = performance.now();
+        if (dir !== 0) {
+          this.lastInputAt = performance.now();
+          this.position = null; // UP or DOWN: back to buttons (NEUTRAL doesn't count)
+        }
       },
+      onAction: (action) => this.handleAction(action),
       onConfig: (text, error) => this.handleConfig(text, error),
       onReady: () => this.changed('ready'),
     });
@@ -54,6 +58,7 @@ class Player {
     this.held = { looks: null, handling: null }; // settings in use while that group is held back
     this.pending = []; // groups with a change waiting
     this.controllerDir = 0;
+    this.position = null; // 0 (top) – 1 (bottom) while the controller steers by position (actions channel)
     this.touchY = null; // world y while a finger is on this player's side
     this.lastInputAt = 0;
 
@@ -153,16 +158,31 @@ class Player {
       this.wasConnected = true;
     } else if ((status === 'reconnecting' || status === 'lost') && previous === 'connected') {
       this.controllerDir = 0;
+      this.position = null;
       this.changed('dropped');
     } else if (status === 'lost' && previous === 'reconnecting') {
       this.changed('lost'); // automatic reconnecting gave up
     } else if (status === 'idle' || status === 'error') {
+      this.position = null;
       if (this.wasConnected) this.changed('disconnected');
       this.wasConnected = false;
       this.config = null;
       this.apply();
     }
     this.changed('status');
+  }
+
+  /** Something the controller did (actions channel): steer by position, or taunt. */
+  handleAction(action) {
+    if (this.kind !== 'controller') return;
+    if (action.type === 'position') {
+      this.position = Math.min(1, Math.max(0, action.position));
+      this.lastInputAt = performance.now();
+    } else if (action.type === 'positionOff') {
+      this.position = null;
+    } else if (action.type === 'taunt') {
+      this.changed('taunt', { emote: action.emote }); // the game checks permission and cooldown
+    }
   }
 
   handleConfig(text, error) {
