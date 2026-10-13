@@ -17,9 +17,9 @@
  */
 
 const BLE_UUID = {
-  service: '19b10010-e8f2-537e-4f6c-d104768a12',
-  movement: '19b10011-e8f2-537e-4f6c-d104768a12',
-  config: '19b10012-e8f2-537e-4f6c-d104768a12',
+  service: DFPONG_API.bluetooth.uuidBase.service, // 19b10010-e8f2-537e-4f6c-d104768a12
+  movement: DFPONG_API.bluetooth.uuidBase.movement, // 19b10011-…
+  config: DFPONG_API.bluetooth.uuidBase.config, // 19b10012-…
 };
 
 const LEGACY_2024 = 'legacy2024';
@@ -66,8 +66,8 @@ class ControllerLink {
     this.connectSession = 0;
     // Connection check (see checkAlive): how long the controller has to answer, and how many
     // missed answers in a row mean it's gone.
-    this.aliveTimeout = 2000;
-    this.aliveStrikes = 2;
+    this.aliveTimeout = DFPONG_API.bluetooth.timing.aliveTimeoutMs.value;
+    this.aliveStrikes = DFPONG_API.bluetooth.timing.aliveStrikes.value;
     this.missedChecks = 0;
     this.checking = false;
     this._queueTail = Promise.resolve();

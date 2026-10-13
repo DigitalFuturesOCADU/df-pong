@@ -1,0 +1,637 @@
+/*
+ * api.js — the DFPONG API 1.0: settings, names and limits this game follows.
+ * Generated from api/dfpong-api.json by api/build.mjs. Edit the spec, not this file.
+ *
+ * settings.js builds its tables from this, so the game, the library and the docs agree.
+ */
+
+const DFPONG_API = Object.freeze({
+  "$comment": "The DFPONG API: everything controllers, the game and the admin panel can send each other. This file is the one place to change it. After editing, run `node api/build.mjs` (see api/README.md).",
+  "name": "DFPONG API",
+  "version": "1.0",
+  "configVersion": 1,
+  "evolution": {
+    "summary": "The API grows a little every year. These rules let it change without breaking the controllers, games and admin panels already out there.",
+    "rules": [
+      "The movement characteristic never changes: every controller since 2024 relies on it.",
+      "Add, don't change. New settings, names, values and messages arrive in a minor version (1.0 → 1.1). Existing ones keep their meaning.",
+      "Readers forgive. The game ignores settings it doesn't know (and lists them in its debug panel), uses the default for any value it can't use, and clamps numbers into range. Controllers and admin panels ignore fields they don't know.",
+      "Experimental items can still change or disappear without a new major version. Try them; don't build a whole project on them yet.",
+      "Deprecated items keep working for at least one more school year, and their replacement is named here.",
+      "Breaking changes need a new major version (2.0) and a new configVersion. Avoid them: old controllers will still send configVersion 1 for years."
+    ],
+    "status": {
+      "stable": "Safe to use. Will keep working the same way.",
+      "experimental": "Works now, but may change or be removed in a minor version.",
+      "deprecated": "Still works; use the replacement named in `replacedBy`.",
+      "planned": "Reserved for a future version. Not implemented yet; the name is taken so nothing else uses it."
+    }
+  },
+  "bluetooth": {
+    "description": "Each controller is a Bluetooth LE peripheral. The browser finds it by a service UUID that ends in the controller's number.",
+    "uuidBase": {
+      "service": "19b10010-e8f2-537e-4f6c-d104768a12",
+      "movement": "19b10011-e8f2-537e-4f6c-d104768a12",
+      "config": "19b10012-e8f2-537e-4f6c-d104768a12",
+      "actions": "19b10013-e8f2-537e-4f6c-d104768a12"
+    },
+    "uuidSuffix": "Two hex digits: 13 + the controller number (controller 1 → 0e, controller 242 → ff). Every 2024 controller uses 14.",
+    "controllerNumber": {
+      "min": 1,
+      "max": 242
+    },
+    "characteristics": {
+      "movement": {
+        "status": "stable",
+        "since": "1.0",
+        "properties": [
+          "read",
+          "write",
+          "notify"
+        ],
+        "size": "1 byte",
+        "description": "Controller → game: the paddle direction, sent as a notification when it changes. Game → controller: 3 (hello) during the handshake. The game also reads it every 1.5 s to check the controller is still there.",
+        "values": {
+          "0": {
+            "name": "NEUTRAL",
+            "description": "stop"
+          },
+          "1": {
+            "name": "UP",
+            "description": "move up"
+          },
+          "2": {
+            "name": "DOWN",
+            "description": "move down"
+          },
+          "3": {
+            "name": "HANDSHAKE",
+            "description": "hello: sent by the controller until the game writes a 3 back"
+          }
+        },
+        "otherValues": "Treated as NEUTRAL by every game version."
+      },
+      "config": {
+        "status": "stable",
+        "since": "1.0",
+        "properties": [
+          "read",
+          "notify"
+        ],
+        "description": "The controller's settings as one JSON object (see `settings`). The game reads it when connecting, and reads it again whenever the controller notifies a change.",
+        "maxBytes": 512,
+        "minUpdateMs": 250
+      },
+      "actions": {
+        "status": "planned",
+        "description": "A small, fast channel for things that happen during play (taunts, absolute paddle position, power-ups). Older games won't subscribe to it."
+      }
+    },
+    "timing": {
+      "handshakeRepeatMs": {
+        "value": 500,
+        "description": "how often a controller repeats its hello until the game answers"
+      },
+      "subscribeTimeoutMs": {
+        "value": 10000,
+        "description": "how long a controller waits for the game to subscribe after connecting"
+      },
+      "handshakeTimeoutMs": {
+        "value": 5000,
+        "description": "how long a controller waits for the handshake after the game subscribes"
+      },
+      "aliveCheckMs": {
+        "value": 1500,
+        "description": "how often the game checks a connected controller still answers"
+      },
+      "aliveTimeoutMs": {
+        "value": 2000,
+        "description": "how long the controller has to answer a check"
+      },
+      "aliveStrikes": {
+        "value": 2,
+        "description": "missed checks in a row before the game reconnects (and pauses a match)"
+      }
+    }
+  },
+  "settings": {
+    "$comment": "Keys in a controller's settings JSON. kind: player (only changes your side) or request (a shared game rule, settled with the other player when the match starts). changes: when a change during a match takes effect, see `liveChanges` and `changeGroups`.",
+    "name": {
+      "kind": "player",
+      "type": "text",
+      "label": "Name",
+      "maxLength": 20,
+      "permission": "name",
+      "changes": "looks",
+      "library": "setPlayerName",
+      "status": "stable",
+      "since": "1.0",
+      "description": "The controller's name in the game. A controllerName in the class list comes first; without either, the game uses the person's name from the class list."
+    },
+    "color": {
+      "kind": "player",
+      "type": "color",
+      "label": "Color",
+      "permission": "color",
+      "changes": "looks",
+      "library": "setPlayerColor",
+      "status": "stable",
+      "since": "1.0",
+      "description": "Paddle and trail color: \"#rrggbb\" or any CSS color name. Very dark colors are brightened so the paddle stays visible."
+    },
+    "moveSpeed": {
+      "kind": "player",
+      "type": "number",
+      "label": "Move speed",
+      "min": 1,
+      "max": 100,
+      "step": 1,
+      "default": 10,
+      "permission": "moveSpeed",
+      "changes": "handling",
+      "library": "setMoveSpeed",
+      "status": "stable",
+      "since": "1.0",
+      "description": "Paddle speed. 10 is normal."
+    },
+    "paddleSize": {
+      "kind": "player",
+      "type": "number",
+      "label": "Paddle size",
+      "min": 50,
+      "max": 200,
+      "step": 1,
+      "default": 100,
+      "permission": "paddleSize",
+      "changes": "handling",
+      "library": "setPaddleSize",
+      "status": "stable",
+      "since": "1.0",
+      "description": "Paddle height in percent of normal."
+    },
+    "hitSound": {
+      "kind": "player",
+      "type": "sound",
+      "label": "Hit sound",
+      "maxLength": 200,
+      "permission": "sounds",
+      "changes": "looks",
+      "library": "setHitSound",
+      "status": "stable",
+      "since": "1.0",
+      "description": "Played when your paddle hits the puck: a built-in sound name (see `sounds`) or an https:// link to a short sound file."
+    },
+    "scoreSound": {
+      "kind": "player",
+      "type": "sound",
+      "label": "Score sound",
+      "maxLength": 200,
+      "permission": "sounds",
+      "changes": "looks",
+      "library": "setScoreSound",
+      "status": "stable",
+      "since": "1.0",
+      "description": "Played when you score."
+    },
+    "winSound": {
+      "kind": "player",
+      "type": "sound",
+      "label": "Win sound",
+      "maxLength": 200,
+      "permission": "sounds",
+      "changes": "looks",
+      "library": "setWinSound",
+      "status": "stable",
+      "since": "1.0",
+      "description": "Played when you win the match."
+    },
+    "music": {
+      "kind": "player",
+      "type": "music",
+      "label": "Music",
+      "maxLength": 200,
+      "permission": "music",
+      "changes": "match",
+      "library": "setMusic",
+      "status": "stable",
+      "since": "1.0",
+      "description": "Background music for your matches: a track name (see `music`) or an https:// link. If both players bring music, the host chooses one or the game alternates each point."
+    },
+    "pointsToWin": {
+      "kind": "request",
+      "type": "number",
+      "label": "Points to win",
+      "min": 1,
+      "max": 21,
+      "step": 1,
+      "default": 10,
+      "permission": "requests",
+      "changes": "match",
+      "library": "requestPointsToWin",
+      "status": "stable",
+      "since": "1.0",
+      "description": "Asks to play to this many points."
+    },
+    "puckSpeed": {
+      "kind": "request",
+      "type": "number",
+      "label": "Puck speed",
+      "min": 1,
+      "max": 20,
+      "step": 0.5,
+      "default": 5,
+      "permission": "requests",
+      "changes": "match",
+      "library": "requestPuckSpeed",
+      "status": "stable",
+      "since": "1.0",
+      "description": "Asks for this starting puck speed. 5 is normal."
+    },
+    "speedIncrement": {
+      "kind": "request",
+      "type": "number",
+      "label": "Speed-up per hit",
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "default": 0.15,
+      "permission": "requests",
+      "changes": "match",
+      "library": "requestSpeedIncrement",
+      "status": "stable",
+      "since": "1.0",
+      "description": "Asks for this much extra puck speed after every hit."
+    }
+  },
+  "changeGroups": {
+    "looks": "Name, color and sounds.",
+    "handling": "Paddle speed and size.",
+    "match": "Shared with the other player (rule requests, music): always waits for the next match."
+  },
+  "liveChanges": {
+    "$comment": "House setting: when a controller's changes take effect during a match.",
+    "instant": {
+      "label": "Right away",
+      "help": "Everything a controller changes applies at once, even in the middle of a rally.",
+      "looks": "now",
+      "handling": "now",
+      "status": "stable",
+      "since": "1.0"
+    },
+    "point": {
+      "label": "Between points",
+      "help": "Colors, names and sounds change at once. Paddle speed and size wait for the next serve.",
+      "looks": "now",
+      "handling": "next serve",
+      "default": true,
+      "status": "stable",
+      "since": "1.0"
+    },
+    "match": {
+      "label": "Next match",
+      "help": "Nothing a controller changes applies until the match is over.",
+      "looks": "match end",
+      "handling": "match end",
+      "status": "stable",
+      "since": "1.0"
+    }
+  },
+  "permissions": {
+    "$comment": "House setting: which kinds of settings controllers may use. Each setting names its permission.",
+    "name": {
+      "label": "Custom names",
+      "short": "Names"
+    },
+    "color": {
+      "label": "Custom colors",
+      "short": "Colors"
+    },
+    "sounds": {
+      "label": "Custom sounds",
+      "short": "Sounds"
+    },
+    "music": {
+      "label": "Custom music",
+      "short": "Music"
+    },
+    "moveSpeed": {
+      "label": "Custom move speed",
+      "short": "Paddle speed"
+    },
+    "paddleSize": {
+      "label": "Custom paddle size",
+      "short": "Paddle size"
+    },
+    "requests": {
+      "label": "Rule requests",
+      "short": "Rule requests"
+    }
+  },
+  "policies": {
+    "$comment": "House setting: how two different rule requests are settled when a match starts.",
+    "average": {
+      "label": "Average the two requests",
+      "short": "Meet in the middle",
+      "default": true
+    },
+    "random": {
+      "label": "Coin flip between requests",
+      "short": "Coin flip"
+    },
+    "lower": {
+      "label": "Use the lower request",
+      "short": "Lower wins"
+    },
+    "higher": {
+      "label": "Use the higher request",
+      "short": "Higher wins"
+    },
+    "house": {
+      "label": "Ignore requests (house rules)",
+      "short": "Ignore requests"
+    }
+  },
+  "sounds": {
+    "$comment": "Built-in sound names for hitSound, scoreSound and winSound. recorded: a file in the game's assets/sounds (credits in its CREDITS.md). synth: made by the game's audio code. original: the 2024 game's sounds.",
+    "pingpong": {
+      "kind": "recorded",
+      "description": "one table-tennis ball hit"
+    },
+    "claves": {
+      "kind": "recorded",
+      "description": "one strike of hardwood claves"
+    },
+    "tick": {
+      "kind": "recorded",
+      "description": "a watch tick"
+    },
+    "bell": {
+      "kind": "recorded",
+      "description": "a freshly cast bronze bell"
+    },
+    "gong": {
+      "kind": "recorded",
+      "description": "one strike of a cone gong"
+    },
+    "bikebell": {
+      "kind": "recorded",
+      "description": "a bicycle bell"
+    },
+    "flourish": {
+      "kind": "recorded",
+      "description": "a band's ruffle and flourish"
+    },
+    "applause": {
+      "kind": "recorded",
+      "description": "clapping and cheering"
+    },
+    "pip": {
+      "kind": "recorded",
+      "description": "a time-signal pip"
+    },
+    "pipgo": {
+      "kind": "recorded",
+      "description": "the time signal's final tone"
+    },
+    "quindar": {
+      "kind": "recorded",
+      "description": "an Apollo-era Quindar tone"
+    },
+    "clock": {
+      "kind": "recorded",
+      "description": "a kitchen-clock tick"
+    },
+    "blip": {
+      "kind": "synth",
+      "description": "short square-wave beep"
+    },
+    "boop": {
+      "kind": "synth",
+      "description": "low falling boop"
+    },
+    "pluck": {
+      "kind": "synth",
+      "description": "plucked string"
+    },
+    "click": {
+      "kind": "synth",
+      "description": "tiny click"
+    },
+    "laser": {
+      "kind": "synth",
+      "description": "falling laser zap"
+    },
+    "drum": {
+      "kind": "synth",
+      "description": "small drum"
+    },
+    "chirp": {
+      "kind": "synth",
+      "description": "rising chirp"
+    },
+    "zap": {
+      "kind": "synth",
+      "description": "electric zap"
+    },
+    "thud": {
+      "kind": "synth",
+      "description": "soft thud"
+    },
+    "wood": {
+      "kind": "synth",
+      "description": "wood block"
+    },
+    "glass": {
+      "kind": "synth",
+      "description": "glass ping"
+    },
+    "coin": {
+      "kind": "synth",
+      "description": "arcade coin"
+    },
+    "classic": {
+      "kind": "original",
+      "description": "the 2024 paddle hit"
+    },
+    "wall": {
+      "kind": "original",
+      "description": "the 2024 wall bounce"
+    },
+    "ding": {
+      "kind": "original",
+      "description": "the 2024 point ding"
+    }
+  },
+  "music": {
+    "$comment": "Built-in music names for the music setting. generated: composed live by the game's music code. recorded: a file in the game's assets/music (credits in its CREDITS.md).",
+    "drift": {
+      "kind": "generated",
+      "mood": "calm"
+    },
+    "tabletop": {
+      "kind": "generated",
+      "mood": "steady groove"
+    },
+    "arcade": {
+      "kind": "generated",
+      "mood": "bright"
+    },
+    "nightbus": {
+      "kind": "generated",
+      "mood": "lo-fi"
+    },
+    "gymnopedie": {
+      "kind": "recorded",
+      "mood": "calm piano",
+      "credit": "Satie, played by Robin Alciatore (Musopen)",
+      "licence": "Public domain"
+    },
+    "smallsteps": {
+      "kind": "recorded",
+      "mood": "calm ambient",
+      "credit": "Lee Rosevere",
+      "licence": "CC BY 4.0"
+    },
+    "bounce": {
+      "kind": "recorded",
+      "mood": "minimal pulse",
+      "credit": "Loyalty Freak Music",
+      "licence": "CC0"
+    },
+    "currents": {
+      "kind": "recorded",
+      "mood": "lo-fi groove",
+      "credit": "HoliznaCC0",
+      "licence": "CC0"
+    },
+    "palmleaf": {
+      "kind": "recorded",
+      "mood": "light ragtime",
+      "credit": "Scott Joplin, rendered by James Brigham",
+      "licence": "CC0"
+    },
+    "spacemtv": {
+      "kind": "recorded",
+      "mood": "light chiptune",
+      "credit": "Komiku",
+      "licence": "CC0"
+    }
+  },
+  "classList": {
+    "file": "players-config.json",
+    "description": "The class list each game folder ships with: { \"players\": [ … ] }. Older games read the same file and ignore fields they don't know.",
+    "fields": {
+      "deviceNumber": {
+        "type": "number",
+        "min": 1,
+        "max": 242,
+        "required": true,
+        "status": "stable",
+        "since": "1.0",
+        "description": "The controller's number."
+      },
+      "name": {
+        "type": "text",
+        "maxLength": 40,
+        "status": "stable",
+        "since": "1.0",
+        "description": "The person. Shown in the lobby's list so people can find themselves, and under the controller's name."
+      },
+      "controllerName": {
+        "type": "text",
+        "maxLength": 30,
+        "status": "stable",
+        "since": "1.0",
+        "description": "What the game calls this controller everywhere. Comes before the controller's own name setting."
+      }
+    }
+  },
+  "admin": {
+    "description": "Admin panels and games talk through a BroadcastChannel (same browser) or the WebSocket relay (server/relay.js). Every message is a JSON object with a `type`. Games only act on admin:* messages and admins only read game:* messages.",
+    "rooms": "Every game and admin joins a room (default: the game folder's instance name, e.g. cc26; change it with ?room=…). Rooms never see each other.",
+    "messages": {
+      "admin:rules": {
+        "status": "stable",
+        "since": "1.0",
+        "direction": "admin → game",
+        "description": "Changes house rules. Every field is optional and validated by the game.",
+        "fields": {
+          "rules": "{ pointsToWin, puckSpeed, speedIncrement } (house values)",
+          "locks": "{ key: true } — locked rules ignore what controllers ask for",
+          "policy": "one of `policies`",
+          "liveChanges": "one of `liveChanges`",
+          "music": "'auto' (players' choice), 'off', 'p1', 'p2' or a music name",
+          "permissions": "{ permission: true|false } for each of `permissions`",
+          "target": "optional game id; without it every game in the room obeys"
+        }
+      },
+      "admin:command": {
+        "status": "stable",
+        "since": "1.0",
+        "direction": "admin → game",
+        "fields": {
+          "command": "start | pause | resume | reset | lobby | rematch",
+          "target": "optional game id"
+        }
+      },
+      "admin:table": {
+        "status": "stable",
+        "since": "1.0",
+        "direction": "admin → game",
+        "description": "Names one game (\"Table A\"). Ignored without a target.",
+        "fields": {
+          "name": "up to 24 characters; empty clears it",
+          "target": "required game id"
+        }
+      },
+      "admin:hello": {
+        "status": "stable",
+        "since": "1.0",
+        "direction": "admin → game",
+        "description": "Asks every game in the room to send its state now."
+      },
+      "game:state": {
+        "status": "stable",
+        "since": "1.0",
+        "direction": "game → admin",
+        "description": "Sent on every change and at least every 2 seconds.",
+        "fields": {
+          "id": "the game's id (kept when its tab reloads)",
+          "instance": "game folder, e.g. cc26",
+          "title": "class title",
+          "table": "table name, or empty",
+          "state": "lobby | versus | rules | countdown | serve | playing | paused | won",
+          "score": "[left, right]",
+          "rules": "the rules in play",
+          "house": "house rules",
+          "locks": "locks",
+          "policy": "policy",
+          "liveChanges": "live-change mode",
+          "permissions": "permissions",
+          "musicChoice": "the house music choice",
+          "music": "what that means right now",
+          "players": "for each side: slot, name, person, device, kind, status, gen, color, moveSpeed, paddleSize, requests, sounds, music, issues"
+        }
+      }
+    }
+  },
+  "planned": {
+    "actions": {
+      "status": "planned",
+      "description": "In-game actions over the actions characteristic: taunts (a sound and a flash, rate-limited), absolute paddle position (for potentiometers and distance sensors, still speed-limited like touch), power-ups with cooldowns the game enforces."
+    },
+    "feedback": {
+      "status": "planned",
+      "description": "The game tells the controller which settings it accepted and why any were refused, so the Serial Monitor can show it."
+    }
+  },
+  "changelog": [
+    {
+      "version": "1.0",
+      "date": "2026-10-13",
+      "changes": [
+        "First written spec. Describes what the 2026 game (cc26) and DFPongController 2.1 do: movement and config characteristics, every setting, built-in sounds and music, house settings, the class list and admin messages."
+      ]
+    }
+  ]
+});

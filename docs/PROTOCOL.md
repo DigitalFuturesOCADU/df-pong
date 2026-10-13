@@ -1,7 +1,11 @@
 # DF Pong Protocol Reference (2026)
 
-This document is the single source of truth for how controllers, the game, and the
-admin panel talk to each other. The game (`game/cc26/`), the Arduino library
+> What can be sent (every setting, name, limit and message) is defined by the **DFPONG API**:
+> [API.md](API.md), generated from [`api/dfpong-api.json`](../api/dfpong-api.json). This page explains
+> how it works step by step: finding a controller, the handshake, reading settings, reconnecting.
+
+This document explains how controllers, the game, and the admin panel talk to each
+other. The game (`game/cc26/`), the Arduino library
 ([df-pong-controller](https://github.com/DigitalFuturesOCADU/df-pong-controller)),
 and the admin relay (`server/`) all implement this spec.
 
@@ -163,22 +167,12 @@ permission off, that applies at once too. A change that has to wait is announced
 ### Keys
 
 All keys are optional. Unknown keys are ignored by the game (and listed in the debug
-panel), so new keys can be added in future years without breaking anything.
+panel), so new keys can be added in future years without breaking anything. `v` is the
+API's major version (currently `1`).
 
-| Key | Type | Range / format | Default | Kind |
-|---|---|---|---|---|
-| `v` | int | schema version, currently `1` | `1` | meta |
-| `name` | string | ≤ 20 characters (Unicode characters, not bytes) | class list name (a `controllerName` there comes first) | player |
-| `color` | string | `"#rrggbb"` (any CSS color accepted) | slot color | player |
-| `moveSpeed` | number | 1 – 100 | 10 | player |
-| `paddleSize` | number | 50 – 200 (percent of normal) | 100 | player |
-| `hitSound` | string | built-in sound name **or** `https://` URL (≤ 200 chars) | built-in | player |
-| `scoreSound` | string | same as above | built-in | player |
-| `winSound` | string | same as above | built-in | player |
-| `music` | string | music track name (generated: `drift`, `tabletop`, `arcade`, `nightbus`; recorded: `gymnopedie`, `smallsteps`, `bounce`, `currents`, `palmleaf`, `spacemtv`) **or** `https://` URL (≤ 200 chars; streamed, no size limit) | the room's music | player (see section 5) |
-| `pointsToWin` | int | 1 – 21 | 10 | game request |
-| `puckSpeed` | number | 1 – 20 | 5 | game request |
-| `speedIncrement` | number | 0 – 1 | 0.15 | game request |
+**Every key, with its range, default, permission and when it takes effect, is listed in
+[API.md → Controller settings](API.md#controller-settings).** That page is generated from
+the DFPONG API spec (`api/dfpong-api.json`), so it always matches the game and the library.
 
 Example:
 
@@ -197,15 +191,12 @@ Example:
 
 ### Built-in sound names
 
-These names always work. They ship with the game; the synthesized ones are generated in the
-browser, and `bell` and `gong` fall back to synthesized versions if their recordings can't load.
+The built-in sound and music names are listed in [API.md → Built-in sounds](API.md#built-in-sounds)
+and [Music](API.md#music). They ship with the game; the synthesized ones are generated in the browser,
+and `bell` and `gong` fall back to synthesized versions if their recordings can't load.
 
-- Recorded: `pingpong`, `claves`, `tick`, `bell`, `gong`, `bikebell`, `flourish`, `applause`, `pip`, `pipgo`, `quindar`, `clock`
-- Synthesized: `blip`, `boop`, `pluck`, `click`, `laser`, `drum`, `chirp`, `zap`, `thud`, `wood`, `glass`, `coin`
-- Originals (2024): `classic`, `wall`, `ding`
-
-`game/cc26/assets/sounds/manifest.json` is the authoritative list. Names are case-insensitive. A name the game doesn't know falls
-back to the default sound (and the lobby says so).
+Names are case-insensitive. A name the game doesn't know falls back to the default sound (and the
+lobby says so).
 
 ---
 

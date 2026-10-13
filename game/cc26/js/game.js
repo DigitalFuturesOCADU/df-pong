@@ -15,7 +15,7 @@
 const VERSUS_SECONDS = 2.6;
 const RULES_CARD_SECONDS = 3.2;
 const SERVE_SECONDS = 0.9;
-const CONNECTION_CHECK_MS = 1500; // how often every connected controller is asked if it's still there
+const CONNECTION_CHECK_MS = DFPONG_API.bluetooth.timing.aliveCheckMs.value; // how often every connected controller is asked if it's still there
 
 const KEYS = {
   up: [['KeyA', 'KeyW'], ['KeyP', 'ArrowUp']],

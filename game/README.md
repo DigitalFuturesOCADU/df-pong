@@ -78,7 +78,8 @@ Plain JavaScript files, loaded in order by `index.html` (no build step). Each fi
 
 | File | Job |
 |---|---|
-| `settings.js` | What can be customized, validation, house rules, settling rule requests |
+| `api.js` | The DFPONG API this folder follows. **Generated** from `api/dfpong-api.json` by `node api/build.mjs`: don't edit it here |
+| `settings.js` | What can be customized (built from `api.js`), validation, house rules, settling rule requests |
 | `ble.js` | Web Bluetooth: finding a controller by number, handshake, config, auto-reconnect |
 | `audio.js` | Web Audio: recorded and synthesized sounds, custom sounds from URLs, pitch/pan by game state |
 | `music.js` | Background music: generated tracks, recorded tracks (`assets/music/`), players' music links |

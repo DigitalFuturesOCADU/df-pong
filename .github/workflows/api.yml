@@ -1,0 +1,23 @@
+# Checks the DFPONG API spec (api/dfpong-api.json) and that every file generated from it is up to date.
+name: DFPONG API check
+
+on:
+  push:
+    paths: ["api/**", "game/cc26/**", "docs/API.md", ".github/workflows/api.yml"]
+  pull_request:
+    paths: ["api/**", "game/cc26/**", "docs/API.md", ".github/workflows/api.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check the spec and the generated files
+        run: node api/build.mjs --check

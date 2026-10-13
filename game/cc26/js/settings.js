@@ -10,7 +10,9 @@
  *                     Both players can ask, so requests are resolved when the
  *                     match starts (see resolveMatchRules).
  *
- * The full protocol is in docs/PROTOCOL.md.
+ * What can be set, with ranges, defaults and names, comes from the DFPONG API
+ * (js/api.js, generated from api/dfpong-api.json; reference in docs/API.md).
+ * The step-by-step protocol is in docs/PROTOCOL.md.
  */
 
 // Instance configuration comes from window.DFPONG in the instance's index.html.
@@ -79,61 +81,37 @@ const PALETTE = {
 };
 
 // ---------------------------------------------------------------------------
-// Schema
+// Schema: the tables below are built from the DFPONG API (js/api.js)
 // ---------------------------------------------------------------------------
 
-const GAME_SETTINGS = {
-  pointsToWin: { label: 'Points to win', min: 1, max: 21, step: 1, default: 10 },
-  puckSpeed: { label: 'Puck speed', min: 1, max: 20, step: 0.5, default: 5 },
-  speedIncrement: { label: 'Speed-up per hit', min: 0, max: 1, step: 0.01, default: 0.15 },
-};
+/** The API's entries without its "$comment" notes */
+const apiEntries = (obj) => Object.entries(obj).filter(([key]) => !key.startsWith('$'));
+const apiFields = (obj, fields) => Object.fromEntries(fields.filter((f) => obj[f] !== undefined).map((f) => [f, obj[f]]));
+const apiDefault = (obj) => apiEntries(obj).find(([, o]) => o.default)[0];
 
-const PLAYER_SETTINGS = {
-  name: { type: 'text', label: 'Name', maxLength: 20, permission: 'name' },
-  color: { type: 'color', label: 'Color', permission: 'color' },
-  moveSpeed: { type: 'number', label: 'Move speed', min: 1, max: 100, step: 1, default: 10, permission: 'moveSpeed' },
-  paddleSize: { type: 'number', label: 'Paddle size', min: 50, max: 200, step: 1, default: 100, permission: 'paddleSize' },
-  hitSound: { type: 'sound', label: 'Hit sound', permission: 'sounds' },
-  scoreSound: { type: 'sound', label: 'Score sound', permission: 'sounds' },
-  winSound: { type: 'sound', label: 'Win sound', permission: 'sounds' },
-  music: { type: 'music', label: 'Music', permission: 'music' },
-};
+// Rule requests: shared, settled when the match starts
+const GAME_SETTINGS = Object.fromEntries(
+  apiEntries(DFPONG_API.settings)
+    .filter(([, s]) => s.kind === 'request')
+    .map(([key, s]) => [key, apiFields(s, ['label', 'min', 'max', 'step', 'default'])])
+);
 
-const PERMISSIONS = {
-  name: 'Custom names',
-  color: 'Custom colors',
-  moveSpeed: 'Custom move speed',
-  paddleSize: 'Custom paddle size',
-  sounds: 'Custom sounds',
-  music: 'Custom music',
-  requests: 'Rule requests',
-};
+// Player settings: only change that player's side
+const PLAYER_SETTINGS = Object.fromEntries(
+  apiEntries(DFPONG_API.settings)
+    .filter(([, s]) => s.kind === 'player')
+    .map(([key, s]) => [key, apiFields(s, ['type', 'label', 'maxLength', 'min', 'max', 'step', 'default', 'permission'])])
+);
 
-const POLICIES = {
-  average: 'Average the two requests',
-  random: 'Coin flip between requests',
-  lower: 'Use the lower request',
-  higher: 'Use the higher request',
-  house: 'Ignore requests (house rules)',
-};
+const PERMISSIONS = Object.fromEntries(apiEntries(DFPONG_API.permissions).map(([key, p]) => [key, p.label]));
+const POLICIES = Object.fromEntries(apiEntries(DFPONG_API.policies).map(([key, p]) => [key, p.label]));
 
 // When a controller's own changes take effect during a match (house.data.liveChanges).
 // Rule requests and music always wait for the next match: both players share them.
-const LIVE_CHANGES = {
-  instant: { label: 'Right away', help: 'Everything a controller changes applies at once, even in the middle of a rally.' },
-  point: { label: 'Between points', help: 'Colors, names and sounds change at once. Paddle speed and size wait for the next serve.' },
-  match: { label: 'Next match', help: 'Nothing a controller changes applies until the match is over.' },
-};
+const LIVE_CHANGES = Object.fromEntries(apiEntries(DFPONG_API.liveChanges).map(([key, o]) => [key, { label: o.label, help: o.help }]));
 
 // Built-in sounds. Every name here always works (they ship with the game).
-const BUILTIN_SOUNDS = [
-  // recorded (assets/sounds; credits in CREDITS.md)
-  'pingpong', 'claves', 'tick', 'bell', 'gong', 'bikebell', 'flourish', 'applause', 'pip', 'pipgo', 'quindar', 'clock',
-  // synthesized in audio.js
-  'blip', 'boop', 'pluck', 'click', 'laser', 'drum', 'chirp', 'zap', 'thud', 'wood', 'glass', 'coin',
-  // the 2024 originals
-  'classic', 'wall', 'ding',
-];
+const BUILTIN_SOUNDS = apiEntries(DFPONG_API.sounds).map(([name]) => name);
 
 // Computer opponent difficulty
 const CPU_LEVELS = {
@@ -146,7 +124,8 @@ const CPU_LEVELS = {
   label: (level) => (level <= 3 ? 'Easy' : level <= 6 ? 'Medium' : level <= 8 ? 'Hard' : 'Expert'),
 };
 
-const MAX_CONFIG_BYTES = 512;
+const MAX_CONFIG_BYTES = DFPONG_API.bluetooth.characteristics.config.maxBytes;
+const CONTROLLER_NUMBERS = DFPONG_API.bluetooth.controllerNumber; // {min: 1, max: 242}
 
 // Only an object's own keys count ("constructor" or "__proto__" must never look like a setting or a sound).
 const hasOwn = (obj, key) => obj != null && Object.prototype.hasOwnProperty.call(obj, key);
@@ -384,9 +363,9 @@ class HouseRules {
     this.defaults = {
       rules,
       locks: { pointsToWin: false, puckSpeed: false, speedIncrement: false },
-      policy: 'average',
-      permissions: { name: true, color: true, moveSpeed: true, paddleSize: true, sounds: true, music: true, requests: true },
-      liveChanges: 'point', // see LIVE_CHANGES
+      policy: apiDefault(DFPONG_API.policies),
+      permissions: Object.fromEntries(Object.keys(PERMISSIONS).map((key) => [key, true])),
+      liveChanges: apiDefault(DFPONG_API.liveChanges), // see LIVE_CHANGES
       music: 'auto', // 'auto' (players' choice) | 'off' | 'p1' | 'p2' | a track name
       musicVolume: 0.5,
       paddleSpeed: [10, 10], // used by keyboard players, and by controllers that don't set moveSpeed

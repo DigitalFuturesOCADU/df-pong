@@ -14,7 +14,8 @@ const SOUND_ROWS = [
   { key: 'winSound', label: 'When you win', method: 'setWinSound', limit: SOUND_LIMITS.win },
 ];
 
-const REQUEST_METHODS = { pointsToWin: 'requestPointsToWin', puckSpeed: 'requestPuckSpeed', speedIncrement: 'requestSpeedIncrement' };
+// Library function for each rule request, from the DFPONG API (e.g. pointsToWin → requestPointsToWin)
+const REQUEST_METHODS = Object.fromEntries(Object.keys(GAME_SETTINGS).map((key) => [key, DFPONG_API.settings[key].library]));
 
 const tested = {}; // sound key → {ok, sound, via, …} for the current address
 
@@ -40,6 +41,13 @@ document.querySelector('.sounds').insertAdjacentHTML(
     </div>`
   ).join('')
 );
+
+// Limits come from the DFPONG API, so the Builder never offers a value the game would change
+f.name.maxLength = PLAYER_SETTINGS.name.maxLength;
+for (const key of ['moveSpeed', 'paddleSize']) {
+  const spec = PLAYER_SETTINGS[key];
+  Object.assign(f[key], { min: spec.min, max: spec.max, step: spec.step, value: spec.default });
+}
 
 document.querySelector('.requests').innerHTML = Object.entries(GAME_SETTINGS)
   .map(

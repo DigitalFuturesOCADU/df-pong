@@ -37,7 +37,11 @@ iPhones/iPads can still play with the keyboard, touch, or against the computer.
 | **2024**: raw sketch with a custom name | ✓ | Choose **"2024 controller"**, then pick it by name in the browser's list |
 
 A 2026 controller also still works in the 2025 game pages; it just plays without its custom settings.
-The full protocol is in [docs/PROTOCOL.md](docs/PROTOCOL.md).
+
+Everything a controller, the game and the admin panel can send each other is the **DFPONG API**:
+one spec ([api/dfpong-api.json](api/dfpong-api.json)) that the game, the Arduino library, the Settings
+Builder and the reference ([docs/API.md](docs/API.md)) are generated from. It's built to grow: see
+[api/README.md](api/README.md). Step by step (handshake, reconnecting): [docs/PROTOCOL.md](docs/PROTOCOL.md).
 
 ---
 
@@ -222,9 +226,9 @@ game/
 ├── cc26/               Creation & Computation 2026: the whole 2026 game (see game/README.md)
 │   ├── index.html      page settings (title, instance id, admin relay…)
 │   ├── players-config.json
-│   ├── js/             settings, ble, audio, arena, effects, render, postfx, player, game, ui, sketch
+│   ├── js/             api (generated), settings, ble, audio, music, arena, effects, render, postfx, player, game, ui, sketch
 │   ├── css/
-│   ├── assets/sounds/  recorded sounds, manifest.json, CREDITS.md
+│   ├── assets/         recorded sounds and music, with manifest.json and CREDITS.md
 │   ├── builder/        Settings Builder
 │   ├── admin/          admin panel
 │   └── tests/          engine tests with simulated controllers (open in a browser)
@@ -232,7 +236,9 @@ game/
 ├── test/, _template/   the 2025 controller test page and template
 └── builder/, admin/    forward old links to cc26/builder/ and cc26/admin/
 server/relay.js         optional relay for the admin panel (no dependencies)
-docs/PROTOCOL.md        controllers ↔ game ↔ admin, in detail
+api/                    the DFPONG API spec and build.mjs, which generates the files below from it
+docs/API.md             the API reference (generated)
+docs/PROTOCOL.md        controllers ↔ game ↔ admin, step by step
 controller/examples/    raw BLE examples and sensor strategies
 ble/BLE-BASICS.md       Bluetooth Low Energy primer
 ```

@@ -38,9 +38,9 @@ const KEY_HINTS = ['W / A up · S / Z down', '↑ / P up · ↓ / L down'];
 // How far one press of a stepper moves each setting
 const STEPPER_STEPS = { pointsToWin: 1, puckSpeed: 0.5, speedIncrement: 0.05 };
 
-const POLICY_LABELS = { average: 'Meet in the middle', random: 'Coin flip', lower: 'Lower wins', higher: 'Higher wins', house: 'Ignore requests' };
+const POLICY_LABELS = Object.fromEntries(apiEntries(DFPONG_API.policies).map(([key, p]) => [key, p.short]));
 
-const PERMISSION_LABELS = { name: 'Names', color: 'Colors', sounds: 'Sounds', music: 'Music', moveSpeed: 'Paddle speed', paddleSize: 'Paddle size', requests: 'Rule requests' };
+const PERMISSION_LABELS = Object.fromEntries(apiEntries(DFPONG_API.permissions).map(([key, p]) => [key, p.short]));
 
 class UI {
   constructor(game, { house, sound }) {
@@ -227,7 +227,7 @@ class UI {
         </div>
         <div class="card-connect">
           <select class="device-select" aria-label="Player ${slot} controller"></select>
-          <input class="device-number" type="number" min="1" max="242" inputmode="numeric" placeholder="#" aria-label="Controller number" hidden>
+          <input class="device-number" type="number" min="${CONTROLLER_NUMBERS.min}" max="${CONTROLLER_NUMBERS.max}" inputmode="numeric" placeholder="#" aria-label="Controller number" hidden>
           <button class="btn connect">Connect</button>
           <button class="btn ghost forget" data-action="keyboard-${slot}" hidden>Use keyboard instead</button>
         </div>
@@ -441,7 +441,7 @@ class UI {
 
       number.addEventListener('input', () => {
         const n = parseInt(number.value, 10);
-        if (n >= 1 && n <= 242) player.selectController(n, this.rosterEntry(n));
+        if (n >= CONTROLLER_NUMBERS.min && n <= CONTROLLER_NUMBERS.max) player.selectController(n, this.rosterEntry(n));
         else player.selectController(null);
       });
 
