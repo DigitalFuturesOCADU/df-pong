@@ -100,6 +100,7 @@ function cleanSnapshot(msg) {
     players: players.map((p, i) => ({
       slot: i + 1,
       name: text(p?.name, 40),
+      person: text(p?.person, 40),
       device: p?.device === 'legacy2024' ? 'legacy2024' : Number.isInteger(p?.device) ? p.device : null,
       kind: text(p?.kind, 20),
       status: text(p?.status, 20),
@@ -133,7 +134,7 @@ function renderGames() {
           <div class="admin-player" style="--player:${esc(p.color)}">
             <i class="swatch"></i>
             <div>
-              <div class="admin-player-name">${esc(p.name)} <span class="score">${esc(s.score[p.slot - 1])}</span></div>
+              <div class="admin-player-name">${esc(p.name)}${p.person ? ` <span class="help">(${esc(p.person)})</span>` : ''} <span class="score">${esc(s.score[p.slot - 1])}</span></div>
               <div class="help">${describePlayer(p)}</div>
               ${p.issues && p.issues.length ? `<ul class="messages">${p.issues.map((m) => `<li class="warn">${esc(m)}</li>`).join('')}</ul>` : ''}
             </div>

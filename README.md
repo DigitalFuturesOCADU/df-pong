@@ -139,8 +139,12 @@ lock a rule.
 A player without a controller can use the keyboard or touch, or hand their side to the **computer**, with a
 difficulty slider from 1 (Easy) to 10 (Expert).
 
-If a controller drops out mid-match (battery, interference, reset), the game pauses and reconnects to it
-automatically. No need to pick it again.
+Every match starts with **NAME vs NAME**, using each controller's name from the class list.
+
+The game checks every connected controller every couple of seconds. If one drops out mid-match (a loose
+wire, a flat battery, a reset), the game pauses, says which controller disconnected, and reconnects to it
+automatically. No need to pick it again. If it can't come back, the pause screen offers **Reconnect** or
+**Finish on the keyboard**.
 
 ### LED on the controller
 

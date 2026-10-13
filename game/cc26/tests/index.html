@@ -54,7 +54,10 @@ class FakeCharacteristic extends EventTarget {
     try { await wait(8); return fn(); } finally { this.device.busy = false; }
   }
   startNotifications() { return this.op(() => { this.notifying = true; this.device.fw.onSubscribe(this); return this; }); }
-  readValue() { return this.op(() => { this.device.stats.reads++; return this.value; }); }
+  readValue() {
+    if (this.device.fw.frozen) return new Promise(() => {}); // lost power: never answers, and the browser hasn't noticed
+    return this.op(() => { this.device.stats.reads++; return this.value; });
+  }
   writeValueWithResponse(data) {
     return this.op(() => {
       const bytes = new Uint8Array(data);
@@ -351,6 +354,29 @@ async function run() {
     d.fw.powered = true;
     link.retry();
     check('Reconnect button works', await until(() => link.status === 'connected', 3000), link.status);
+
+    group('Connection check: controller stops answering (loose power wire)');
+    link.aliveTimeout = 150;
+    const readsBefore2 = d.stats.reads;
+    for (let k = 0; k < 3; k++) await link.checkAlive();
+    check('a healthy controller passes every check', link.status === 'connected' && d.stats.reads - readsBefore2 === 3 && link.stats.checks >= 3, `${link.status}, ${d.stats.reads - readsBefore2} reads`);
+    d.fw.frozen = true;
+    await link.checkAlive();
+    check('one missed answer is not enough', link.status === 'connected' && link.missedChecks === 1, `${link.status}, missed ${link.missedChecks}`);
+    let from = log.statuses.length;
+    await link.checkAlive();
+    check('a second missed answer → dropped and reconnecting', log.statuses.slice(from).includes('reconnecting'), JSON.stringify(log.statuses.slice(from)));
+    check('the dead link was hung up', !d.gatt.connected || link.status === 'connected');
+    d.fw.frozen = false; // it rebooted
+    check('reconnects by itself', await until(() => link.status === 'connected', 3000), link.status);
+    check('missed count reset after reconnecting', link.missedChecks === 0, link.missedChecks);
+
+    group('Connection check: the browser lost the link without telling us');
+    from = log.statuses.length;
+    d.gatt.connected = false; // no gattserverdisconnected event
+    await link.checkAlive();
+    check('noticed on the next check', log.statuses.slice(from).includes('reconnecting'), JSON.stringify(log.statuses.slice(from)));
+    check('reconnects by itself', await until(() => link.status === 'connected', 3000), link.status);
     link.disconnect(); await wait(20);
     fakeDevices.length = 0;
   }

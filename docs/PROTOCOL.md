@@ -16,7 +16,21 @@ New features are only ever *added* next to the old ones — nothing old changes 
 |---|---|---|---|---|
 | **2024** | Raw ArduinoBLE sketch (`Pong-Controller` repo) | One fixed UUID shared by every 2024 controller (suffix `14`) | BLE device name (`BLE.setLocalName`) | none |
 | **2025** | Raw sketch with `DEVICE_NUMBER`, or DFPongController 1.x | Unique UUID per controller number | `players-config.json` | none |
-| **2026** | DFPongController 2.x | Same as 2025 | `players-config.json` (optionally overridden by the controller) | config characteristic (section 4) |
+| **2026** | DFPongController 2.x | Same as 2025 | `players-config.json`, or the controller's `name` setting | config characteristic (section 4) |
+
+### Names in the class list (`players-config.json`)
+
+```json
+{ "deviceNumber": 12, "name": "Kate", "controllerName": "Thunderpaddle" }
+```
+
+- `name` is the person. It's shown in the lobby's list (`12 · Kate — Thunderpaddle`) so people can find
+  themselves, and under the controller's name on the cards, the VS screen and the win screen.
+- `controllerName` (optional, 2026 game) is what the game calls the player everywhere: scoreboard,
+  NAME vs NAME before the countdown, pause messages, and the win screen.
+- The name the game shows is the first one that exists: `controllerName` from the class list, then the
+  controller's own `name` setting (2026 controllers, if the host allows custom names), then `name`.
+- Older games ignore `controllerName`, so one class list works for every year's game.
 
 The 2026 game supports all three. A 2026 controller also still works in the 2025 game
 (the extra characteristic is simply ignored there).
@@ -86,6 +100,17 @@ but wastefully). The 2026 game therefore:
 - if no movement value has arrived, writes `3` again once a second;
 - ignores `3` entirely once the handshake is complete. (A `3` never changes the paddle's direction.)
 
+### Connection check (2026 game)
+
+While a controller is connected, the game reads the movement characteristic every 1.5 s. If the controller
+misses two answers in a row (2 s each), or the browser reports the link gone without sending its
+disconnect event, the game hangs up and reconnects automatically. During a match this pauses the game
+with the controller's name ("Thunderpaddle disconnected"). Browsers can otherwise take many seconds to
+notice a controller that lost power, and sometimes never do.
+
+The read has no side effects on the controller. Every generation's movement characteristic is readable;
+a controller whose characteristic isn't is only checked through the browser's own link state.
+
 **Timeouts on the controller:**
 - Library 1.x disconnects if the handshake isn't complete 5 s after connecting.
 - Library 2.x allows 10 s for the game to subscribe, then 5 s for the handshake.
@@ -130,7 +155,7 @@ panel), so new keys can be added in future years without breaking anything.
 | Key | Type | Range / format | Default | Kind |
 |---|---|---|---|---|
 | `v` | int | schema version, currently `1` | `1` | meta |
-| `name` | string | ≤ 20 characters (Unicode characters, not bytes) | roster name | player |
+| `name` | string | ≤ 20 characters (Unicode characters, not bytes) | class list name (a `controllerName` there comes first) | player |
 | `color` | string | `"#rrggbb"` (any CSS color accepted) | slot color | player |
 | `moveSpeed` | number | 1 – 100 | 10 | player |
 | `paddleSize` | number | 50 – 200 (percent of normal) | 100 | player |
@@ -259,9 +284,9 @@ Fields may be partial; the game merges them into its house rules and clamps ever
 
 ```json
 {"type":"game:state","id":"g-4f2a","instance":"cc26",
- "state":"lobby|rules|countdown|playing|paused|serve|won",
+ "state":"lobby|versus|rules|countdown|playing|paused|serve|won",
  "score":[3,5],
- "players":[{"slot":1,"name":"Kate","device":12,"gen":"2026","connected":true,
+ "players":[{"slot":1,"name":"Thunderpaddle","person":"Kate","device":12,"gen":"2026","connected":true,
              "settings":{"color":"#d08b5b"},"issues":["hitSound: could not load"]},
             {"slot":2,"name":"Keyboard","device":null,"gen":null,"connected":false}],
  "rules":{"pointsToWin":10,"puckSpeed":5,"speedIncrement":0.15},

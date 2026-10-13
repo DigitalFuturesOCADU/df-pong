@@ -116,9 +116,15 @@ async function loadRoster() {
   try {
     const res = await fetch(`${DFP.roster}?v=${Date.now()}`);
     const data = await res.json();
+    // name: the person (helps find them in the list); controllerName: what the game calls them
+    const text = (value, max) => (typeof value === 'string' && value.trim() ? Array.from(value.trim()).slice(0, max).join('') : null);
     const players = (data.players || [])
-      .filter((p) => Number.isInteger(p.deviceNumber) && p.deviceNumber >= 1 && p.deviceNumber <= 242)
-      .map((p) => ({ deviceNumber: p.deviceNumber, name: String(p.name || `Player ${p.deviceNumber}`).slice(0, 40) }));
+      .filter((p) => p && Number.isInteger(p.deviceNumber) && p.deviceNumber >= 1 && p.deviceNumber <= 242)
+      .map((p) => ({
+        deviceNumber: p.deviceNumber,
+        name: text(p.name, 40) || `Player ${p.deviceNumber}`,
+        controllerName: text(p.controllerName, 30),
+      }));
     return players;
   } catch (e) {
     console.warn('Could not load the players list:', e);

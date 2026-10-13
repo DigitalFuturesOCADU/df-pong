@@ -86,6 +86,14 @@ class UI {
         <main class="stage">
           <div class="arena">
             <div class="overlay countdown" data-overlay="countdown"><span class="count"></span></div>
+            <div class="overlay versus-intro" data-overlay="versus">
+              <div class="vs-stack">
+                <div class="vs-side" data-slot="1"><span class="vs-name"></span><span class="vs-owner"></span></div>
+                <span class="vs-mark">vs</span>
+                <div class="vs-side" data-slot="2"><span class="vs-name"></span><span class="vs-owner"></span></div>
+              </div>
+              <p class="hint">Space to skip</p>
+            </div>
             <div class="toasts" aria-live="polite"></div>
           </div>
 
@@ -99,6 +107,7 @@ class UI {
           <div class="overlay pause" data-overlay="paused">
             <div class="panel pause-card">
               <p class="kicker">Paused</p>
+              <h2 class="pause-title"></h2>
               <p class="pause-reason"></p>
               <div class="button-row">
                 <button class="btn primary" data-action="resume">Resume <kbd>Space</kbd></button>
@@ -112,6 +121,7 @@ class UI {
             <div class="win-card">
               <p class="kicker">Winner</p>
               <h2 class="winner-name"></h2>
+              <p class="winner-owner"></p>
               <p class="final-score"></p>
               <dl class="stats"></dl>
               <div class="button-row">
@@ -379,6 +389,8 @@ class UI {
       } else if (action.startsWith('keyboard-')) {
         g.players[Number(action.slice(9)) - 1].disconnect();
         this.renderState();
+      } else if (action.startsWith('reconnect-')) {
+        g.players[Number(action.slice(10)) - 1].link.retry();
       }
       // Don't leave the button focused: Space is the game's start/pause key.
       button.blur();
@@ -402,7 +414,7 @@ class UI {
           player.selectController(LEGACY_2024);
         } else if (value) {
           const n = parseInt(value, 10);
-          player.selectController(n, this.rosterName(n));
+          player.selectController(n, this.rosterEntry(n));
         } else {
           player.selectController(null);
         }
@@ -415,7 +427,7 @@ class UI {
 
       number.addEventListener('input', () => {
         const n = parseInt(number.value, 10);
-        if (n >= 1 && n <= 242) player.selectController(n, this.rosterName(n));
+        if (n >= 1 && n <= 242) player.selectController(n, this.rosterEntry(n));
         else player.selectController(null);
       });
 
@@ -613,7 +625,9 @@ class UI {
     const options = [
       '<option value="">Choose a controller…</option>',
       players.length
-        ? `<optgroup label="Class list">${players.map((p) => `<option value="${p.deviceNumber}">${p.deviceNumber} · ${esc(p.name)}</option>`).join('')}</optgroup>`
+        ? `<optgroup label="Class list">${players
+            .map((p) => `<option value="${p.deviceNumber}">${p.deviceNumber} · ${esc(p.name)}${p.controllerName ? ` — ${esc(p.controllerName)}` : ''}</option>`)
+            .join('')}</optgroup>`
         : '',
       `<optgroup label="Other"><option value="number">Another number…</option><option value="${LEGACY_2024}">2024 controller (pick by its name)</option></optgroup>`,
     ].join('');
@@ -625,8 +639,9 @@ class UI {
     });
   }
 
-  rosterName(n) {
-    return this.roster.find((p) => p.deviceNumber === n)?.name || null;
+  /** The class list entry for controller n ({deviceNumber, name, controllerName}), or null. */
+  rosterEntry(n) {
+    return this.roster.find((p) => p.deviceNumber === n) || null;
   }
 
   // -------------------------------------------------------------------------
@@ -652,12 +667,18 @@ class UI {
     pause.innerHTML = icon(g.state === 'paused' ? 'play' : 'pause');
     pause.disabled = !['playing', 'serve', 'countdown', 'paused'].includes(g.state);
 
+    if (g.state === 'versus') this.renderVersus();
     if (g.state === 'rules') this.renderRulesCard();
     if (g.state === 'paused') {
+      this.app.querySelector('.pause-title').textContent = g.pauseTitle || '';
       this.app.querySelector('.pause-reason').textContent = g.pauseReason || '';
       this.app.querySelector('.fallbacks').innerHTML = g.players
         .filter((p) => p.linkStatus === 'reconnecting' || p.linkStatus === 'lost')
-        .map((p) => `<button class="btn ghost" data-action="keyboard-${p.slot}">Finish with ${esc(p.name)} on the keyboard</button>`)
+        .map(
+          (p) =>
+            (p.linkStatus === 'lost' ? `<button class="btn" data-action="reconnect-${p.slot}">Reconnect ${esc(p.name)}</button>` : '') +
+            `<button class="btn ghost" data-action="keyboard-${p.slot}">Finish with ${esc(p.name)} on the keyboard</button>`
+        )
         .join('');
     }
     if (g.state === 'won') this.renderWin();
@@ -695,13 +716,14 @@ class UI {
     card.querySelector('.card-name').textContent = player.name;
 
     let sub;
+    const id = player.target && player.target !== LEGACY_2024 ? `#${player.target}` : '';
     if (kind === 'controller') {
       const gen = player.link.generation;
-      const id = player.target === LEGACY_2024 ? '' : `#${player.target} · `;
-      sub = `${id}${gen ? gen + ' controller' : 'controller'}`;
-      if (player.customName && player.rosterName && player.customName !== player.rosterName) sub += ` · ${player.rosterName}`;
+      sub = [id, player.owner, gen ? `${gen} controller` : 'controller'].filter(Boolean).join(' · ');
     } else if (kind === 'cpu') {
       sub = 'Plays by itself';
+    } else if (player.target) {
+      sub = [id, player.owner, 'not connected'].filter(Boolean).join(' · ');
     } else {
       sub = matchMedia('(pointer: coarse)').matches ? 'Drag on your side of the table' : KEY_HINTS[player.index];
     }
@@ -777,7 +799,7 @@ class UI {
         plate.classList.add('scored');
       }
     });
-    this.app.querySelector('.first-to').textContent = g.inMatch || g.state === 'rules' ? `first to ${g.rules.pointsToWin}` : '';
+    this.app.querySelector('.first-to').textContent = g.inMatch || ['versus', 'rules'].includes(g.state) ? `first to ${g.rules.pointsToWin}` : '';
   }
 
   renderRulesPreview() {
@@ -912,6 +934,21 @@ class UI {
     this.app.querySelector('.rule-rows').innerHTML = rows + musicRow;
   }
 
+  /** NAME vs NAME, before the countdown. */
+  renderVersus() {
+    const overlay = this.app.querySelector('.overlay.versus-intro');
+    this.game.players.forEach((player, i) => {
+      const side = overlay.querySelector(`.vs-side[data-slot="${i + 1}"]`);
+      side.style.setProperty('--player', player.color);
+      side.querySelector('.vs-name').textContent = player.name;
+      side.querySelector('.vs-owner').textContent = player.owner || '';
+    });
+    // Restart the entrance animations
+    overlay.classList.remove('play');
+    void overlay.offsetWidth;
+    overlay.classList.add('play');
+  }
+
   renderCountdown(n) {
     const el = this.app.querySelector('.count');
     el.textContent = n > 0 ? n : 'GO';
@@ -926,6 +963,7 @@ class UI {
     const card = this.app.querySelector('.win-card');
     this.app.querySelector('.overlay.win').style.setProperty('--player', winner.color);
     card.querySelector('.winner-name').innerHTML = [...winner.name].map((c, i) => `<span style="--i:${i}">${c === ' ' ? '&nbsp;' : esc(c)}</span>`).join('');
+    card.querySelector('.winner-owner').textContent = winner.owner || '';
     const [a, b] = g.score;
     card.querySelector('.final-score').textContent = `${a} – ${b}`;
     const minutes = Math.floor(g.stats.duration / 60000);
@@ -1053,7 +1091,7 @@ class UI {
         const cfg = p.config;
         return `
           <section class="debug-player" style="--player:${p.color}">
-            <h3><i class="chip"></i> Player ${p.slot} · ${esc(p.name)}</h3>
+            <h3><i class="chip"></i> Player ${p.slot} · ${esc(p.name)}${p.owner ? ` <span class="dim">(${esc(p.owner)})</span>` : ''}</h3>
             <dl>
               <dt>Mode</dt><dd>${p.kind}</dd>
               <dt>Status</dt><dd>${l.status}${p.linkDetail ? ' — ' + esc(p.linkDetail) : ''}</dd>
@@ -1062,6 +1100,7 @@ class UI {
               <dt>Handshake</dt><dd>${l.status === 'connected' ? (l.handshakeAcked ? 'complete' : 'waiting for first value') : '—'}</dd>
               <dt>Last value</dt><dd>${valueName}</dd>
               <dt>Messages</dt><dd>${l.stats.messages} · ${l.stats.rate.toFixed(1)}/s</dd>
+              <dt>Still there?</dt><dd>${l.status === 'connected' ? (l.stats.lastCheckMs === null ? 'checking…' : `answered in ${l.stats.lastCheckMs} ms (${l.stats.checks} checks)${l.missedChecks ? ` · ${l.missedChecks} missed` : ''}`) : '—'}</dd>
               <dt>Paddle</dt><dd>speed ${p.moveSpeed} · size ${p.paddleSize}%</dd>
               ${uuids ? `<dt>Service</dt><dd class="mono">${uuids.service}</dd>` : ''}
             </dl>

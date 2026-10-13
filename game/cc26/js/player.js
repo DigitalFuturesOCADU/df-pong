@@ -2,7 +2,8 @@
  * player.js — one side of the table.
  *
  * A Player knows:
- *   - who they are (roster name, or a custom name from their controller)
+ *   - who they are: the person (from the class list) and their controller's name,
+ *     which is the name the game uses everywhere
  *   - how they play (Bluetooth controller, keyboard/touch, or the computer)
  *   - their effective settings (color, speed, paddle size, sounds), which
  *     combine the controller's wishes with what the host allows.
@@ -25,7 +26,8 @@ class Player {
     this.onChange = onChange;
 
     this.target = null; // chosen controller: a number, LEGACY_2024, or null
-    this.rosterName = null;
+    this.person = null; // who it belongs to, from the class list (players-config.json "name")
+    this.controllerName = null; // its name from the class list ("controllerName")
     this.mode = 'keyboard'; // what happens without a controller: 'keyboard' | 'cpu'
 
     this.link = new ControllerLink({
@@ -65,12 +67,24 @@ class Player {
     return this.linkStatus === 'connected';
   }
 
+  /**
+   * The name the game shows: the controller's name from the class list, else the name the
+   * controller gives itself (setPlayerName), else the person's name.
+   */
   get name() {
-    if (this.kind === 'controller' && this.customName) return this.customName;
-    if (this.target === LEGACY_2024) return this.link.deviceName || '2024 controller';
-    if (this.rosterName) return this.rosterName;
+    const connected = this.kind === 'controller';
+    if (!connected && this.mode === 'cpu') return 'Computer';
+    if (this.target === LEGACY_2024) return (connected && this.customName) || this.link.deviceName || '2024 controller';
+    if (this.target && this.controllerName) return this.controllerName;
+    if (connected && this.customName) return this.customName;
+    if (this.person) return this.person;
     if (this.target) return `Controller ${this.target}`;
-    return this.mode === 'cpu' ? 'Computer' : `Player ${this.slot}`;
+    return `Player ${this.slot}`;
+  }
+
+  /** The person's name, when it adds something to the controller's name. */
+  get owner() {
+    return this.person && this.person !== this.name && this.mode !== 'cpu' ? this.person : null;
   }
 
   /** Everything worth telling the player about their settings. */
@@ -92,10 +106,12 @@ class Player {
     return list;
   }
 
-  selectController(target, rosterName) {
+  /** @param entry the class list entry for this controller ({name, controllerName}), if any */
+  selectController(target, entry) {
     if (this.kind === 'controller') return;
     this.target = target;
-    this.rosterName = rosterName || null;
+    this.person = entry?.name || null;
+    this.controllerName = entry?.controllerName || null;
     this.changed('identity');
   }
 
@@ -129,6 +145,8 @@ class Player {
     } else if ((status === 'reconnecting' || status === 'lost') && previous === 'connected') {
       this.controllerDir = 0;
       this.changed('dropped');
+    } else if (status === 'lost' && previous === 'reconnecting') {
+      this.changed('lost'); // automatic reconnecting gave up
     } else if (status === 'idle' || status === 'error') {
       if (this.wasConnected) this.changed('disconnected');
       this.wasConnected = false;
@@ -222,6 +240,7 @@ class Player {
     return {
       slot: this.slot,
       name: this.name,
+      person: this.owner,
       device: this.target,
       kind: this.kind,
       status: this.linkStatus,

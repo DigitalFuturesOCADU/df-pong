@@ -3,6 +3,7 @@
  *
  * States
  *   lobby      choosing players; the arena plays itself in the background
+ *   versus     NAME vs NAME
  *   rules      showing how the players' setting requests were resolved
  *   countdown  3, 2, 1
  *   serve      the puck waits in the middle, pointing at the receiver
@@ -11,8 +12,10 @@
  *   won
  */
 
+const VERSUS_SECONDS = 2.6;
 const RULES_CARD_SECONDS = 3.2;
 const SERVE_SECONDS = 0.9;
+const CONNECTION_CHECK_MS = 1500; // how often every connected controller is asked if it's still there
 
 const KEYS = {
   up: [['KeyA', 'KeyW'], ['KeyP', 'ArrowUp']],
@@ -56,6 +59,16 @@ class Game {
       this.emit('rules');
     });
     this.serveAttract();
+
+    // A timer rather than the frame loop, so a stalled frame never stalls the check
+    setInterval(() => this.checkControllers(), CONNECTION_CHECK_MS);
+  }
+
+  /** Make sure every connected controller still answers. One that doesn't is dropped and reconnected (see ble.js). */
+  checkControllers() {
+    this.players.forEach((p) => {
+      if (p.linkStatus === 'connected') p.link.checkAlive();
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -89,7 +102,7 @@ class Game {
   }
 
   get showPuck() {
-    return this.state !== 'won' && this.state !== 'rules' && !(this.state === 'paused' && this.pausedFrom === 'countdown');
+    return !['won', 'rules', 'versus'].includes(this.state) && !(this.state === 'paused' && this.pausedFrom === 'countdown');
   }
 
   /** 0–1: how tense the rally is. Drives the center line, ambience and effects. */
@@ -136,8 +149,21 @@ class Game {
     this.emit('score');
     this.emit('rules');
 
-    const worthShowing = resolved.notes.some((n) => n.source !== 'house') || this.musicPlan.fromPlayers;
-    if (worthShowing) this.setState('rules');
+    this.showRulesCard = resolved.notes.some((n) => n.source !== 'house') || this.musicPlan.fromPlayers;
+    this.setState('versus');
+    // Each name lands with its player's paddle sound
+    this.players.forEach((player, i) =>
+      this.fx.after(0.12 + i * 0.42, () => {
+        if (this.state !== 'versus') return;
+        this.fx.connect(this.paddles[i], player.rgb);
+        this.sound.paddleHit(player, 0.35);
+      })
+    );
+  }
+
+  /** After NAME vs NAME: the rules card if there's something to show, else the countdown. */
+  afterVersus() {
+    if (this.showRulesCard) this.setState('rules');
     else this.startCountdown();
   }
 
@@ -146,10 +172,17 @@ class Game {
     return this.players.find((p) => p.linkStatus === 'reconnecting' || p.linkStatus === 'lost') || null;
   }
 
+  /** What the pause card says while a controller is gone. */
+  describeDrop(player) {
+    const what = player.linkStatus === 'lost' ? "couldn't reconnect. Check its power and wiring, then press Reconnect." : 'trying to reconnect…';
+    this.pauseTitle = `${player.name} disconnected`;
+    this.pauseReason = player.owner ? `${player.owner}'s controller · ${what}` : what[0].toUpperCase() + what.slice(1);
+  }
+
   startCountdown() {
     if (this.waitingFor) {
       this.pausedFrom = 'countdown';
-      this.pauseReason = `Waiting for ${this.waitingFor.name}'s controller…`;
+      this.describeDrop(this.waitingFor);
       this.setState('paused');
       return;
     }
@@ -170,9 +203,10 @@ class Game {
     this.setState('serve');
   }
 
-  pause(reason) {
+  pause(reason, title = '') {
     if (!['playing', 'serve', 'countdown'].includes(this.state)) return;
     this.pausedFrom = this.state;
+    this.pauseTitle = title;
     this.pauseReason = reason || '';
     this.sound.stopAmbience();
     this.music?.duck(true);
@@ -182,7 +216,7 @@ class Game {
   resume() {
     if (this.state !== 'paused') return;
     if (this.waitingFor) {
-      this.pauseReason = `Waiting for ${this.waitingFor.name}'s controller…`;
+      this.describeDrop(this.waitingFor);
       this.emit('state', this.state);
       return;
     }
@@ -203,6 +237,9 @@ class Game {
       case 'lobby':
       case 'won':
         this.startMatch();
+        break;
+      case 'versus':
+        this.afterVersus();
         break;
       case 'rules':
         this.startCountdown();
@@ -255,6 +292,9 @@ class Game {
     this.stateTime += dt;
 
     switch (this.state) {
+      case 'versus':
+        if (this.stateTime > VERSUS_SECONDS) this.afterVersus();
+        break;
       case 'rules':
         if (this.stateTime > RULES_CARD_SECONDS) this.startCountdown();
         break;
@@ -432,20 +472,44 @@ class Game {
         this.fx.connect(paddle, player.rgb);
         this.sound.connected(player);
         this.toast(`${player.name} is back`, 'good');
-        if (this.state === 'paused' && !this.waitingFor) {
-          this.pauseReason = `${player.name} is back. Resume when you're ready.`;
+        if (this.state === 'paused') {
+          if (this.waitingFor) this.describeDrop(this.waitingFor);
+          else {
+            this.pauseTitle = `${player.name} is back`;
+            this.pauseReason = "Resume when you're ready.";
+          }
           this.emit('state', this.state);
         }
         break;
       case 'dropped':
         this.sound.disconnected(player);
-        if (['playing', 'serve', 'countdown'].includes(this.state)) this.pause(`${player.name}'s controller dropped — trying to reconnect…`);
-        else if (this.state === 'paused') this.emit('state', this.state);
-        this.toast(`${player.name}'s controller dropped — reconnecting…`, 'warn');
+        if (['playing', 'serve', 'countdown'].includes(this.state)) {
+          this.pause();
+          this.describeDrop(player);
+          this.emit('state', this.state);
+        } else if (this.state === 'paused') {
+          this.describeDrop(player);
+          this.emit('state', this.state);
+        }
+        this.toast(`${player.name} disconnected — reconnecting…`, 'warn');
+        break;
+      case 'lost':
+        if (this.state === 'paused') {
+          this.describeDrop(player);
+          this.emit('state', this.state);
+        }
         break;
       case 'disconnected':
         this.sound.disconnected(player);
-        if (this.state === 'paused') this.emit('state', this.state); // refresh the pause card
+        if (this.state === 'paused') {
+          // e.g. "Finish on the keyboard" during a drop
+          if (this.waitingFor) this.describeDrop(this.waitingFor);
+          else if (this.pauseTitle) {
+            this.pauseTitle = `${player.name} is on the keyboard`;
+            this.pauseReason = "Resume when you're ready.";
+          }
+          this.emit('state', this.state); // refresh the pause card
+        }
         break;
       case 'config':
         if (info.requestsChanged && this.inMatch && this.state !== 'won') {

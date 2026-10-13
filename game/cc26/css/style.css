@@ -518,6 +518,74 @@ input[type='checkbox']:checked::after {
   animation: tick 1s ease-out both;
 }
 
+/* NAME vs NAME, before the countdown */
+.overlay.versus-intro {
+  grid-template-rows: minmax(0, 1fr) auto;
+  background: rgba(18, 18, 17, 0.74);
+}
+
+.overlay.versus-intro .hint {
+  margin: 0;
+}
+
+.vs-stack {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: clamp(8px, 2.5cqh, 22px);
+  width: 100%;
+  text-align: center;
+}
+
+.vs-side {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  max-width: 100%;
+}
+
+.vs-name {
+  font-size: clamp(32px, 8.5cqw, 120px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  color: var(--player);
+  overflow-wrap: anywhere;
+}
+
+.vs-owner,
+.winner-owner {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.vs-owner:empty,
+.winner-owner:empty {
+  display: none;
+}
+
+.vs-mark {
+  font-size: clamp(13px, 2cqw, 22px);
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.versus-intro.play .vs-side[data-slot='1'] {
+  animation: vs-from-left 0.55s 0.12s both cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+
+.versus-intro.play .vs-side[data-slot='2'] {
+  animation: vs-from-right 0.55s 0.54s both cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+
+.versus-intro.play .vs-mark {
+  animation: result-pop 0.4s 0.34s both;
+}
+
 /* Rules card */
 .overlay.rules {
   background: rgba(18, 18, 17, 0.55);
@@ -615,6 +683,19 @@ input[type='checkbox']:checked::after {
   color: var(--ink);
 }
 
+.pause-title {
+  margin: 0;
+  font-size: clamp(24px, 4.5cqw, 44px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.pause-title:empty {
+  display: none;
+}
+
 .pause-reason {
   margin: 0;
   color: var(--dim);
@@ -656,6 +737,11 @@ input[type='checkbox']:checked::after {
 .winner-name span {
   display: inline-block;
   animation: letter-in 0.75s calc(var(--i) * 45ms + 0.35s) both cubic-bezier(0.2, 0.9, 0.3, 1.35);
+}
+
+.winner-owner {
+  margin-top: 10px;
+  animation: row-in 0.5s 0.8s both;
 }
 
 .final-score {
@@ -1370,6 +1456,11 @@ input[type='checkbox']:checked::after {
   border-bottom: 1px solid var(--line);
 }
 
+.debug-body h3 .dim {
+  color: var(--dim);
+  font-weight: 400;
+}
+
 .debug-body h3 {
   display: flex;
   align-items: center;
@@ -1581,6 +1672,28 @@ input[type='checkbox']:checked::after {
 @keyframes fade-half {
   to {
     opacity: 0.3;
+  }
+}
+
+@keyframes vs-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-14cqw);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes vs-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(14cqw);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 

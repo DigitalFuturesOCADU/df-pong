@@ -64,13 +64,19 @@ class ControllerLink {
     // Wait this long (ms) before each automatic reconnect attempt; then give up and show "Reconnect".
     this.reconnectDelays = [300, 1000, 2000, 3000, 5000, 8000, 8000, 8000, 8000, 8000];
     this.connectSession = 0;
+    // Connection check (see checkAlive): how long the controller has to answer, and how many
+    // missed answers in a row mean it's gone.
+    this.aliveTimeout = 2000;
+    this.aliveStrikes = 2;
+    this.missedChecks = 0;
+    this.checking = false;
     this._queueTail = Promise.resolve();
     this._configTimer = null;
     this.opening = false; // true while openConnection() is running
     this._onDisconnected = () => this.handleDisconnect();
     this._onMovementEvent = (e) => this.handleMovement(e.target.value);
     this._onConfigEvent = () => this.scheduleConfigRead();
-    this.stats = { messages: 0, lastValue: null, lastAt: 0, rate: 0, _windowCount: 0, _windowStart: performance.now(), configReads: 0 };
+    this.stats = { messages: 0, lastValue: null, lastAt: 0, rate: 0, _windowCount: 0, _windowStart: performance.now(), configReads: 0, checks: 0, lastCheckMs: null };
   }
 
   get isConnected() {
@@ -142,6 +148,7 @@ class ControllerLink {
         await this.setupServices(server, session);
         if (session !== this.connectSession) return false;
         this.reconnectAttempt = 0;
+        this.missedChecks = 0;
         this.setStatus('connected');
         this.startHelloRetry();
         return true;
@@ -287,6 +294,53 @@ class ControllerLink {
     }
   }
 
+  /**
+   * Is the controller really still there? The game calls this every couple of seconds.
+   *
+   * When a controller loses power (a loose wire, a flat battery), the browser can take many
+   * seconds to notice, and sometimes never does. So we also ask the controller for its
+   * movement value: if it misses `aliveStrikes` answers in a row, we drop the link ourselves
+   * and the usual automatic reconnect takes over.
+   */
+  async checkAlive() {
+    const device = this.device;
+    if (this.status !== 'connected' || this.opening || this.checking || !device) return;
+    if (!device.gatt.connected) {
+      this.log('alive check: the browser says the link is gone');
+      this.linkDead();
+      return;
+    }
+    const ch = this.movementChar;
+    if (!ch || !ch.properties || !ch.properties.read) return; // nothing we can ask
+    this.checking = true;
+    const session = this.connectSession;
+    const started = performance.now();
+    try {
+      await this.queue(() => withTimeout(ch.readValue(), this.aliveTimeout, 'no answer'));
+      this.missedChecks = 0;
+      this.stats.checks++;
+      this.stats.lastCheckMs = Math.round(performance.now() - started);
+    } catch (err) {
+      if (session !== this.connectSession || this.status !== 'connected') return;
+      this.missedChecks++;
+      this.log('alive check missed', this.missedChecks, err);
+      if (this.missedChecks >= this.aliveStrikes || !device.gatt.connected) this.linkDead();
+    } finally {
+      this.checking = false;
+    }
+  }
+
+  /** The controller stopped answering but the browser hasn't noticed: hang up and start reconnecting. */
+  linkDead() {
+    this.missedChecks = 0;
+    try {
+      if (this.device && this.device.gatt.connected) this.device.gatt.disconnect(); // usually fires gattserverdisconnected
+    } catch (e) {
+      /* already gone */
+    }
+    if (this.status === 'connected') this.handleDisconnect();
+  }
+
   /** Chrome allows only one GATT operation at a time per device, so every read/write goes through here. */
   queue(operation) {
     const run = this._queueTail.then(operation, operation);
@@ -365,7 +419,10 @@ class ControllerLink {
     this.deviceName = '';
     this.reconnectAttempt = 0;
     this.handshakeAcked = false;
+    this.missedChecks = 0;
     this.stats.messages = 0;
+    this.stats.checks = 0;
+    this.stats.lastCheckMs = null;
     this.stats.lastValue = null;
     this.stats.configText = '';
   }

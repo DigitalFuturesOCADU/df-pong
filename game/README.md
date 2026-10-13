@@ -29,18 +29,23 @@ Copy the most recent version's folder, then rename it with the course and year:
 
 1. Copy `cc26/` to, for example, `physComp27-501/`.
 2. In `index.html`, change `instance` (a short id, also used for saved settings and the admin room) and `title`.
-3. Put the class list in `players-config.json` (same format every year):
+3. Put the class list in `players-config.json`:
 
    ```json
    {
      "players": [
-       { "deviceNumber": 1, "name": "Kate" },
-       { "deviceNumber": 2, "name": "Nick" }
+       { "deviceNumber": 1, "name": "Kate", "controllerName": "Thunderpaddle" },
+       { "deviceNumber": 2, "name": "Nick", "controllerName": "Big Blue" }
      ]
    }
    ```
 
-   Numbers can be anything from 1 to 242. Students can also type a number that isn't on the list.
+   - `name` is the person: it helps them find themselves in the lobby's list.
+   - `controllerName` is what the game calls them: scoreboard, NAME vs NAME before the countdown, pause
+     messages and the win screen. Optional; without it the game uses the name the controller gives itself,
+     then the person's name.
+   - Numbers can be anything from 1 to 242. Students can also type a number that isn't on the list.
+   - Older games read the same file and simply ignore `controllerName`.
 
 Because the copy has its own `js/`, `css/` and `assets/`, you can change it freely without touching
 any other class.
