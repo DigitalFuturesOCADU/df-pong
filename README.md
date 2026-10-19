@@ -82,54 +82,158 @@ More examples (click control, gravity, chorded buttons, live settings, knob stee
 
 ### 2. Make it yours (optional)
 
-Open the **[Settings Builder](https://digitalfuturesocadu.github.io/df-pong/game/cc26/builder/)**, choose a color,
-sounds and paddle, and paste the code it gives you into `setup()` before `controller.begin()`:
+There are two kinds of customization. Both need the 2026 game; older games ignore them, and your controller still
+plays there.
+
+- **Settings** describe your side: name, color, paddle, sounds, music, and the rules you'd like to play by. Set them
+  once in `setup()` (before or after `controller.begin()`), or change them any time while you play.
+- **Actions** are things you do during play: steer with a knob, or taunt the other player. *(Experimental.)*
+
+You need the DFPongController library **2.0 or newer** for settings, **2.1** for music and **2.3** for actions
+(update it in the Library Manager).
+
+**Easiest start:** open the **[Settings Builder](https://digitalfuturesocadu.github.io/df-pong/game/cc26/builder/)**.
+It previews your paddle, plays the built-in sounds, tests your own sound links exactly the way the game loads them,
+and writes the code for you. Paste it into `setup()`:
 
 ```cpp
-controller.setPlayerColor("#5fa36b");
+controller.setControllerNumber(12);
+
+controller.setPlayerColor("#5fa36b");               // green paddle
 controller.setHitSound("pluck");                    // a built-in sound…
-controller.setScoreSound("https://raw.githubusercontent.com/you/repo/main/yay.mp3");  // …or your own
-controller.setPaddleSize(120);                      // percent
+controller.setScoreSound("https://raw.githubusercontent.com/you/repo/main/yay.mp3");  // …or your own file
+controller.setPaddleSize(120);                      // 20% taller
 controller.requestPointsToWin(7);                   // a request: your opponent may want something else
+
+controller.begin();
 ```
 
-| Setting | What it does |
-|---|---|
-| `setPlayerName("…")` | Your controller's name in the game (up to 20 characters). A controller name in the class list comes first |
-| `setPlayerColor(r, g, b)` or `("#rrggbb")` | Your paddle and highlight color |
-| `setMoveSpeed(1–100)` | How fast your paddle moves (10 is normal) |
-| `setPaddleSize(50–200)` | Paddle height in percent |
-| `setHitSound(…)`, `setScoreSound(…)`, `setWinSound(…)` | A built-in sound name or an `https://` address |
-| `setMusic(…)` | Background music: a track name (e.g. `nightbus`, `gymnopedie`) or an `https://` address (library 2.1) |
-| `requestPointsToWin(1–21)` | Ask for a match length |
-| `requestPuckSpeed(1–20)` | Ask for a starting puck speed |
-| `requestSpeedIncrement(0–1)` | Ask for how much faster the puck gets per hit |
+#### Your side: settings and their defaults
 
-Settings can change while you play: the game picks up changes live (try mapping a sensor to your color).
+Anything you don't set uses the default. To go back to the default later, pass `""` (for names, colors and sounds).
 
-**Actions** *(experimental, library 2.3)* are things you do during play rather than settings:
-`controller.sendPosition(analogRead(A0), 0, 1023)` steers your paddle with a knob, slider or distance sensor
-(it moves to that height at normal paddle speed), and `controller.sendTaunt(2)` pops a word up beside your
-paddle (one every 2 seconds; the host can turn taunts off). Try the library's `08_PositionControl` example.
+| Function | What it changes | Default | You can use |
+|---|---|---|---|
+| `setPlayerName("Thunderpaddle")` | Your name in the game | The controller name from the class list; if there isn't one, your own name from the class list | Up to 20 characters. A controller name in the class list wins over this one |
+| `setPlayerColor("#5fa36b")` or `(95, 163, 107)` | Your paddle, its trail and your highlights | Off-white (both players start the same) | Any color: `"#rrggbb"`, a name like `"orange"`, or red, green, blue (0–255). Very dark colors are brightened so you can still see them |
+| `setMoveSpeed(14)` | How fast your paddle moves | 10 (the host can change each side's default) | 1–100 |
+| `setPaddleSize(120)` | Paddle height, in percent | 100 | 50–200 |
+| `setHitSound("pluck")` | Sound when your paddle hits the puck | `pingpong`, a recorded ball hit that rises in pitch as the rally speeds up | A built-in sound or your own file. Plays for up to 1.2 s |
+| `setScoreSound("bell")` | Sound when you score | `bell` (each side's bell rings a different note) | Built-in or your own. Up to 2.5 s |
+| `setWinSound("applause")` | Sound when you win | `flourish` (a band's fanfare), then applause | Built-in or your own. Up to 8 s; the applause still follows |
+| `setMusic("nightbus")` | Background music for your matches | Whatever the room plays (*Drift* if nobody chooses) | A track name or your own music link |
 
-**Built-in sounds:** recordings from public archives (e.g. `pingpong`, `bell`, `bikebell`;
-[credits](game/cc26/assets/sounds/CREDITS.md)), synthesized sounds (e.g. `pluck`, `laser`, `coin`) and the
-2024 originals (`classic`, `wall`, `ding`). Every name is listed in [docs/API.md](docs/API.md#built-in-sounds).
+#### Sounds: built-in, or your own file
 
-**Your own sound:** put a short mp3/wav/ogg (under 2 MB) in a public GitHub repo and use its
-`raw.githubusercontent.com` or GitHub Pages address. The Settings Builder's **Test** button tells you if it will work.
-Anything that fails to load falls back to the default sound, and the game says why.
+**Built-in sounds** always work. Some are recordings from public archives (e.g. `pingpong`, `bell`, `bikebell`;
+[credits](game/cc26/assets/sounds/CREDITS.md)), some are made by the game (e.g. `pluck`, `laser`, `coin`), and three
+are the 2024 originals (`classic`, `wall`, `ding`). Every name is listed in [docs/API.md](docs/API.md#built-in-sounds),
+and you can hear them all in the Settings Builder. Names don't care about upper or lower case.
 
-**Music:** the lobby's ♪ Music tile (and the settings panel) lists every choice with its source. By default
-it's *Players' choice*: if one player brought music it plays, and if both did, their picks **alternate each point**.
-Anyone at the computer can instead choose just one player's pick, a specific track, or Off. Some tracks are
-generated live by the game and pick up energy as a rally builds (e.g. `drift`, `nightbus`); others are
-recordings from public archives (e.g. `gymnopedie`; [credits](game/cc26/assets/music/CREDITS.md)). Every name
-is listed in [docs/API.md](docs/API.md#music).
+**Your own sound file**, step by step:
 
-**When players ask for different rules**, the game settles it as the match starts and shows a *Match rules*
-card: by default it meets in the middle (5 and 11 → 8). The host can switch to a coin flip, lower, higher, or
-lock a rule.
+1. Make or find a **short** sound: mp3, wav or ogg, under 2 MB. A hit sound should be under a second.
+2. Put it in a **public GitHub repository** (on GitHub: *Add file → Upload files*).
+3. Open the file on GitHub, click **Raw**, and copy the address. It starts with
+   `https://raw.githubusercontent.com/…`. (A GitHub Pages address, `https://you.github.io/repo/boing.mp3`, works too.)
+4. Paste the address into the Settings Builder and press **Test**. It tells you whether the game can load it.
+5. Use it in your code:
+
+   ```cpp
+   controller.setHitSound("https://raw.githubusercontent.com/you/repo/main/boing.mp3");
+   ```
+
+The rules: the address must start with `https://`, point straight at the file (not a page that shows it), be at most
+200 characters, and load within 8 seconds. Links from Google Drive, Dropbox, OneDrive or iCloud **don't work**: those
+sites don't let other pages load their files. If a sound can't be loaded, the game plays the default instead and your
+player card in the lobby says why. (Some hosts let the game play a file but not change it; it then plays without the
+pitch and stereo effects, and the card mentions that.)
+
+#### Music
+
+`controller.setMusic("nightbus")` picks the music for your matches: one of the game's tracks (some are generated live
+and pick up energy as a rally builds, e.g. `drift`, `nightbus`; others are recordings from public archives, e.g.
+`gymnopedie`; [credits](game/cc26/assets/music/CREDITS.md); all names in [docs/API.md](docs/API.md#music)), or a
+link to your own music file. Music links follow the sound-link rules, except they can be bigger than 2 MB (music is
+streamed).
+
+By default the room plays *Players' choice*: if one player brought music it plays, and if both did, the two picks
+**alternate each point**. Whoever is at the computer can instead pick one player's music, any track, or Off, on the
+lobby's ♪ Music tile or in Settings.
+
+#### Rule requests
+
+These ask for a shared rule, so your opponent may ask for something else:
+
+| Function | Range | Default (the room's house rule) |
+|---|---|---|
+| `requestPointsToWin(7)` | 1–21 | 10 |
+| `requestPuckSpeed(6.5)` | 1–20 | 5 |
+| `requestSpeedIncrement(0.2)` | 0–1 | 0.15 extra speed per hit |
+
+The defaults are the usual house rules; your class's page or the host may use others (they're shown on the lobby's
+rule tiles). The game settles requests when a match starts and shows them on a *Match rules* card:
+
+- If the host **locked** a rule, the host's value is used.
+- If only you asked, you get it. If nobody asked, the house rule is used.
+- If both players asked for different values, the game **meets in the middle** by default (5 and 11 → 8). The host
+  can switch to a coin flip, the lower value, the higher value, or ignoring requests.
+
+#### Changing settings while you play
+
+Call any of the functions above at any time, for example to map a sensor to your color (see the library's
+`07_LiveSettings` example). The library only sends real changes, at most 4 times a second.
+
+During a match, the host decides when your changes apply (Settings → *When a controller changes its settings during
+a match*):
+
+- **Between points** (the default): color, name and sounds change at once; paddle speed and size wait for the next serve.
+- **Right away**: everything changes at once, even mid-rally.
+- **Next match**: nothing changes until the match is over.
+
+The game shows a short message when a change has to wait. Rule requests and music always wait for the next match.
+
+#### Actions: steer with a knob, taunt *(experimental, library 2.3)*
+
+```cpp
+controller.sendPosition(analogRead(A0), 0, 1023);   // steer: one end of the knob is the top, the other the bottom
+controller.sendTaunt(2);                            // taunt: "GG" pops up beside your paddle
+```
+
+- **Steering by position.** Your paddle moves to the height you send, at its normal speed: smoother than buttons,
+  not faster. Good for knobs, sliders, distance sensors, flex or light sensors. By default you steer with
+  `sendControl(UP / DOWN)`; position steering starts with your first `sendPosition()` and lasts until you send UP or
+  DOWN (NEUTRAL doesn't count) or call `stopPosition()`. Call it every loop: only changes are sent. Swap the two
+  numbers to turn the direction around. On ESP32 boards `analogRead()` goes up to 4095, so use
+  `sendPosition(analogRead(A0), 0, 4095)`. You can also send a number from 0.0 (top) to 1.0 (bottom):
+  `sendPosition(0.5)`.
+- **Taunts.** `sendTaunt(n)` shows a word beside your paddle with a ring and a sound (your own hit sound, if you set
+  one):
+
+  | `n` | 0 | 1 | 2 | 3 | 4 | 5 |
+  |---|---|---|---|---|---|---|
+  | Word | HA! | NICE | GG | OOPS | COME ON | WOW |
+
+  The game shows at most **one taunt every 2 seconds** per player and ignores the rest (they don't queue up).
+  Nothing happens while the game is paused.
+- The library's `08_PositionControl` example has a knob and a taunt button. `controller.actionsAvailable()` tells you
+  whether the game is listening for actions.
+
+#### What the host can turn off
+
+In Settings (and the admin panel) the host can turn off, for everyone: custom names, colors, sounds, music, paddle
+speed, paddle size, rule requests and taunts. All are on by default. When one is off, the game uses the default and
+your player card shows that setting crossed out.
+
+#### Checking what the game received
+
+- Your **player card** in the lobby lists what your controller asked for, crosses out anything the host turned off,
+  and says when a sound or music link couldn't load.
+- **Controller details** (press `D`) shows the exact settings your controller sent, whether you're steering by
+  position, and the actions received.
+- On the controller: `Serial.println(controller.getSettingsJSON());` prints what the game will receive. Values out of
+  range are fixed for you, with a note in the Serial Monitor, e.g.
+  `DFPong: setMoveSpeed(500) is out of range (1-100), using 100`.
 
 ### 3. Connect and play
 
