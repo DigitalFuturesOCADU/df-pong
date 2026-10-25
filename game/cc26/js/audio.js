@@ -327,8 +327,11 @@ class SoundEngine {
     this.play(this.role('serve'), { gain: 0.22 });
   }
 
+  /** MATCH POINT: one gong strike (a low bell if the recording isn't there). */
   matchPoint() {
-    this.play(this.role('score'), { rate: 0.5, gain: 0.35, maxDuration: 2.5 });
+    const gong = this.get('gong');
+    if (gong) this.play(gong, { gain: 0.6, maxDuration: 2.5 });
+    else this.play(this.role('score'), { rate: 0.5, gain: 0.4, maxDuration: 2.5 });
   }
 
   win(player) {

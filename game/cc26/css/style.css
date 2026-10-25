@@ -532,6 +532,59 @@ input[type='checkbox']:checked::after {
   animation: tick 1s ease-out both;
 }
 
+/* MATCH POINT: a band across the table while the serve waits */
+.overlay.match-point {
+  padding: 0;
+  pointer-events: none;
+}
+
+.overlay.match-point.show {
+  pointer-events: none;
+}
+
+.mp-band {
+  display: grid;
+  justify-items: center;
+  gap: clamp(4px, 1.2cqh, 12px);
+  width: 100%;
+  padding: clamp(14px, 5cqh, 40px) 16px;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+  background: rgba(18, 18, 17, 0.82);
+  text-align: center;
+}
+
+.mp-title {
+  margin: 0;
+  font-size: clamp(34px, 12cqw, 150px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-shadow: 0 0 60px rgba(236, 232, 223, 0.25);
+}
+
+.mp-who {
+  margin: 0;
+  font-size: clamp(12px, 2.2cqw, 24px);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--player, var(--ink));
+}
+
+.overlay.match-point.show .mp-band {
+  animation: mp-band-in 0.35s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.overlay.match-point.show .mp-title {
+  animation: mp-slam 0.5s 0.1s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+
+.overlay.match-point.show .mp-who {
+  animation: row-in 0.4s 0.45s both;
+}
+
 /* NAME vs NAME, before the countdown */
 .overlay.versus-intro {
   grid-template-rows: minmax(0, 1fr) auto;
@@ -1686,6 +1739,26 @@ input[type='checkbox']:checked::after {
 @keyframes fade-half {
   to {
     opacity: 0.3;
+  }
+}
+
+@keyframes mp-band-in {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes mp-slam {
+  from {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 

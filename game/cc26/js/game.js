@@ -15,6 +15,7 @@
 const VERSUS_SECONDS = 2.6;
 const RULES_CARD_SECONDS = 3.2;
 const SERVE_SECONDS = 0.9;
+const MATCH_POINT_SECONDS = 2.2; // the serve waits longer while MATCH POINT is announced
 const CONNECTION_CHECK_MS = DFPONG_API.bluetooth.timing.aliveCheckMs.value; // how often every connected controller is asked if it's still there
 
 const KEYS = {
@@ -234,8 +235,17 @@ class Game {
     this.puck.place();
     this.puck.base = this.rules.puckSpeed;
     this.rally = 0;
+    // Match point: this point can end the match. The UI announces it while the serve waits.
+    const winners = [0, 1].filter((i) => this.score[i] + 1 >= this.rules.pointsToWin);
+    this.matchPoint = winners.length ? winners : null; // who wins the match if they score next
+    this.serveHold = this.matchPoint ? MATCH_POINT_SECONDS : SERVE_SECONDS;
     this.fx.serve(this.puck.x, this.puck.y);
-    this.sound.serve();
+    if (this.matchPoint) {
+      this.sound.matchPoint();
+      this.music?.duck(true);
+    } else {
+      this.sound.serve();
+    }
     this.setState('serve');
   }
 
@@ -346,7 +356,8 @@ class Game {
         break;
       }
       case 'serve':
-        if (this.stateTime > SERVE_SECONDS) {
+        if (this.stateTime > this.serveHold) {
+          if (this.matchPoint) this.music?.duck(false);
           this.puck.serve(this.serveDirection, this.rules);
           this.setState('playing');
         }
@@ -497,7 +508,6 @@ class Game {
       const owner = this.players[this.musicIndex % 2];
       this.toast(`♪ ${owner.name}'s music`);
     }
-    if (this.matchPointFor !== -1) this.sound.matchPoint();
   }
 
   winMatch(i) {

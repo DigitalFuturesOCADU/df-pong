@@ -87,9 +87,9 @@ plays there.
 
 - **Settings** describe your side: name, color, paddle, sounds, music, and the rules you'd like to play by. Set them
   once in `setup()` (before or after `controller.begin()`), or change them any time while you play.
-- **Actions** are things you do during play: steer with a knob, or taunt the other player. *(Experimental.)*
+- **In Game Actions** are things you do during play: steer with a knob, or taunt the other player. *(Experimental.)*
 
-You need the DFPongController library **2.0 or newer** for settings, **2.1** for music and **2.3** for actions
+You need the DFPongController library **2.0 or newer** for settings, **2.1** for music and **2.3** for In Game Actions
 (update it in the Library Manager).
 
 **Easiest start:** open the **[Settings Builder](https://digitalfuturesocadu.github.io/df-pong/game/cc26/builder/)**.
@@ -193,7 +193,7 @@ a match*):
 
 The game shows a short message when a change has to wait. Rule requests and music always wait for the next match.
 
-#### Actions: steer with a knob, taunt *(experimental, library 2.3)*
+#### In Game Actions *(experimental, library 2.3)*
 
 ```cpp
 controller.sendPosition(analogRead(A0), 0, 1023);   // steer: one end of the knob is the top, the other the bottom
@@ -254,6 +254,8 @@ A player without a controller can use the keyboard or touch, or hand their side 
 difficulty slider from 1 (Easy) to 10 (Expert).
 
 Every match starts with **NAME vs NAME**, using each controller's name from the class list (Space skips it).
+Before any point that can end the match, the game stops for a moment and announces **MATCH POINT** across the
+table, with the name of the player who can win (or *Next point wins* when both can).
 
 Controllers can change their settings while connected. The host decides what happens during a match
 (Settings → *When a controller changes its settings during a match*): **Right away**, **Between points**

@@ -95,6 +95,12 @@ class UI {
               </div>
               <p class="hint">Space to skip</p>
             </div>
+            <div class="overlay match-point" aria-live="assertive">
+              <div class="mp-band">
+                <p class="mp-title">Match point</p>
+                <p class="mp-who"></p>
+              </div>
+            </div>
             <div class="toasts" aria-live="polite"></div>
           </div>
 
@@ -682,10 +688,12 @@ class UI {
   renderState() {
     const g = this.game;
     this.app.dataset.state = g.state;
+    const matchPoint = g.state === 'serve' && g.matchPoint;
     this.app.querySelectorAll('[data-overlay]').forEach((o) => {
-      const go = o.dataset.overlay === 'countdown' && g.state === 'serve' && g.serveAfterCountdown; // keep "GO" up
+      const go = o.dataset.overlay === 'countdown' && g.state === 'serve' && g.serveAfterCountdown && !matchPoint; // keep "GO" up
       o.classList.toggle('show', o.dataset.overlay === g.state || go);
     });
+    this.renderMatchPoint(matchPoint);
     const pause = this.app.querySelector('[data-action="pause"]');
     pause.innerHTML = icon(g.state === 'paused' ? 'play' : 'pause');
     pause.disabled = !['playing', 'serve', 'countdown', 'paused'].includes(g.state);
@@ -955,6 +963,23 @@ class UI {
           </div>`
       : '';
     this.app.querySelector('.rule-rows').innerHTML = rows + musicRow;
+  }
+
+  /** MATCH POINT, across the table while the serve waits. */
+  renderMatchPoint(winners) {
+    const overlay = this.app.querySelector('.overlay.match-point');
+    if (winners) {
+      const who = overlay.querySelector('.mp-who');
+      if (winners.length === 1) {
+        const player = this.game.players[winners[0]];
+        who.textContent = player.name;
+        overlay.style.setProperty('--player', player.color);
+      } else {
+        who.textContent = 'Next point wins';
+        overlay.style.setProperty('--player', 'var(--ink)');
+      }
+    }
+    overlay.classList.toggle('show', !!winners);
   }
 
   /** NAME vs NAME, before the countdown. */
