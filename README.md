@@ -121,8 +121,9 @@ void loop() {
   next `sendPosition()` switches to position again. `stopPosition()` also goes back to direction.
 - Older games don't understand positions, so a position-only controller can't move there.
 
-More examples (click control, gravity, chorded buttons, live settings, a knob with a taunt button…) come with the
-library, under *File → Examples → DFPongController*. Library repo:
+Both come with the library as examples: **01_SimpleDigital** (two buttons) and **09_KnobSteering** (a knob, library
+2.3.1). More examples (click control, gravity, chorded buttons, live settings, a knob with a taunt button…) are under
+*File → Examples → DFPongController*. Library repo:
 [df-pong-controller](https://github.com/DigitalFuturesOCADU/df-pong-controller).
 
 ### 2. Make it yours (optional)
