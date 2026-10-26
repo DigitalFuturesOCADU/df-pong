@@ -215,14 +215,14 @@ controller.sendTaunt(2);                            // taunt: "GG" pops up besid
   | Word | HA! | NICE | GG | OOPS | COME ON | WOW |
 
   The game shows at most **one taunt every 2 seconds** per player and ignores the rest (they don't queue up).
-  Nothing happens while the game is paused.
+  Nothing happens while the game is paused, and the host can turn taunts off with the **In Game Actions** switch.
 - The library's `08_PositionControl` example has a knob and a taunt button. `controller.actionsAvailable()` tells you
   whether the game is listening for actions.
 
 #### What the host can turn off
 
 In Settings (and the admin panel) the host can turn off, for everyone: custom names, colors, sounds, music, paddle
-speed, paddle size, rule requests and taunts. All are on by default. When one is off, the game uses the default and
+speed, paddle size, rule requests and **In Game Actions** (taunts; steering with a knob always works). All are on by default. When one is off, the game uses the default and
 your player card shows that setting crossed out.
 
 #### Checking what the game received
@@ -296,7 +296,7 @@ automatically. No need to pick it again. If it can't come back, the pause screen
   - Another device (phone, tablet, a Wi-Fi microcontroller…): run the small relay server; see
     [server/README.md](server/README.md).
 - **Locked rules** ignore what players ask for. **Permissions** turn off custom names, colors, sounds, music,
-  speed, paddle size, rule requests or taunts for everyone.
+  speed, paddle size, rule requests or In Game Actions (taunts) for everyone.
 
 ---
 

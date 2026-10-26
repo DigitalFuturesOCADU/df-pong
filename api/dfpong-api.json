@@ -164,7 +164,7 @@
     "moveSpeed": { "label": "Custom move speed", "short": "Paddle speed" },
     "paddleSize": { "label": "Custom paddle size", "short": "Paddle size" },
     "requests": { "label": "Rule requests", "short": "Rule requests" },
-    "taunts": { "label": "Taunts", "short": "Taunts", "status": "experimental", "since": "1.1" }
+    "taunts": { "label": "In Game Actions", "short": "In Game Actions", "description": "Taunts (and later in-game actions such as power-ups). Steering with a knob is always allowed: it's a way to move, like buttons.", "status": "experimental", "since": "1.1" }
   },
 
   "actions": {
@@ -189,7 +189,7 @@
         "library": "sendTaunt", "permission": "taunts", "cooldownMs": 2000,
         "emotes": ["HA!", "NICE", "GG", "OOPS", "COME ON", "WOW"],
         "status": "experimental", "since": "1.1",
-        "description": "Show a word over your paddle, with a ring and a sound. At most one every cooldownMs per player; the game ignores the rest. The host can turn taunts off."
+        "description": "Show a word over your paddle, with a ring and a sound. At most one every cooldownMs per player; the game ignores the rest. The host can turn taunts off with the In Game Actions switch."
       },
       "power": {
         "code": 4,

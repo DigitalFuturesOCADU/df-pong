@@ -108,7 +108,7 @@ Readers ignore extra bytes and unknown codes, so later versions can add to them.
 
 - `position`: Move the paddle to this height, for knobs, sliders and distance sensors. The paddle still moves at its normal speed, like a touch player's, so it isn't faster than buttons. The paddle follows positions until the controller sends UP or DOWN on the movement characteristic (NEUTRAL doesn't count) or positionOff.
 - `positionOff`: Stop following positions; the paddle stops and listens to UP / DOWN again.
-- `taunt`: Show a word over your paddle, with a ring and a sound. At most one every cooldownMs per player; the game ignores the rest. The host can turn taunts off. Emotes: 0 = HA!, 1 = NICE, 2 = GG, 3 = OOPS, 4 = COME ON, 5 = WOW.
+- `taunt`: Show a word over your paddle, with a ring and a sound. At most one every cooldownMs per player; the game ignores the rest. The host can turn taunts off with the In Game Actions switch. Emotes: 0 = HA!, 1 = NICE, 2 = GG, 3 = OOPS, 4 = COME ON, 5 = WOW.
 - `power`: Power-ups with cooldowns the game enforces.
 
 ## When changes apply during a match
@@ -134,7 +134,7 @@ Permissions (which kinds of settings controllers may use):
 | `moveSpeed` | Custom move speed |
 | `paddleSize` | Custom paddle size |
 | `requests` | Rule requests |
-| `taunts` | Taunts |
+| `taunts` | In Game Actions |
 
 Policies (how two different rule requests are settled):
 

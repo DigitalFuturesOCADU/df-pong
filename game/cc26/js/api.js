@@ -331,8 +331,9 @@ const DFPONG_API = Object.freeze({
       "short": "Rule requests"
     },
     "taunts": {
-      "label": "Taunts",
-      "short": "Taunts",
+      "label": "In Game Actions",
+      "short": "In Game Actions",
+      "description": "Taunts (and later in-game actions such as power-ups). Steering with a knob is always allowed: it's a way to move, like buttons.",
       "status": "experimental",
       "since": "1.1"
     }
@@ -381,7 +382,7 @@ const DFPONG_API = Object.freeze({
         ],
         "status": "experimental",
         "since": "1.1",
-        "description": "Show a word over your paddle, with a ring and a sound. At most one every cooldownMs per player; the game ignores the rest. The host can turn taunts off."
+        "description": "Show a word over your paddle, with a ring and a sound. At most one every cooldownMs per player; the game ignores the rest. The host can turn taunts off with the In Game Actions switch."
       },
       "power": {
         "code": 4,

@@ -281,7 +281,7 @@ class UI {
     const permissions = Object.entries(PERMISSION_LABELS)
       .map(
         ([key, label]) => `
-        <label class="switch"><input type="checkbox" role="switch" data-permission="${key}"><span class="switch-track" aria-hidden="true"></span><span>${label}</span></label>`
+        <label class="switch"${DFPONG_API.permissions[key].description ? ` title="${esc(DFPONG_API.permissions[key].description)}"` : ''}><input type="checkbox" role="switch" data-permission="${key}"><span class="switch-track" aria-hidden="true"></span><span>${label}</span></label>`
       )
       .join('');
     return `
