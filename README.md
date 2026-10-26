@@ -54,6 +54,21 @@ Install the **DFPongController** library (Arduino IDE → *Sketch → Include Li
 search "DFPongController"). It works on **ESP32** boards (ESP32, S3, C3, Arduino Nano ESP32; also install
 *NimBLE-Arduino*) and on the **Arduino Nano 33 IoT**, Nano 33 BLE and UNO R4 WiFi.
 
+#### Two ways to move your paddle
+
+Pick the one that suits your sensor:
+
+| | **Direction**: up, down, stop | **Position**: a height |
+|---|---|---|
+| Good for | Buttons, switches, tilt, claps: anything on/off | Knobs, sliders, distance, light or flex sensors: anything with a range |
+| You send | `sendControl(UP)`, `sendControl(DOWN)`, `sendControl(NEUTRAL)` | `sendPosition(reading, low, high)` |
+| The paddle | Moves while you send UP or DOWN, stops on NEUTRAL | Moves to that height and stays there |
+| Works in | Every game (2024–2026) | The 2026 game, with library 2.3 or newer *(new)* |
+
+The paddle moves at the same speed either way, so neither one is faster.
+
+**Direction**, with two buttons (each from a pin to GND):
+
 ```cpp
 #include <DFPongController.h>
 
@@ -77,8 +92,38 @@ void loop() {
 }
 ```
 
-More examples (click control, gravity, chorded buttons, live settings, knob steering…) come with the library, under
-*File → Examples → DFPongController*. Library repo: [df-pong-controller](https://github.com/DigitalFuturesOCADU/df-pong-controller).
+**Position**, with a knob (a potentiometer: outer legs to 3.3V and GND, middle leg to A0):
+
+```cpp
+#include <DFPongController.h>
+
+DFPongController controller;
+
+void setup() {
+  controller.setControllerNumber(1);   // ← your number (1–242)
+  controller.setStatusLED(LED_BUILTIN);
+  controller.begin();
+}
+
+void loop() {
+  controller.update();                 // required every loop
+
+  // One end of the knob puts the paddle at the top, the other end at the bottom
+  controller.sendPosition(analogRead(A0), 0, 1023);   // ESP32 boards: 0, 4095
+}
+```
+
+- `low` and `high` are your sensor's readings at the two ends. Swap them to turn the direction around, or narrow
+  them to the range your sensor really gives (a distance sensor might read 80–600).
+- Call `sendPosition()` every loop; the library only sends changes. You can also send a number from `0.0` (top) to
+  `1.0` (bottom): `controller.sendPosition(0.5)`.
+- You can mix both: `sendControl(UP)` or `sendControl(DOWN)` switches back to direction (NEUTRAL doesn't), and the
+  next `sendPosition()` switches to position again. `stopPosition()` also goes back to direction.
+- Older games don't understand positions, so a position-only controller can't move there.
+
+More examples (click control, gravity, chorded buttons, live settings, a knob with a taunt button…) come with the
+library, under *File → Examples → DFPongController*. Library repo:
+[df-pong-controller](https://github.com/DigitalFuturesOCADU/df-pong-controller).
 
 ### 2. Make it yours (optional)
 
@@ -87,7 +132,7 @@ plays there.
 
 - **Settings** describe your side: name, color, paddle, sounds, music, and the rules you'd like to play by. Set them
   once in `setup()` (before or after `controller.begin()`), or change them any time while you play.
-- **In Game Actions** are things you do during play: steer with a knob, or taunt the other player. *(Experimental.)*
+- **In Game Actions** are things you do during play, like taunting the other player. *(Experimental.)*
 
 You need the DFPongController library **2.0 or newer** for settings, **2.1** for music and **2.3** for In Game Actions
 (update it in the Library Manager).
@@ -196,28 +241,22 @@ The game shows a short message when a change has to wait. Rule requests and musi
 #### In Game Actions *(experimental, library 2.3)*
 
 ```cpp
-controller.sendPosition(analogRead(A0), 0, 1023);   // steer: one end of the knob is the top, the other the bottom
-controller.sendTaunt(2);                            // taunt: "GG" pops up beside your paddle
+controller.sendTaunt(2);   // "GG" pops up beside your paddle
 ```
 
-- **Steering by position.** Your paddle moves to the height you send, at its normal speed: smoother than buttons,
-  not faster. Good for knobs, sliders, distance sensors, flex or light sensors. By default you steer with
-  `sendControl(UP / DOWN)`; position steering starts with your first `sendPosition()` and lasts until you send UP or
-  DOWN (NEUTRAL doesn't count) or call `stopPosition()`. Call it every loop: only changes are sent. Swap the two
-  numbers to turn the direction around. On ESP32 boards `analogRead()` goes up to 4095, so use
-  `sendPosition(analogRead(A0), 0, 4095)`. You can also send a number from 0.0 (top) to 1.0 (bottom):
-  `sendPosition(0.5)`.
-- **Taunts.** `sendTaunt(n)` shows a word beside your paddle with a ring and a sound (your own hit sound, if you set
-  one):
+`sendTaunt(n)` shows a word beside your paddle with a ring and a sound (your own hit sound, if you set one):
 
-  | `n` | 0 | 1 | 2 | 3 | 4 | 5 |
-  |---|---|---|---|---|---|---|
-  | Word | HA! | NICE | GG | OOPS | COME ON | WOW |
+| `n` | 0 | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|---|
+| Word | HA! | NICE | GG | OOPS | COME ON | WOW |
 
-  The game shows at most **one taunt every 2 seconds** per player and ignores the rest (they don't queue up).
-  Nothing happens while the game is paused, and the host can turn taunts off with the **In Game Actions** switch.
-- The library's `08_PositionControl` example has a knob and a taunt button. `controller.actionsAvailable()` tells you
-  whether the game is listening for actions.
+- The game shows at most **one taunt every 2 seconds** per player and ignores the rest (they don't queue up).
+- Nothing happens while the game is paused, and the host can turn taunts off with the **In Game Actions** switch.
+- `controller.actionsAvailable()` tells you whether the game is listening (older games don't).
+- The library's `08_PositionControl` example has a knob for steering and a button for taunts.
+
+Steering with a knob or sensor is one of the two ways to move your paddle: see
+[Two ways to move your paddle](#two-ways-to-move-your-paddle) above.
 
 #### What the host can turn off
 
