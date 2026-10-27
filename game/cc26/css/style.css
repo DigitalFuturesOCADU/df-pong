@@ -1154,6 +1154,10 @@ input[type='checkbox']:checked::after {
   animation: pulse 1s ease-in-out infinite;
 }
 
+.chips li.unused {
+  color: var(--warn);
+}
+
 .chips li.sound-error {
   border-color: var(--warn);
   color: var(--warn);
@@ -2171,6 +2175,10 @@ input[type='checkbox']:checked::after {
 .music-pill.request {
   border-style: dashed;
   border-color: var(--line-strong);
+}
+
+.music-pill.overrides .music-detail {
+  color: var(--warn);
 }
 
 .music-list {

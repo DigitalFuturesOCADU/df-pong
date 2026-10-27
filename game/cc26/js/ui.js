@@ -796,7 +796,8 @@ class UI {
     const allow = this.house.permissions;
     const wants = cfg?.player || {};
     const chips = [];
-    const chip = (text, allowed, extra = '') => chips.push(`<li class="${allowed ? '' : 'blocked'} ${extra}" ${allowed ? '' : 'title="Turned off by the host"'}>${text}</li>`);
+    const chip = (text, allowed, extra = '', title = '') =>
+      chips.push(`<li class="${allowed ? '' : 'blocked'} ${extra}" ${allowed ? (title ? `title="${esc(title)}"` : '') : 'title="Turned off by the host"'}>${text}</li>`);
     if (wants.color) chip(`<i class="dot-swatch" style="background:${esc(wants.color)}"></i>${esc(wants.color)}`, allow.color);
     if (wants.name) chip(`“${esc(wants.name)}”`, allow.name);
     if (wants.moveSpeed !== undefined) chip(`speed ${wants.moveSpeed}`, allow.moveSpeed);
@@ -809,7 +810,14 @@ class UI {
     }
     if (wants.music) {
       const state = player.musicStatus ? player.musicStatus.state : 'off';
-      chip(`♪ music · ${esc(player.music ? player.music.label : wants.music.label)}`, allow.music, `sound-${state}`);
+      const plan = this.game.state === 'lobby' ? this.game.resolveMusic() : this.game.musicPlan;
+      const unused = plan.unused.includes(player.index);
+      chip(
+        `♪ music · ${esc(player.music ? player.music.label : wants.music.label)}${unused ? ' · not used' : ''}`,
+        allow.music,
+        `sound-${state}${unused ? ' unused' : ''}`,
+        unused ? `The room's music choice (${plan.label}) is used instead. Pick "Players' choice" under Music to hear it.` : ''
+      );
     }
     for (const [key, value] of Object.entries(player.requests)) {
       chip(`asks ${GAME_SETTINGS[key].label.toLowerCase()} ${formatSetting(key, value)}`, allow.requests && this.house.policy !== 'house', 'request');
@@ -901,10 +909,23 @@ class UI {
     else if (plan.fromPlayers) detail = `${plan.tracks[0].label} · ${trackSource(plan.tracks[0])}`;
     else detail = trackSource(plan.tracks[0]);
     if (choice === 'auto' && !plan.fromPlayers && plan.mode !== 'off') detail = `players' choice · ${detail}`;
+    let title = detail;
+    // The room's choice wins over what the players brought: say whose music isn't playing
+    if (plan.unused.length) {
+      detail = `instead of ${this.unusedPicks(plan)}`;
+      title = `The room's choice (${plan.label}) is used instead of ${this.unusedPicks(plan)}. Pick "Players' choice" to hear it.`;
+    }
     tile.querySelector('.music-value').textContent = plan.label;
     tile.querySelector('.music-detail').textContent = detail;
-    tile.title = detail;
+    tile.title = title;
     tile.classList.toggle('request', plan.fromPlayers);
+    tile.classList.toggle('overrides', plan.unused.length > 0);
+  }
+
+  /** "Kate's pick" or "both players' picks": the music a plan leaves out. */
+  unusedPicks(plan) {
+    const names = plan.unused.map((i) => this.game.players[i].name);
+    return names.length > 1 ? "both players' picks" : `${names[0]}'s pick`;
   }
 
   /** The background game's puck hit a paddle: light up DF (left) or PONG (right). */
@@ -951,7 +972,7 @@ class UI {
       })
       .join('');
     const m = g.musicPlan;
-    const musicRow = m.fromPlayers
+    const musicRow = m.fromPlayers || m.unused.length
       ? `
           <div class="rule-row music-row" style="--delay:${0.25 + g.ruleNotes.length * 0.35}s">
             <span class="rule-label">Music</span>
@@ -959,7 +980,13 @@ class UI {
               .map((p) => (p.music && this.house.permissions.music ? `<span class="ask" style="--player:${p.color}">${esc(p.music.label)}</span>` : `<span class="ask empty">—</span>`))
               .join('')}</span>
             <span class="rule-result">${esc(m.label)}</span>
-            <span class="rule-source">${esc(m.mode === 'alternate' ? m.detail : `${m.tracks[0].label} · ${trackSource(m.tracks[0])}`)}</span>
+            <span class="rule-source">${esc(
+              m.unused.length
+                ? `the room's choice, instead of ${this.unusedPicks(m)}`
+                : m.mode === 'alternate'
+                  ? m.detail
+                  : `${m.tracks[0].label} · ${trackSource(m.tracks[0])}`
+            )}</span>
           </div>`
       : '';
     this.app.querySelector('.rule-rows').innerHTML = rows + musicRow;

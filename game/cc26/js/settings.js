@@ -539,13 +539,19 @@ function resolveMatchRules(house, players) {
  *   off   silence
  *   name  a track from the library, whatever the players brought
  * @param players [{name, music}]: music is a playable track or null
- * @returns {mode: 'off'|'single'|'alternate', tracks, label, detail, fromPlayers}
+ * @returns {mode: 'off'|'single'|'alternate', tracks, label, detail, fromPlayers, unused}
+ *   unused: indexes of players whose music won't play because the room chose something else
  */
 function resolveMusic(house, players, defaultTrack) {
   const allowed = house.permissions.music;
   const picks = players.map((p) => (allowed && p && p.music ? p.music : null));
   const names = players.map((p, i) => (p ? p.name : `Player ${i + 1}`));
-  const choice = house.data.music;
+  const plan = planMusic(house.data.music, picks, names, defaultTrack);
+  plan.unused = picks.flatMap((pick, i) => (pick && !plan.tracks.some((t) => trackKey(t) === trackKey(pick)) ? [i] : []));
+  return plan;
+}
+
+function planMusic(choice, picks, names, defaultTrack) {
   const single = (track, label, detail, fromPlayers = false) =>
     track ? { mode: 'single', tracks: [track], label, detail, fromPlayers } : { mode: 'off', tracks: [], label: 'Off', detail: '', fromPlayers: false };
 

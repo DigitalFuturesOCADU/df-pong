@@ -28,7 +28,7 @@ class Game {
     this.house = house;
     this.sound = sound;
     this.music = music;
-    this.musicPlan = { mode: 'off', tracks: [], label: 'Off', detail: '' };
+    this.musicPlan = { mode: 'off', tracks: [], label: 'Off', detail: '', unused: [] };
     this.musicIndex = 0;
     this.fx = effects;
     this.listeners = {};
@@ -184,7 +184,7 @@ class Game {
     this.emit('score');
     this.emit('rules');
 
-    this.showRulesCard = resolved.notes.some((n) => n.source !== 'house') || this.musicPlan.fromPlayers;
+    this.showRulesCard = resolved.notes.some((n) => n.source !== 'house') || this.musicPlan.fromPlayers || this.musicPlan.unused.length > 0;
     this.setState('versus');
     this.holdChanges('start');
     // Each name lands with its player's paddle sound
