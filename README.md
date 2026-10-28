@@ -160,7 +160,7 @@ Anything you don't set uses the default. To go back to the default later, pass `
 
 | Function | What it changes | Default | You can use |
 |---|---|---|---|
-| `setPlayerName("Thunderpaddle")` | Your name in the game | The controller name from the class list; if there isn't one, your own name from the class list | Up to 20 characters. A controller name in the class list wins over this one |
+| `setControllerName("Thunderpaddle")` | Your controller's name in the game | The controller name from the class list; if there isn't one, your own name from the class list | Up to 20 characters. The name you set on the board comes first. Library 2.4+; older versions call it `setPlayerName()` |
 | `setPlayerColor("#5fa36b")` or `(95, 163, 107)` | Your paddle, its trail and your highlights | Off-white (both players start the same) | Any color: `"#rrggbb"`, a name like `"orange"`, or red, green, blue (0–255). Very dark colors are brightened so you can still see them |
 | `setMoveSpeed(14)` | How fast your paddle moves | 10 (the host can change each side's default) | 1–100 |
 | `setPaddleSize(120)` | Paddle height, in percent | 100 | 50–200 |
@@ -293,7 +293,7 @@ your player card shows that setting crossed out.
 A player without a controller can use the keyboard or touch, or hand their side to the **computer**, with a
 difficulty slider from 1 (Easy) to 10 (Expert).
 
-Every match starts with **NAME vs NAME**, using each controller's name from the class list (Space skips it).
+Every match starts with **NAME vs NAME**, using each controller's name (Space skips it).
 Before any point that can end the match, the game stops for a moment and announces **MATCH POINT** across the
 table, with the name of the player who can win (or *Next point wins* when both can).
 

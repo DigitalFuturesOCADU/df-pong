@@ -82,15 +82,15 @@ class Player {
   }
 
   /**
-   * The name the game shows: the controller's name from the class list, else the name the
-   * controller gives itself (setPlayerName), else the person's name.
+   * The name the game shows: the name the controller gives itself (setControllerName on the
+   * board), else its controllerName from the class list, else the person's name.
    */
   get name() {
     const connected = this.kind === 'controller';
     if (!connected && this.mode === 'cpu') return 'Computer';
     if (this.target === LEGACY_2024) return (connected && this.customName) || this.link.deviceName || '2024 controller';
-    if (this.target && this.controllerName) return this.controllerName;
     if (connected && this.customName) return this.customName;
+    if (this.target && this.controllerName) return this.controllerName;
     if (this.person) return this.person;
     if (this.target) return `Controller ${this.target}`;
     return `Player ${this.slot}`;

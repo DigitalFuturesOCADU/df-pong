@@ -116,7 +116,7 @@ function cString(text) {
 
 function codeFor(s) {
   const lines = ['  // DF Pong custom settings (made with the Settings Builder)'];
-  if (s.name) lines.push(`  controller.setPlayerName(${cString(s.name)});`);
+  if (s.name) lines.push(`  controller.setControllerName(${cString(s.name)});   // library 2.4+ (older: setPlayerName)`);
   if (s.color) lines.push(`  controller.setPlayerColor(${cString(s.color)});`);
   if (s.moveSpeed !== undefined) lines.push(`  controller.setMoveSpeed(${s.moveSpeed});`);
   if (s.paddleSize !== undefined) lines.push(`  controller.setPaddleSize(${s.paddleSize});`);

@@ -30,10 +30,11 @@ New features are only ever *added* next to the old ones — nothing old changes 
 
 - `name` is the person. It's shown in the lobby's list (`12 · Kate — Thunderpaddle`) so people can find
   themselves, and under the controller's name on the cards, the VS screen and the win screen.
-- `controllerName` (optional, 2026 game) is what the game calls the player everywhere: scoreboard,
-  NAME vs NAME before the countdown, pause messages, and the win screen.
-- The name the game shows is the first one that exists: `controllerName` from the class list, then the
-  controller's own `name` setting (2026 controllers, if the host allows custom names), then `name`.
+- `controllerName` (optional, 2026 game) is what the game calls the player (scoreboard, NAME vs NAME
+  before the countdown, pause messages, the win screen) when the controller doesn't name itself.
+- The name the game shows is the first one that exists: the controller's own `name` setting
+  (`setControllerName()` on the board; 2026 controllers, if the host allows custom names), then
+  `controllerName` from the class list, then `name`.
 - Older games ignore `controllerName`, so one class list works for every year's game.
 
 The 2026 game supports all three. A 2026 controller also still works in the 2025 game

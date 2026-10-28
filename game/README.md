@@ -41,9 +41,9 @@ Copy the most recent version's folder, then rename it with the course and year:
    ```
 
    - `name` is the person: it helps them find themselves in the lobby's list.
-   - `controllerName` is what the game calls them: scoreboard, NAME vs NAME before the countdown, pause
-     messages and the win screen. Optional; without it the game uses the name the controller gives itself,
-     then the person's name.
+   - `controllerName` is what the game calls them (scoreboard, NAME vs NAME before the countdown, pause
+     messages and the win screen) when the controller doesn't name itself. Optional. The name set on the
+     board (`setControllerName()`) comes first, then `controllerName`, then the person's name.
    - Numbers can be anything from 1 to 242. Students can also type a number that isn't on the list.
    - Older games read the same file and simply ignore `controllerName`.
 

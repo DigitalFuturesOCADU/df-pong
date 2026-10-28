@@ -1,6 +1,6 @@
 <!-- Generated from api/dfpong-api.json by api/build.mjs. Edit the spec, not this file. -->
 
-# DFPONG API 1.1
+# DFPONG API 1.2
 
 The API grows a little every year. These rules let it change without breaking the controllers, games and admin panels already out there.
 
@@ -70,7 +70,7 @@ takes effect if the controller changes it mid-match (see below).
 
 | Key | Kind | Type | Range | Permission | During a match | Library | Status |
 |---|---|---|---|---|---|---|---|
-| `name` | player | text | up to 20 characters | `name` | looks | `setPlayerName()` | stable · 1.0 |
+| `name` | player | text | up to 20 characters | `name` | looks | `setControllerName()` | stable · 1.0 |
 | `color` | player | color | "#rrggbb" or a color name | `color` | looks | `setPlayerColor()` | stable · 1.0 |
 | `moveSpeed` | player | number | 1–100, default 10 | `moveSpeed` | handling | `setMoveSpeed()` | stable · 1.0 |
 | `paddleSize` | player | number | 50–200, default 100 | `paddleSize` | handling | `setPaddleSize()` | stable · 1.0 |
@@ -82,7 +82,7 @@ takes effect if the controller changes it mid-match (see below).
 | `puckSpeed` | request | number | 1–20, default 5 | `requests` | next match | `requestPuckSpeed()` | stable · 1.0 |
 | `speedIncrement` | request | number | 0–1, default 0.15 | `requests` | next match | `requestSpeedIncrement()` | stable · 1.0 |
 
-- `name`: The controller's name in the game. A controllerName in the class list comes first; without either, the game uses the person's name from the class list.
+- `name`: The controller's name in the game, set on the board (setControllerName; setPlayerName in library 2.0–2.3 does the same). It comes first: without it, the game uses the class list's controllerName, then the person's name.
 - `color`: Paddle and trail color: "#rrggbb" or any CSS color name. Very dark colors are brightened so the paddle stays visible.
 - `moveSpeed`: Paddle speed. 10 is normal.
 - `paddleSize`: Paddle height in percent of normal.
@@ -205,7 +205,7 @@ The class list each game folder ships with: { "players": [ … ] }. Older games 
 |---|---|---|---|---|
 | `deviceNumber` (required) | number | 1–242 | stable · 1.0 | The controller's number. |
 | `name` | text | up to 40 characters | stable · 1.0 | The person. Shown in the lobby's list so people can find themselves, and under the controller's name. |
-| `controllerName` | text | up to 30 characters | stable · 1.0 | What the game calls this controller everywhere. Comes before the controller's own name setting. |
+| `controllerName` | text | up to 30 characters | stable · 1.0 | What the game calls this controller when the controller doesn't name itself (its name setting comes first). |
 
 ## Admin messages
 
@@ -282,6 +282,11 @@ Sent on every change and at least every 2 seconds.
 - **feedback** (planned): The game tells the controller which settings it accepted and why any were refused, so the Serial Monitor can show it.
 
 ## Changelog
+
+### 1.2 (2026-10-28)
+
+- The controller's own name (the name setting, setControllerName on the board) now comes before the class list's controllerName, which is used when the board doesn't set one.
+- Library: setControllerName() is the name of the function (setPlayerName() still works).
 
 ### 1.1 (2026-10-13)
 

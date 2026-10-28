@@ -590,6 +590,33 @@ async function run() {
     try { localStorage.removeItem(house.storageKey); } catch (e) { /* ignore */ }
   }
 
+  group('Names: the board first, then the class list');
+  {
+    const house = new HouseRules('tests-names');
+    house.reset();
+    const p = new Player(1, { house, sound: { load: async () => ({ ok: true, sound: {} }) }, music: { probe: async () => ({ ok: true }) } });
+    p.selectController(12, { name: 'Kate', controllerName: 'Thunderpaddle' });
+    check('before connecting: the class list\'s controller name', p.name === 'Thunderpaddle' && p.owner === 'Kate', `${p.name} / ${p.owner}`);
+    p.linkStatus = 'connected';
+    p.config = parseControllerConfig('{"v":1}');
+    p.apply();
+    check('a board without a name keeps the class list\'s name', p.name === 'Thunderpaddle', p.name);
+    p.config = parseControllerConfig('{"v":1,"name":"Zap"}');
+    p.apply();
+    check('the board\'s name comes first', p.name === 'Zap' && p.owner === 'Kate', `${p.name} / ${p.owner}`);
+    house.merge({ permissions: { name: false } });
+    p.apply();
+    check('custom names off: back to the class list', p.name === 'Thunderpaddle', p.name);
+    house.merge({ permissions: { name: true } });
+    p.linkStatus = 'idle';
+    p.selectController(12, { name: 'Kate' });
+    check('no controller name in the list: the person\'s name', p.name === 'Kate' && p.owner === null, `${p.name} / ${p.owner}`);
+    p.selectController(30, null);
+    check('not on the list: "Controller 30"', p.name === 'Controller 30', p.name);
+    house.reset();
+    try { localStorage.removeItem(house.storageKey); } catch (e) { /* ignore */ }
+  }
+
   group('Table names');
   {
     check('spaces tidied', cleanTableName('  Table   A ') === 'Table A');

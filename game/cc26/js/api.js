@@ -1,5 +1,5 @@
 /*
- * api.js — the DFPONG API 1.1: settings, names and limits this game follows.
+ * api.js — the DFPONG API 1.2: settings, names and limits this game follows.
  * Generated from api/dfpong-api.json by api/build.mjs. Edit the spec, not this file.
  *
  * settings.js builds its tables from this, so the game, the library and the docs agree.
@@ -8,7 +8,7 @@
 const DFPONG_API = Object.freeze({
   "$comment": "The DFPONG API: everything controllers, the game and the admin panel can send each other. This file is the one place to change it. After editing, run `node api/build.mjs` (see api/README.md).",
   "name": "DFPONG API",
-  "version": "1.1",
+  "version": "1.2",
   "configVersion": 1,
   "evolution": {
     "summary": "The API grows a little every year. These rules let it change without breaking the controllers, games and admin panels already out there.",
@@ -127,10 +127,10 @@ const DFPONG_API = Object.freeze({
       "maxLength": 20,
       "permission": "name",
       "changes": "looks",
-      "library": "setPlayerName",
+      "library": "setControllerName",
       "status": "stable",
       "since": "1.0",
-      "description": "The controller's name in the game. A controllerName in the class list comes first; without either, the game uses the person's name from the class list."
+      "description": "The controller's name in the game, set on the board (setControllerName; setPlayerName in library 2.0–2.3 does the same). It comes first: without it, the game uses the class list's controllerName, then the person's name."
     },
     "color": {
       "kind": "player",
@@ -606,7 +606,7 @@ const DFPONG_API = Object.freeze({
         "maxLength": 30,
         "status": "stable",
         "since": "1.0",
-        "description": "What the game calls this controller everywhere. Comes before the controller's own name setting."
+        "description": "What the game calls this controller when the controller doesn't name itself (its name setting comes first)."
       }
     }
   },
@@ -686,6 +686,14 @@ const DFPONG_API = Object.freeze({
     }
   },
   "changelog": [
+    {
+      "version": "1.2",
+      "date": "2026-10-28",
+      "changes": [
+        "The controller's own name (the name setting, setControllerName on the board) now comes before the class list's controllerName, which is used when the board doesn't set one.",
+        "Library: setControllerName() is the name of the function (setPlayerName() still works)."
+      ]
+    },
     {
       "version": "1.1",
       "date": "2026-10-13",

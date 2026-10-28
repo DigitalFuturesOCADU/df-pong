@@ -1,7 +1,7 @@
 {
   "$comment": "The DFPONG API: everything controllers, the game and the admin panel can send each other. This file is the one place to change it. After editing, run `node api/build.mjs` (see api/README.md).",
   "name": "DFPONG API",
-  "version": "1.1",
+  "version": "1.2",
   "configVersion": 1,
 
   "evolution": {
@@ -76,9 +76,9 @@
     "$comment": "Keys in a controller's settings JSON. kind: player (only changes your side) or request (a shared game rule, settled with the other player when the match starts). changes: when a change during a match takes effect, see `liveChanges` and `changeGroups`.",
     "name": {
       "kind": "player", "type": "text", "label": "Name", "maxLength": 20,
-      "permission": "name", "changes": "looks", "library": "setPlayerName",
+      "permission": "name", "changes": "looks", "library": "setControllerName",
       "status": "stable", "since": "1.0",
-      "description": "The controller's name in the game. A controllerName in the class list comes first; without either, the game uses the person's name from the class list."
+      "description": "The controller's name in the game, set on the board (setControllerName; setPlayerName in library 2.0–2.3 does the same). It comes first: without it, the game uses the class list's controllerName, then the person's name."
     },
     "color": {
       "kind": "player", "type": "color", "label": "Color",
@@ -259,7 +259,7 @@
     "fields": {
       "deviceNumber": { "type": "number", "min": 1, "max": 242, "required": true, "status": "stable", "since": "1.0", "description": "The controller's number." },
       "name": { "type": "text", "maxLength": 40, "status": "stable", "since": "1.0", "description": "The person. Shown in the lobby's list so people can find themselves, and under the controller's name." },
-      "controllerName": { "type": "text", "maxLength": 30, "status": "stable", "since": "1.0", "description": "What the game calls this controller everywhere. Comes before the controller's own name setting." }
+      "controllerName": { "type": "text", "maxLength": 30, "status": "stable", "since": "1.0", "description": "What the game calls this controller when the controller doesn't name itself (its name setting comes first)." }
     }
   },
 
@@ -323,6 +323,14 @@
   },
 
   "changelog": [
+    {
+      "version": "1.2",
+      "date": "2026-10-28",
+      "changes": [
+        "The controller's own name (the name setting, setControllerName on the board) now comes before the class list's controllerName, which is used when the board doesn't set one.",
+        "Library: setControllerName() is the name of the function (setPlayerName() still works)."
+      ]
+    },
     {
       "version": "1.1",
       "date": "2026-10-13",
