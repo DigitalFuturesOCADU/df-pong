@@ -287,7 +287,7 @@ your player card shows that setting crossed out.
 ### 3. Connect and play
 
 1. Open your class's game page (or the [controller test](https://digitalfuturesocadu.github.io/df-pong/game/cc26/?test=1)).
-2. Pick your number (e.g. "12 · Kate — Thunderpaddle"), press **Connect**, choose your controller in the browser's list.
+2. On your side of the lobby, choose **Controller** (the others are **Keyboard**, or **Touch** on phones, and **Computer**). Pick your number (e.g. "12 · Kate — Thunderpaddle"), press **Connect**, and choose your controller in the browser's list.
 3. Move your controller: your paddle moves right there in the lobby, so you can check it works.
 4. Press **Start match** (or Space).
 

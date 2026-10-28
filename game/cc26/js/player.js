@@ -35,7 +35,7 @@ class Player {
     this.target = null; // chosen controller: a number, LEGACY_2024, or null
     this.person = null; // who it belongs to, from the class list (players-config.json "name")
     this.controllerName = null; // its name from the class list ("controllerName")
-    this.mode = 'keyboard'; // what happens without a controller: 'keyboard' | 'cpu'
+    this.mode = 'controller'; // how this side plays: 'controller' | 'keyboard' | 'cpu' (the lobby's three-way choice)
 
     this.link = new ControllerLink({
       onStatus: (status, detail) => this.handleStatus(status, detail),
@@ -72,9 +72,14 @@ class Player {
   // Who and how
   // -------------------------------------------------------------------------
 
-  /** 'controller' while a controller is connected (or reconnecting), else 'keyboard' or 'cpu'. */
+  /**
+   * Who is actually moving the paddle: 'controller' while a controller is connected (or
+   * reconnecting), 'cpu' for the computer, else 'keyboard' (keys or touch also work while a
+   * chosen controller isn't connected yet).
+   */
   get kind() {
-    return ['connected', 'reconnecting', 'lost'].includes(this.linkStatus) ? 'controller' : this.mode;
+    if (['connected', 'reconnecting', 'lost'].includes(this.linkStatus)) return 'controller';
+    return this.mode === 'cpu' ? 'cpu' : 'keyboard';
   }
 
   get controllerLive() {
@@ -136,6 +141,7 @@ class Player {
 
   connect() {
     if (!this.target) return;
+    this.mode = 'controller';
     this.link.connect(this.target);
   }
 

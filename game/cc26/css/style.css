@@ -1077,18 +1077,45 @@ input[type='checkbox']:checked::after {
   min-width: 118px;
 }
 
-.card-mode {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--dim);
+/* How this side plays: Controller | Keyboard | Computer, one choice */
+.input-choice {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--line-strong);
 }
 
-.card[data-kind='controller'] .card-mode {
-  display: none;
+.input-choice button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--dim);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.input-choice button + button {
+  border-left: 1px solid var(--line-strong);
+}
+
+.input-choice button:hover {
+  color: var(--ink);
+  background: rgba(236, 232, 223, 0.06);
+}
+
+.input-choice button[aria-checked='true'] {
+  background: var(--ink);
+  color: #141413;
+}
+
+.input-choice .icon {
+  width: 18px;
+  height: 18px;
 }
 
 .segmented {
@@ -1651,6 +1678,14 @@ input[type='checkbox']:checked::after {
 
   .scoreboard-mid {
     display: none;
+  }
+
+  /* Controller / Keyboard / Computer: icon above the word */
+  .input-choice button {
+    flex-direction: column;
+    gap: 3px;
+    min-height: 52px;
+    font-size: 12px;
   }
 
   /* Monospace runs wide: keep "Choose a controller…" whole */

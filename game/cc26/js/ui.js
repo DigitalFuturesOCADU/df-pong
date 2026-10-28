@@ -16,6 +16,9 @@ const ICONS = {
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
   lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>',
   unlock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 017.5-2"/>',
+  bluetooth: '<path d="M7 7.5l10 9-5 4.5V3l5 4.5-10 9"/>',
+  keyboard: '<path d="M3 6h18v12H3z"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/>',
+  robot: '<path d="M5 8h14v11H5z"/><path d="M12 8V5M12 3.5v.01M9.5 12v1.5M14.5 12v1.5M9 16.5h6M3 12v3M21 12v3"/>',
   antenna: '<circle cx="12" cy="12" r="2"/><path d="M8.5 8.5a5 5 0 000 7M15.5 8.5a5 5 0 010 7M5.6 5.6a9 9 0 000 12.8M18.4 5.6a9 9 0 010 12.8"/>',
 };
 
@@ -225,6 +228,11 @@ class UI {
           <span class="card-side">Player ${slot} · ${slot === 1 ? 'left' : 'right'}</span>
           <span class="card-status"><i class="dot"></i><span class="status-text"></span></span>
         </header>
+        <div class="input-choice" role="radiogroup" aria-label="Player ${slot} plays with">
+          <button type="button" role="radio" data-mode="controller">${icon('bluetooth')}<span>Controller</span></button>
+          <button type="button" role="radio" data-mode="keyboard">${icon('keyboard')}<span>${matchMedia('(pointer: coarse)').matches ? 'Touch' : 'Keyboard'}</span></button>
+          <button type="button" role="radio" data-mode="cpu">${icon('robot')}<span>Computer</span></button>
+        </div>
         <div class="card-identity">
           <div class="card-id-text">
             <div class="card-name"></div>
@@ -236,13 +244,6 @@ class UI {
           <input class="device-number" type="number" min="${CONTROLLER_NUMBERS.min}" max="${CONTROLLER_NUMBERS.max}" inputmode="numeric" placeholder="#" aria-label="Controller number" hidden>
           <button class="btn connect">Connect</button>
           <button class="btn ghost forget" data-action="keyboard-${slot}" hidden>Use keyboard instead</button>
-        </div>
-        <div class="card-mode">
-          <span>Without a controller</span>
-          <div class="segmented" role="group">
-            <button data-mode="keyboard">Keyboard</button>
-            <button data-mode="cpu">Computer</button>
-          </div>
         </div>
         <div class="cpu-difficulty" hidden>
           <label for="cpu-level-${slot}">Difficulty</label>
@@ -407,7 +408,9 @@ class UI {
         if (action !== 'mute') this.sound.ui();
         actions[action]();
       } else if (action.startsWith('keyboard-')) {
-        g.players[Number(action.slice(9)) - 1].disconnect();
+        const p = g.players[Number(action.slice(9)) - 1];
+        p.disconnect();
+        p.setMode('keyboard');
         this.renderState();
       } else if (action.startsWith('reconnect-')) {
         g.players[Number(action.slice(10)) - 1].link.retry();
@@ -476,9 +479,12 @@ class UI {
       // Arrow keys move the slider; Space should still start the match
       level.addEventListener('change', () => level.blur());
 
+      // Controller / Keyboard / Computer: choosing another way to play hangs up a controller
       card.querySelectorAll('[data-mode]').forEach((b) =>
         b.addEventListener('click', () => {
-          player.setMode(b.dataset.mode);
+          const mode = b.dataset.mode;
+          if (mode !== 'controller' && player.linkStatus !== 'idle' && player.linkStatus !== 'error') player.disconnect();
+          player.setMode(mode);
           this.sound.ui();
           b.blur();
         })
@@ -731,11 +737,15 @@ class UI {
     card.style.setProperty('--player', player.color);
     const status = player.linkStatus;
     const kind = player.kind;
+    // The three-way choice shows the controller while one is connected, else what was picked
+    const mode = kind === 'controller' ? 'controller' : player.mode;
+    const touch = matchMedia('(pointer: coarse)').matches;
     card.dataset.kind = kind;
+    card.dataset.mode = mode;
     card.dataset.status = status;
 
     const statusText = {
-      idle: kind === 'cpu' ? 'Computer' : 'Keyboard',
+      idle: { controller: 'Not connected', keyboard: touch ? 'Touch' : 'Keyboard', cpu: 'Computer' }[mode],
       choosing: 'Pick it in the browser list',
       connecting: 'Connecting…',
       connected: player.link.handshakeAcked ? 'Ready' : 'Connected',
@@ -751,12 +761,12 @@ class UI {
     if (kind === 'controller') {
       const gen = player.link.generation;
       sub = [id, player.owner, gen ? `${gen} controller` : 'controller'].filter(Boolean).join(' · ');
-    } else if (kind === 'cpu') {
+    } else if (mode === 'cpu') {
       sub = 'Plays by itself';
-    } else if (player.target) {
-      sub = [id, player.owner, 'not connected'].filter(Boolean).join(' · ');
+    } else if (mode === 'controller') {
+      sub = player.target ? [id, player.owner, 'not connected'].filter(Boolean).join(' · ') : 'Pick your number, then press Connect';
     } else {
-      sub = matchMedia('(pointer: coarse)').matches ? 'Drag on your side of the table' : KEY_HINTS[player.index];
+      sub = touch ? 'Drag on your side of the table' : KEY_HINTS[player.index];
     }
     card.querySelector('.card-sub').textContent = sub;
 
@@ -770,13 +780,14 @@ class UI {
     connect.disabled = busy || (!player.target && kind !== 'controller');
     connect.classList.toggle('primary', !!player.target && kind !== 'controller' && !busy);
 
+    card.querySelector('.card-connect').hidden = mode !== 'controller';
     card.querySelector('.forget').hidden = status !== 'lost';
     const difficulty = card.querySelector('.cpu-difficulty');
-    difficulty.hidden = kind !== 'cpu';
+    difficulty.hidden = mode !== 'cpu';
     const level = this.house.data.cpuLevel[player.index];
     difficulty.querySelector('input').value = level;
     difficulty.querySelector('output').textContent = `${level} · ${CPU_LEVELS.label(level)}`;
-    card.querySelectorAll('[data-mode]').forEach((b) => b.classList.toggle('active', b.dataset.mode === player.mode));
+    card.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.mode === mode)));
 
     card.querySelector('.chips').innerHTML = kind === 'controller' ? this.chipsHTML(player) : '';
     const messages = [];
