@@ -61,7 +61,7 @@ Pick the one that suits your sensor:
 | | **Direction**: up, down, stop | **Position**: a height |
 |---|---|---|
 | Good for | Buttons, switches, tilt, claps: anything on/off | Knobs, sliders, distance, light or flex sensors: anything with a range |
-| You send | `sendControl(UP)`, `sendControl(DOWN)`, `sendControl(NEUTRAL)` | `sendPosition(reading, low, high)` |
+| You send | `sendControl(UP)`, `sendControl(DOWN)`, `sendControl(NEUTRAL)` | `sendPosition(reading, top, bottom)` |
 | The paddle | Moves while you send UP or DOWN, stops on NEUTRAL | Moves to that height and stays there |
 | Works in | Every game (2024–2026) | The 2026 game, with library 2.3 or newer *(new)* |
 
@@ -113,10 +113,19 @@ void loop() {
 }
 ```
 
-- `low` and `high` are your sensor's readings at the two ends. Swap them to turn the direction around, or narrow
-  them to the range your sensor really gives (a distance sensor might read 80–600).
-- Call `sendPosition()` every loop; the library only sends changes. You can also send a number from `0.0` (top) to
-  `1.0` (bottom): `controller.sendPosition(0.5)`.
+- `sendPosition(reading, top, bottom)`: `top` is the reading that puts the paddle at the top, `bottom` the reading
+  that puts it at the bottom. Any numbers work, so use the range your sensor really gives:
+
+  ```cpp
+  controller.sendPosition(analogRead(A0), 0, 1023);   // knob: 0 = top, 1023 = bottom
+  controller.sendPosition(distanceCm, 5, 40);         // hand 5 cm away = top, 40 cm = bottom
+  controller.sendPosition(lightLevel, 900, 100);      // bright (900) = top, dark (100) = bottom
+  ```
+
+  Swap the two numbers to turn the direction around. Readings past either end keep the paddle at that end. They're
+  whole numbers (a reading of 12.7 counts as 12).
+- Or send a fraction from `0.0` (top) to `1.0` (bottom): `controller.sendPosition(0.25)` is a quarter of the way down.
+- Call `sendPosition()` every loop; the library only sends changes (at most every 20 ms).
 - You can mix both: `sendControl(UP)` or `sendControl(DOWN)` switches back to direction (NEUTRAL doesn't), and the
   next `sendPosition()` switches to position again. `stopPosition()` also goes back to direction.
 - Older games don't understand positions, so a position-only controller can't move there.
