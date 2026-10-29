@@ -54,6 +54,12 @@ Install the **DFPongController** library (Arduino IDE → *Sketch → Include Li
 search "DFPongController"). It works on **ESP32** boards (ESP32, S3, C3, Arduino Nano ESP32; also install
 *NimBLE-Arduino*) and on the **Arduino Nano 33 IoT**, Nano 33 BLE and UNO R4 WiFi.
 
+> **Nano 33 IoT: update its NINA firmware to the latest version first** (Arduino IDE 2 → *Tools → Firmware Updater* →
+> pick the board → *Check Updates* → newest NINA firmware → *Install*). Its Bluetooth chip has its own firmware, and
+> with an old version Bluetooth never starts: the controller doesn't appear in the browser's list and the Serial
+> Monitor says `BLE failed to initialize`. You only need to do it once per board. More in the
+> [library's troubleshooting](https://github.com/DigitalFuturesOCADU/df-pong-controller#troubleshooting).
+
 #### Two ways to move your paddle
 
 Pick the one that suits your sensor:
