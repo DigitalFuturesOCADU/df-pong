@@ -18,6 +18,8 @@
     { "deviceNumber": 16, "name": "Lam", "controllerName": "" },
     { "deviceNumber": 17, "name": "Duy", "controllerName": "" },
     { "deviceNumber": 18, "name": "Taleb", "controllerName": "" },
-    { "deviceNumber": 19, "name": "Shiv", "controllerName": "" }
+    { "deviceNumber": 19, "name": "Shiv", "controllerName": "" },
+    { "deviceNumber": 101, "name": "Kate 2025", "controllerName": "" },
+    { "deviceNumber": 102, "name": "Nick 2025", "controllerName": "" }
   ]
 }
