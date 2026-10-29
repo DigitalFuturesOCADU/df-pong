@@ -1205,6 +1205,7 @@ class UI {
               <dt>Last value</dt><dd>${valueName}</dd>
               <dt>Messages</dt><dd>${l.stats.messages} · ${l.stats.rate.toFixed(1)}/s</dd>
               <dt>Steering</dt><dd>${p.position !== null ? `by position · ${Math.round(p.position * 100)}%` : 'up / down'}</dd>
+              <dt>Events sent</dt><dd>${l.eventsChar ? `${l.stats.eventsSent}${l.stats.lastEvent ? ` · last: ${esc(l.stats.lastEvent)}` : ''}${l.stats.eventsDropped ? ` · ${l.stats.eventsDropped} dropped (busy)` : ''}` : l.status === 'connected' ? 'not on this controller' : '—'}</dd>
               <dt>Actions</dt><dd>${l.actionsChar ? `${l.stats.actions} received${l.stats.lastAction ? ` · last: ${esc(l.stats.lastAction)}` : ''}` : l.status === 'connected' ? 'not on this controller' : '—'}</dd>
               <dt>Still there?</dt><dd>${l.status === 'connected' ? (l.stats.lastCheckMs === null ? 'checking…' : `answered in ${l.stats.lastCheckMs} ms (${l.stats.checks} checks)${l.missedChecks ? ` · ${l.missedChecks} missed` : ''}`) : '—'}</dd>
               <dt>Paddle</dt><dd>speed ${p.moveSpeed} · size ${p.paddleSize}%</dd>

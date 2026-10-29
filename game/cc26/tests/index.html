@@ -70,6 +70,9 @@ class FakeCharacteristic extends EventTarget {
       if (this.device.fw.echoesWrites) setTimeout(() => this.notify(bytes.slice()), 20);
     });
   }
+  writeValueWithoutResponse(data) {
+    return this.op(() => { this.device.stats.writes++; this.device.fw.onWrite(this, new Uint8Array(data)); });
+  }
   notify(bytes) {
     this.value = new DataView(bytes.buffer);
     if (this.notifying && this.device.gatt.connected) this.dispatchEvent(new Event('characteristicvaluechanged'));
@@ -186,6 +189,19 @@ class Lib23Firmware extends Lib20Firmware {
     this.chars[this.uuids.actions] = new FakeCharacteristic(device, this.uuids.actions, { notify: true }, new Uint8Array([0]));
   }
   sendAction(bytes) { this.chars[this.uuids.actions].notify(new Uint8Array(bytes)); }
+}
+
+/** DFPongController 2.5: also has the events characteristic (the game tells it what happened). */
+class Lib25Firmware extends Lib23Firmware {
+  build(device) {
+    super.build(device);
+    this.received = [];
+    this.chars[this.uuids.events] = new FakeCharacteristic(device, this.uuids.events, { write: true, writeWithoutResponse: true }, new Uint8Array([0]));
+  }
+  onWrite(c, data) {
+    if (c === this.chars[this.uuids.events]) this.received.push([...data]);
+    else super.onWrite(c, data);
+  }
 }
 
 const fakeDevices = [];
@@ -443,6 +459,46 @@ async function run() {
     p.link.handlers.onAction({ type: 'position', position: 0.5 });
     check('ignored without a connected controller', p.position === null);
     try { localStorage.removeItem(house.storageKey); } catch (e) { /* ignore */ }
+  }
+
+  group('Game events (library 2.5, experimental)');
+  {
+    const d = addController(new Lib25Firmware({ number: 45, name: 'DFPONG-45', config: '{"v":1}' }));
+    const { link, log } = makeLink();
+    await link.connect(45);
+    await until(() => log.ready === 1);
+    check('events characteristic found', !!link.eventsChar && link.status === 'connected');
+    link.sendEvent('scored', 3, 1);
+    link.sendEvent('hit', 300);
+    link.sendEvent('won');
+    link.sendEvent('notAnEvent', 1);
+    await until(() => d.fw.received.length >= 3, 1000);
+    check('scored → [4, 3, 1]', JSON.stringify(d.fw.received[0]) === '[4,3,1]', JSON.stringify(d.fw.received));
+    check('values are kept within 0–255', JSON.stringify(d.fw.received[1]) === '[3,255]', JSON.stringify(d.fw.received[1]));
+    check('won → [7]', JSON.stringify(d.fw.received[2]) === '[7]', JSON.stringify(d.fw.received[2]));
+    await wait(50);
+    check('unknown event names are not sent', d.fw.received.length === 3, JSON.stringify(d.fw.received));
+    check('sent without waiting for a reply when possible', link.stats.eventsSent === 3, link.stats.eventsSent);
+    // A busy connection: an event that can't go out in time is dropped, not sent late
+    link.queue(() => wait(DFPONG_API.events.maxDelayMs + 100));
+    link.sendEvent('lost');
+    await wait(DFPONG_API.events.maxDelayMs + 250);
+    check('a late event is dropped', d.fw.received.length === 3 && link.stats.eventsDropped === 1, `${d.fw.received.length} received, ${link.stats.eventsDropped} dropped`);
+    check('no errors from event writes', unhandled.length === 0, unhandled.join(' | '));
+    link.disconnect(); await wait(20);
+    link.sendEvent('won');
+    await wait(30);
+    check('nothing is sent after disconnecting', d.fw.received.length === 3);
+    fakeDevices.length = 0;
+
+    const d2 = addController(new Lib23Firmware({ number: 46, name: 'DFPONG-46', config: '{"v":1}' }));
+    const { link: link2 } = makeLink();
+    await link2.connect(46);
+    link2.sendEvent('won');
+    await wait(30);
+    check('library 2.3 (no events channel): connects, nothing is written', link2.status === 'connected' && link2.eventsChar === null && d2.stats.writes <= 2, `${link2.status} writes=${d2.stats.writes}`);
+    link2.disconnect(); await wait(20);
+    fakeDevices.length = 0;
   }
 
   group('Settings validation');

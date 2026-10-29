@@ -186,6 +186,7 @@ class Game {
 
     this.showRulesCard = resolved.notes.some((n) => n.source !== 'house') || this.musicPlan.fromPlayers || this.musicPlan.unused.length > 0;
     this.setState('versus');
+    this.tellControllers('matchStart');
     this.holdChanges('start');
     // Each name lands with its player's paddle sound
     this.players.forEach((player, i) =>
@@ -225,6 +226,7 @@ class Game {
     this.countdownValue = 3;
     this.setState('countdown');
     this.sound.countdown(3);
+    this.tellControllers('countdown', 3);
     this.startMusic();
   }
 
@@ -242,6 +244,8 @@ class Game {
     this.fx.serve(this.puck.x, this.puck.y);
     if (this.matchPoint) {
       this.sound.matchPoint();
+      // 1: you can win with this point, 0: they can, 2: whoever scores wins
+      this.players.forEach((p, i) => p.sendEvent('matchPoint', winners.length === 2 ? 2 : winners.includes(i) ? 1 : 0));
       this.music?.duck(true);
     } else {
       this.sound.serve();
@@ -257,6 +261,7 @@ class Game {
     this.sound.stopAmbience();
     this.music?.duck(true);
     this.setState('paused');
+    this.tellControllers('paused');
   }
 
   resume() {
@@ -268,8 +273,14 @@ class Game {
     }
     this.music?.duck(false);
     if (this.house.data.ambience && this.musicPlan.mode === 'off') this.sound.startAmbience();
+    this.tellControllers('resumed');
     if (this.pausedFrom === 'countdown') this.startCountdown();
     else this.setState(this.pausedFrom || 'playing');
+  }
+
+  /** Send the same event to both players' controllers (only controllers that have the events channel get it). */
+  tellControllers(name, ...values) {
+    this.players.forEach((p) => p.sendEvent(name, ...values));
   }
 
   togglePause() {
@@ -350,6 +361,7 @@ class Game {
         if (n !== this.countdownValue) {
           this.countdownValue = n;
           this.sound.countdown(Math.max(0, n));
+          this.tellControllers('countdown', Math.max(0, n));
           this.emit('countdown', n);
           if (n <= 0) this.beginServe(this.serveDirection, true);
         }
@@ -441,6 +453,7 @@ class Game {
     this.fx.emote(this.paddles[player.index], word, player.rgb);
     this.sound.taunt(player);
     this.emit('taunt', { player, word });
+    this.players[1 - player.index].sendEvent('taunted', spec.emotes.indexOf(word));
   }
 
   /** Once the puck is behind a paddle the point is certain — slow time down to savor it. */
@@ -466,6 +479,7 @@ class Game {
       const player = this.players[i];
       this.paddles[i].hitAt = this.fx.time;
       this.fx.paddleHit(event, player.rgb, intensity);
+      player.sendEvent('hit', intensity * 255);
       this.emit('paddle', i);
       // In the lobby, only make noise when a person is actually playing.
       if (!inLobby || player.kind === 'controller' || performance.now() - player.lastInputAt < 5000) {
@@ -496,6 +510,8 @@ class Game {
     this.sound.goal(scorer, event.scorer === 'left' ? 'right' : 'left');
     this.fx.goal(event, i, scorer.rgb);
     this.emit('score', { scorer: i });
+    scorer.sendEvent('scored', this.score[i], this.score[1 - i]);
+    this.players[1 - i].sendEvent('conceded', this.score[i], this.score[1 - i]);
 
     if (this.score[i] >= this.rules.pointsToWin) {
       this.winMatch(i);
@@ -517,6 +533,8 @@ class Game {
     this.sound.stopAmbience();
     this.music?.stop({ fade: 0.8 });
     this.sound.win(this.players[i]);
+    this.players[i].sendEvent('won');
+    this.players[1 - i].sendEvent('lost');
     this.fx.win(this.players[i].rgb, this.players[i].side);
     [0.25, 0.38, 0.51, 0.64].forEach((t) => this.fx.after(t, () => this.sound.confettiPop()));
     this.setState('won');

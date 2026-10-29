@@ -103,6 +103,19 @@ for (const [name, a] of entries(spec.actions.codes)) {
   if (a.emotes && !(Array.isArray(a.emotes) && a.emotes.length)) problem(`${where}: emotes should be a list of words`);
 }
 
+const eventCodes = new Map();
+for (const [name, e] of entries(spec.events.codes)) {
+  const where = `events.${name}`;
+  checkStatus(where, e);
+  if (!/^[a-z][A-Za-z]*$/.test(name)) problem(`${where}: names are camelCase letters`);
+  if (!Number.isInteger(e.code) || e.code < 1 || e.code > 255) problem(`${where}: code must be a whole number from 1 to 255`);
+  if (eventCodes.has(e.code)) problem(`${where}: code ${e.code} is already used by ${eventCodes.get(e.code)}`);
+  eventCodes.set(e.code, name);
+  if (!(e.bytes >= 1 && e.bytes <= spec.events.maxBytes)) problem(`${where}: bytes must be 1–${spec.events.maxBytes}`);
+  const values = Object.keys(e.fields || {});
+  if (values.length !== e.bytes - 1) problem(`${where}: ${e.bytes} bytes means ${e.bytes - 1} field(s), but it lists ${values.length}`);
+}
+
 for (const [key, f] of entries(spec.classList.fields)) checkStatus(`classList.${key}`, f);
 for (const [type, m] of entries(spec.admin.messages)) checkStatus(`admin.messages.${type}`, m);
 for (const [name, c] of entries(spec.bluetooth.characteristics)) {
@@ -222,6 +235,7 @@ namespace DFPongSpec {
     const char* const MOVEMENT_UUID_BASE = ${cString(spec.bluetooth.uuidBase.movement)};
     const char* const CONFIG_UUID_BASE = ${cString(spec.bluetooth.uuidBase.config)};
     const char* const ACTIONS_UUID_BASE = ${cString(spec.bluetooth.uuidBase.actions)};
+    const char* const EVENTS_UUID_BASE = ${cString(spec.bluetooth.uuidBase.events)};
     const int CONTROLLER_NUMBER_MIN = ${spec.bluetooth.controllerNumber.min};
     const int CONTROLLER_NUMBER_MAX = ${spec.bluetooth.controllerNumber.max};
     const size_t CONFIG_MAX_BYTES = ${spec.bluetooth.characteristics.config.maxBytes};
@@ -236,6 +250,10 @@ ${lines.join('\n')}
     // Actions (byte 0 of a packet on the actions characteristic)
     const size_t ACTIONS_MAX_BYTES = ${spec.actions.maxBytes};
 ${actionLines.join('\n')}
+
+    // Game events (byte 0 of a packet the game writes to the events characteristic)
+    const size_t EVENTS_MAX_BYTES = ${spec.events.maxBytes};
+${entries(spec.events.codes).map(([name, e]) => `    const uint8_t EVENT_${upper(name)} = ${e.code};${e.status !== 'stable' ? ` // ${e.status}` : ''}`).join('\n')}
 
     // Built-in sound names (hitSound, scoreSound, winSound)
     const char* const SOUNDS[] = {
@@ -346,6 +364,17 @@ ${md.table(
 )}
 
 ${entries(act.codes).map(([name, a]) => `- \`${name}\`: ${a.description}${a.emotes ? ` Emotes: ${a.emotes.map((e, i) => `${i} = ${e}`).join(', ')}.` : ''}`).join('\n')}`);
+
+  const evs = s.events;
+  sections.push(`## Game events
+
+${evs.description} Each packet is at most ${evs.maxBytes} bytes: byte 0 is the event code, then its values.
+Controllers ignore extra bytes and unknown codes, so later versions can add to them.
+
+${md.table(
+  ['Code', 'Event', 'Bytes', 'Values', 'Status', 'When'],
+  entries(evs.codes).map(([name, e]) => [String(e.code), `\`${name}\``, String(e.bytes), entries(e.fields).map(([f, t]) => `${f}: ${t}`).join('; ') || '—', statusText(e), e.description])
+)}`);
 
   sections.push(`## When changes apply during a match
 

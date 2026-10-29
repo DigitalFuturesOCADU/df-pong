@@ -218,6 +218,19 @@ UUID base `19b10013-…` + the controller's suffix, `NOTIFY`. Packet layouts, co
 5. Unknown codes and extra bytes are ignored (they show in the debug drawer), so later versions can add
    actions and fields.
 
+### Events characteristic (experimental, API 1.3)
+
+UUID base `19b10014-…` + the controller's suffix, `WRITE` / `WRITE WITHOUT RESPONSE`. The **game writes** to it:
+what just happened, from that controller's player's point of view (codes in [API.md → Game events](API.md#game-events)).
+
+1. After the actions characteristic, the game looks for the events characteristic. If it isn't there
+   (`NotFoundError`), the controller simply gets no events; it never fails the connection.
+2. Each event is one short packet, written without waiting for a reply when the controller allows it. It goes
+   through the same one-at-a-time queue as every other Bluetooth operation; an event that can't be written within
+   300 ms is dropped, because a late sound is worse than none.
+3. There's no notify on this characteristic, so ArduinoBLE's habit of echoing writes back can't happen here.
+4. Older games never write to it, and older controllers don't have it.
+
 ---
 
 ## 5. Settings: who decides?

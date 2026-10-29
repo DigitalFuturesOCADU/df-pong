@@ -1,7 +1,7 @@
 {
   "$comment": "The DFPONG API: everything controllers, the game and the admin panel can send each other. This file is the one place to change it. After editing, run `node api/build.mjs` (see api/README.md).",
   "name": "DFPONG API",
-  "version": "1.2",
+  "version": "1.3",
   "configVersion": 1,
 
   "evolution": {
@@ -28,7 +28,8 @@
       "service": "19b10010-e8f2-537e-4f6c-d104768a12",
       "movement": "19b10011-e8f2-537e-4f6c-d104768a12",
       "config": "19b10012-e8f2-537e-4f6c-d104768a12",
-      "actions": "19b10013-e8f2-537e-4f6c-d104768a12"
+      "actions": "19b10013-e8f2-537e-4f6c-d104768a12",
+      "events": "19b10014-e8f2-537e-4f6c-d104768a12"
     },
     "uuidSuffix": "Two hex digits: 13 + the controller number (controller 1 → 0e, controller 242 → ff). Every 2024 controller uses 14.",
     "controllerNumber": { "min": 1, "max": 242 },
@@ -60,6 +61,12 @@
         "since": "1.1",
         "properties": ["notify"],
         "description": "Controller → game: things that happen during play, as small packets (see `actions`). Older games don't subscribe, so a controller can always have it."
+      },
+      "events": {
+        "status": "experimental",
+        "since": "1.3",
+        "properties": ["write", "writeWithoutResponse"],
+        "description": "Game → controller: what just happened in the game (see `events`), so a controller can play a sound, flash a light or buzz a motor. The game only writes to controllers that have it; older games never write."
       }
     },
     "timing": {
@@ -199,6 +206,26 @@
     }
   },
 
+  "events": {
+    "$comment": "Packets the game writes to the events characteristic: byte 0 is the event code, then its values. 'You' is the player this controller belongs to. Controllers ignore extra bytes and unknown codes.",
+    "description": "What just happened in the game, sent to each controller from its own player's point of view. A controller can play a sound (setBuzzer), light an LED or move a motor (onGameEvent). Events are sent the moment they happen; one that can't be sent within maxDelayMs is dropped rather than arriving late.",
+    "maxBytes": 20,
+    "maxDelayMs": 300,
+    "codes": {
+      "matchStart": { "code": 1, "bytes": 1, "status": "experimental", "since": "1.3", "description": "A match is starting (the NAME vs NAME screen)." },
+      "countdown": { "code": 2, "bytes": 2, "fields": {"value": "3, 2, 1, then 0 for GO"}, "status": "experimental", "since": "1.3", "description": "One beat of the countdown before the first serve." },
+      "hit": { "code": 3, "bytes": 2, "fields": {"value": "how fast the puck was going: 0 (slow) to 255 (top speed)"}, "status": "experimental", "since": "1.3", "description": "Your paddle hit the puck." },
+      "scored": { "code": 4, "bytes": 3, "fields": {"value": "your score now", "value2": "the other player's score"}, "status": "experimental", "since": "1.3", "description": "You scored a point." },
+      "conceded": { "code": 5, "bytes": 3, "fields": {"value": "the other player's score now", "value2": "your score"}, "status": "experimental", "since": "1.3", "description": "The other player scored." },
+      "matchPoint": { "code": 6, "bytes": 2, "fields": {"value": "1: you can win with the next point, 0: they can, 2: whoever scores next wins"}, "status": "experimental", "since": "1.3", "description": "The next point can end the match (the MATCH POINT announcement)." },
+      "won": { "code": 7, "bytes": 1, "status": "experimental", "since": "1.3", "description": "You won the match." },
+      "lost": { "code": 8, "bytes": 1, "status": "experimental", "since": "1.3", "description": "You lost the match." },
+      "paused": { "code": 9, "bytes": 1, "status": "experimental", "since": "1.3", "description": "The game paused." },
+      "resumed": { "code": 10, "bytes": 1, "status": "experimental", "since": "1.3", "description": "The game resumed." },
+      "taunted": { "code": 11, "bytes": 2, "fields": {"value": "which word (the taunt emote index)"}, "status": "experimental", "since": "1.3", "description": "The other player taunted you." }
+    }
+  },
+
   "policies": {
     "$comment": "House setting: how two different rule requests are settled when a match starts.",
     "average": { "label": "Average the two requests", "short": "Meet in the middle", "default": true },
@@ -323,6 +350,13 @@
   },
 
   "changelog": [
+    {
+      "version": "1.3",
+      "date": "2026-10-29",
+      "changes": [
+        "Experimental: the events characteristic (19b10014-…), game → controller: matchStart, countdown, hit, scored, conceded, matchPoint, won, lost, paused, resumed, taunted. Library 2.5: setBuzzer(), onGameEvent(), readGameEvent()."
+      ]
+    },
     {
       "version": "1.2",
       "date": "2026-10-28",

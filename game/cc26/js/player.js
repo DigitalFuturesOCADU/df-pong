@@ -149,6 +149,11 @@ class Player {
     this.link.disconnect();
   }
 
+  /** Tell this player's controller what just happened (events characteristic, experimental). */
+  sendEvent(name, ...values) {
+    if (this.kind === 'controller') this.link.sendEvent(name, ...values);
+  }
+
   // -------------------------------------------------------------------------
   // Controller events
   // -------------------------------------------------------------------------

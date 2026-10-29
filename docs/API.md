@@ -1,6 +1,6 @@
 <!-- Generated from api/dfpong-api.json by api/build.mjs. Edit the spec, not this file. -->
 
-# DFPONG API 1.2
+# DFPONG API 1.3
 
 The API grows a little every year. These rules let it change without breaking the controllers, games and admin panels already out there.
 
@@ -35,6 +35,7 @@ Each controller is a Bluetooth LE peripheral. The browser finds it by a service 
 | `movement` | `19b10011-e8f2-537e-4f6c-d104768a12` | read, write, notify | stable · 1.0 | Controller → game: the paddle direction, sent as a notification when it changes. Game → controller: 3 (hello) during the handshake. The game also reads it every 1.5 s to check the controller is still there. |
 | `config` | `19b10012-e8f2-537e-4f6c-d104768a12` | read, notify | stable · 1.0 | The controller's settings as one JSON object (see `settings`). The game reads it when connecting, and reads it again whenever the controller notifies a change. |
 | `actions` | `19b10013-e8f2-537e-4f6c-d104768a12` | notify | **experimental** · 1.1 | Controller → game: things that happen during play, as small packets (see `actions`). Older games don't subscribe, so a controller can always have it. |
+| `events` | `19b10014-e8f2-537e-4f6c-d104768a12` | write, writeWithoutResponse | **experimental** · 1.3 | Game → controller: what just happened in the game (see `events`), so a controller can play a sound, flash a light or buzz a motor. The game only writes to controllers that have it; older games never write. |
 
 Movement values (1 byte):
 
@@ -110,6 +111,25 @@ Readers ignore extra bytes and unknown codes, so later versions can add to them.
 - `positionOff`: Stop following positions; the paddle stops and listens to UP / DOWN again.
 - `taunt`: Show a word over your paddle, with a ring and a sound. At most one every cooldownMs per player; the game ignores the rest. The host can turn taunts off with the In Game Actions switch. Emotes: 0 = HA!, 1 = NICE, 2 = GG, 3 = OOPS, 4 = COME ON, 5 = WOW.
 - `power`: Power-ups with cooldowns the game enforces.
+
+## Game events
+
+What just happened in the game, sent to each controller from its own player's point of view. A controller can play a sound (setBuzzer), light an LED or move a motor (onGameEvent). Events are sent the moment they happen; one that can't be sent within maxDelayMs is dropped rather than arriving late. Each packet is at most 20 bytes: byte 0 is the event code, then its values.
+Controllers ignore extra bytes and unknown codes, so later versions can add to them.
+
+| Code | Event | Bytes | Values | Status | When |
+|---|---|---|---|---|---|
+| 1 | `matchStart` | 1 | — | **experimental** · 1.3 | A match is starting (the NAME vs NAME screen). |
+| 2 | `countdown` | 2 | value: 3, 2, 1, then 0 for GO | **experimental** · 1.3 | One beat of the countdown before the first serve. |
+| 3 | `hit` | 2 | value: how fast the puck was going: 0 (slow) to 255 (top speed) | **experimental** · 1.3 | Your paddle hit the puck. |
+| 4 | `scored` | 3 | value: your score now; value2: the other player's score | **experimental** · 1.3 | You scored a point. |
+| 5 | `conceded` | 3 | value: the other player's score now; value2: your score | **experimental** · 1.3 | The other player scored. |
+| 6 | `matchPoint` | 2 | value: 1: you can win with the next point, 0: they can, 2: whoever scores next wins | **experimental** · 1.3 | The next point can end the match (the MATCH POINT announcement). |
+| 7 | `won` | 1 | — | **experimental** · 1.3 | You won the match. |
+| 8 | `lost` | 1 | — | **experimental** · 1.3 | You lost the match. |
+| 9 | `paused` | 1 | — | **experimental** · 1.3 | The game paused. |
+| 10 | `resumed` | 1 | — | **experimental** · 1.3 | The game resumed. |
+| 11 | `taunted` | 2 | value: which word (the taunt emote index) | **experimental** · 1.3 | The other player taunted you. |
 
 ## When changes apply during a match
 
@@ -282,6 +302,10 @@ Sent on every change and at least every 2 seconds.
 - **feedback** (planned): The game tells the controller which settings it accepted and why any were refused, so the Serial Monitor can show it.
 
 ## Changelog
+
+### 1.3 (2026-10-29)
+
+- Experimental: the events characteristic (19b10014-…), game → controller: matchStart, countdown, hit, scored, conceded, matchPoint, won, lost, paused, resumed, taunted. Library 2.5: setBuzzer(), onGameEvent(), readGameEvent().
 
 ### 1.2 (2026-10-28)
 

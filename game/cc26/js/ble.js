@@ -22,7 +22,11 @@ const BLE_UUID = {
   movement: DFPONG_API.bluetooth.uuidBase.movement, // 19b10011-…
   config: DFPONG_API.bluetooth.uuidBase.config, // 19b10012-…
   actions: DFPONG_API.bluetooth.uuidBase.actions, // 19b10013-… (experimental)
+  events: DFPONG_API.bluetooth.uuidBase.events, // 19b10014-… (experimental, game → controller)
 };
+
+// Event name → code (hit, scored, won…), from the DFPONG API
+const EVENT_CODES = Object.fromEntries(apiEntries(DFPONG_API.events.codes).map(([name, e]) => [name, e.code]));
 
 // Action code → name (position, positionOff, taunt…), from the DFPONG API. Planned codes aren't listed.
 const ACTION_NAMES = Object.fromEntries(
@@ -42,7 +46,7 @@ function uuidSuffix(target) {
 
 function controllerUUIDs(target) {
   const s = uuidSuffix(target);
-  return { service: BLE_UUID.service + s, movement: BLE_UUID.movement + s, config: BLE_UUID.config + s, actions: BLE_UUID.actions + s };
+  return { service: BLE_UUID.service + s, movement: BLE_UUID.movement + s, config: BLE_UUID.config + s, actions: BLE_UUID.actions + s, events: BLE_UUID.events + s };
 }
 
 const bluetoothAvailable = () => !!(navigator.bluetooth && navigator.bluetooth.requestDevice);
@@ -65,6 +69,7 @@ class ControllerLink {
     this.movementChar = null;
     this.configChar = null;
     this.actionsChar = null;
+    this.eventsChar = null;
     this.generation = null; // '2024' | '2025' | '2026'
     this.deviceName = '';
     this.userDisconnected = false;
@@ -88,7 +93,7 @@ class ControllerLink {
     this._onMovementEvent = (e) => this.handleMovement(e.target.value);
     this._onConfigEvent = () => this.scheduleConfigRead();
     this._onActionEvent = (e) => this.handleAction(e.target.value);
-    this.stats = { messages: 0, lastValue: null, lastAt: 0, rate: 0, _windowCount: 0, _windowStart: performance.now(), configReads: 0, checks: 0, lastCheckMs: null, actions: 0, lastAction: null };
+    this.stats = { messages: 0, lastValue: null, lastAt: 0, rate: 0, _windowCount: 0, _windowStart: performance.now(), configReads: 0, checks: 0, lastCheckMs: null, actions: 0, lastAction: null, eventsSent: 0, eventsDropped: 0, lastEvent: null };
   }
 
   get isConnected() {
@@ -242,6 +247,17 @@ class ControllerLink {
       }
     }
 
+    // 5. Events (experimental): the game tells the controller what happened. Optional, like actions.
+    this.eventsChar = null;
+    if (this.generation === '2026') {
+      try {
+        const ch = await step(service.getCharacteristic(this.uuids.events), 'finding events');
+        if (ch.properties.write || ch.properties.writeWithoutResponse) this.eventsChar = ch;
+      } catch (e) {
+        if (e && e.name !== 'NotFoundError') this.log('events unavailable', e);
+      }
+    }
+
     // If the controller dropped while we were setting up, this attempt failed.
     if (!this.device || !this.device.gatt.connected || !this.movementChar) throw new Error('connection dropped during setup');
   }
@@ -274,6 +290,29 @@ class ControllerLink {
     }
     const direction = value === MOVEMENT.UP ? -1 : value === MOVEMENT.DOWN ? 1 : 0;
     this.handlers.onMove && this.handlers.onMove(direction);
+  }
+
+  /**
+   * Tell the controller what just happened (events characteristic): sendEvent('scored', 3, 1).
+   * Does nothing for controllers without it. An event that can't go out within maxDelayMs
+   * (the connection is busy) is dropped: a late sound is worse than none.
+   */
+  sendEvent(name, ...values) {
+    const ch = this.eventsChar;
+    if (!ch || this.status !== 'connected' || !hasOwn(EVENT_CODES, name)) return;
+    const packet = new Uint8Array([EVENT_CODES[name], ...values.map((v) => Math.max(0, Math.min(255, Math.round(v) || 0)))]);
+    const queuedAt = performance.now();
+    this.queue(() => {
+      if (ch !== this.eventsChar || performance.now() - queuedAt > DFPONG_API.events.maxDelayMs) {
+        this.stats.eventsDropped++;
+        return;
+      }
+      const write = ch.properties.writeWithoutResponse && ch.writeValueWithoutResponse ? ch.writeValueWithoutResponse(packet) : ch.writeValueWithResponse ? ch.writeValueWithResponse(packet) : ch.writeValue(packet);
+      return withTimeout(write, 1000, 'event write timed out').then(() => {
+        this.stats.eventsSent++;
+        this.stats.lastEvent = name;
+      });
+    }).catch((e) => this.log('event not sent', name, e));
   }
 
   /** One packet from the actions characteristic: byte 0 is the action, then its bytes (see docs/API.md). */
@@ -399,6 +438,7 @@ class ControllerLink {
     this.movementChar = null;
     this.configChar = null;
     this.actionsChar = null;
+    this.eventsChar = null;
     this.handlers.onMove && this.handlers.onMove(0);
     if (this.userDisconnected || !this.device) {
       this.setStatus('idle');
@@ -463,6 +503,7 @@ class ControllerLink {
     this.movementChar = null;
     this.configChar = null;
     this.actionsChar = null;
+    this.eventsChar = null;
     this.generation = null;
     this.deviceName = '';
     this.reconnectAttempt = 0;
