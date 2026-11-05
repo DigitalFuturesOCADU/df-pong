@@ -125,9 +125,12 @@ class Player {
     return list;
   }
 
-  /** @param entry the class list entry for this controller ({name, controllerName}), if any */
+  /**
+   * Choosing a different controller hangs up the one connected now.
+   * @param entry the class list entry for this controller ({name, controllerName}), if any
+   */
   selectController(target, entry) {
-    if (this.kind === 'controller') return;
+    if (this.kind === 'controller' && target !== this.target) this.disconnect();
     this.target = target;
     this.person = entry?.name || null;
     this.controllerName = entry?.controllerName || null;

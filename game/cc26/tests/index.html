@@ -673,6 +673,21 @@ async function run() {
     try { localStorage.removeItem(house.storageKey); } catch (e) { /* ignore */ }
   }
 
+  group('Choosing someone else while a controller is connected');
+  {
+    const p = new Player(1, { house: new HouseRules('tests-switch'), sound: { load: async () => ({ ok: true, sound: {} }) }, music: { probe: async () => ({ ok: true }) } });
+    let hangups = 0;
+    p.disconnect = () => hangups++;
+    p.selectController(12, { name: 'Kate' });
+    p.linkStatus = 'connected';
+    p.selectController(12, { name: 'Kate' });
+    check('the same controller stays connected', hangups === 0);
+    p.selectController(30, { name: 'Sarah' });
+    check('another controller hangs up the current one', hangups === 1);
+    check('and it is the one chosen now', p.target === 30 && p.person === 'Sarah', `${p.target} / ${p.person}`);
+    try { localStorage.removeItem(p.house?.storageKey); } catch (e) { /* ignore */ }
+  }
+
   group('Table names');
   {
     check('spaces tidied', cleanTableName('  Table   A ') === 'Table A');

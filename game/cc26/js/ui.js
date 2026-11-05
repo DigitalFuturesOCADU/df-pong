@@ -772,7 +772,7 @@ class UI {
 
     const select = card.querySelector('.device-select');
     const busy = ['choosing', 'connecting'].includes(status);
-    select.disabled = kind === 'controller' || busy;
+    select.disabled = busy; // choosing someone else while connected hangs up the current controller
     card.querySelector('.device-number').disabled = select.disabled;
 
     const connect = card.querySelector('.connect');
