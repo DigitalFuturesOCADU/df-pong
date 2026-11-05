@@ -14,6 +14,7 @@ The API grows a little every year. These rules let it change without breaking th
 - Readers forgive. The game ignores settings it doesn't know (and lists them in its debug panel), uses the default for any value it can't use, and clamps numbers into range. Controllers and admin panels ignore fields they don't know.
 - Experimental items can still change or disappear without a new major version. Try them; don't build a whole project on them yet.
 - Deprecated items keep working for at least one more school year, and their replacement is named here.
+- Items marked "docs": false work, but are left out of the published docs while they're tried out.
 - Breaking changes need a new major version (2.0) and a new configVersion. Avoid them: old controllers will still send configVersion 1 for years.
 
 | Status | Meaning |
@@ -104,12 +105,10 @@ Readers ignore extra bytes and unknown codes, so later versions can add to them.
 |---|---|---|---|---|---|---|
 | 1 | `position` | 2 | position: 0 (top) to 255 (bottom) | `sendPosition()` | at most every 20 ms | **experimental** · 1.1 |
 | 2 | `positionOff` | 1 | — | `stopPosition()` | — | **experimental** · 1.1 |
-| 3 | `taunt` | 2 | emote: which word to show (index into emotes, optional, default 0) | `sendTaunt()` | one per 2 s, permission `taunts` | **experimental** · 1.1 |
 | 4 | `power` | — | — | — | — | **planned** |
 
 - `position`: Move the paddle to this height, for knobs, sliders and distance sensors. The paddle still moves at its normal speed, like a touch player's, so it isn't faster than buttons. The paddle follows positions until the controller sends UP or DOWN on the movement characteristic (NEUTRAL doesn't count) or positionOff.
 - `positionOff`: Stop following positions; the paddle stops and listens to UP / DOWN again.
-- `taunt`: Show a word over your paddle, with a ring and a sound. At most one every cooldownMs per player; the game ignores the rest. The host can turn taunts off with the In Game Actions switch. Emotes: 0 = HA!, 1 = NICE, 2 = GG, 3 = OOPS, 4 = COME ON, 5 = WOW.
 - `power`: Power-ups with cooldowns the game enforces.
 
 ## Game events
@@ -129,7 +128,6 @@ Controllers ignore extra bytes and unknown codes, so later versions can add to t
 | 8 | `lost` | 1 | — | **experimental** · 1.3 | You lost the match. |
 | 9 | `paused` | 1 | — | **experimental** · 1.3 | The game paused. |
 | 10 | `resumed` | 1 | — | **experimental** · 1.3 | The game resumed. |
-| 11 | `taunted` | 2 | value: which word (the taunt emote index) | **experimental** · 1.3 | The other player taunted you. |
 
 ## When changes apply during a match
 
@@ -154,7 +152,6 @@ Permissions (which kinds of settings controllers may use):
 | `moveSpeed` | Custom move speed |
 | `paddleSize` | Custom paddle size |
 | `requests` | Rule requests |
-| `taunts` | In Game Actions |
 
 Policies (how two different rule requests are settled):
 
@@ -305,7 +302,7 @@ Sent on every change and at least every 2 seconds.
 
 ### 1.3 (2026-10-29)
 
-- Experimental: the events characteristic (19b10014-…), game → controller: matchStart, countdown, hit, scored, conceded, matchPoint, won, lost, paused, resumed, taunted. Library 2.5: setBuzzer(), onGameEvent(), readGameEvent().
+- Experimental: the events characteristic (19b10014-…), game → controller: matchStart, countdown, hit, scored, conceded, matchPoint, won, lost, paused, resumed. Library 2.5: setBuzzer(), onGameEvent(), readGameEvent().
 
 ### 1.2 (2026-10-28)
 
@@ -314,8 +311,7 @@ Sent on every change and at least every 2 seconds.
 
 ### 1.1 (2026-10-13)
 
-- Experimental: the actions characteristic (19b10013-…), with position (move the paddle to a height, for knobs and sensors), positionOff and taunt.
-- Experimental: the taunts permission.
+- Experimental: the actions characteristic (19b10013-…), with position (move the paddle to a height, for knobs and sensors) and positionOff.
 - Reserved: action code 4 for power-ups.
 
 ### 1.0 (2026-10-13)

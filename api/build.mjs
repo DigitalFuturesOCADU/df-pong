@@ -33,6 +33,8 @@ const problems = [];
 const problem = (message) => problems.push(message);
 const entries = (obj) => Object.entries(obj || {}).filter(([key]) => !key.startsWith('$'));
 const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+// Items with "docs": false are built into the code but left out of docs/API.md
+const documented = (obj) => entries(obj).filter(([, item]) => item.docs !== false);
 
 // ---------------------------------------------------------------------------
 // 1. Is the spec consistent?
@@ -49,6 +51,7 @@ if (!spec.changelog.some((c) => c.version === spec.version)) problem(`the change
 const checkStatus = (where, item) => {
   if (item.status && !STATUSES.includes(item.status)) problem(`${where}: unknown status "${item.status}"`);
   if (item.status === 'deprecated' && !item.replacedBy) problem(`${where}: deprecated items need replacedBy`);
+  if (hasOwn(item, 'docs') && typeof item.docs !== 'boolean') problem(`${where}: docs should be true or false`);
   if (item.since && !/^\d+\.\d+$/.test(item.since)) problem(`${where}: since "${item.since}" should look like 1.0`);
 };
 
@@ -352,7 +355,7 @@ Readers ignore extra bytes and unknown codes, so later versions can add to them.
 
 ${md.table(
   ['Code', 'Action', 'Bytes', 'Fields', 'Library', 'Limits', 'Status'],
-  entries(act.codes).map(([name, a]) => [
+  documented(act.codes).map(([name, a]) => [
     String(a.code),
     `\`${name}\``,
     a.bytes ? String(a.bytes) : '—',
@@ -363,7 +366,7 @@ ${md.table(
   ])
 )}
 
-${entries(act.codes).map(([name, a]) => `- \`${name}\`: ${a.description}${a.emotes ? ` Emotes: ${a.emotes.map((e, i) => `${i} = ${e}`).join(', ')}.` : ''}`).join('\n')}`);
+${documented(act.codes).map(([name, a]) => `- \`${name}\`: ${a.description}${a.emotes ? ` Emotes: ${a.emotes.map((e, i) => `${i} = ${e}`).join(', ')}.` : ''}`).join('\n')}`);
 
   const evs = s.events;
   sections.push(`## Game events
@@ -373,7 +376,7 @@ Controllers ignore extra bytes and unknown codes, so later versions can add to t
 
 ${md.table(
   ['Code', 'Event', 'Bytes', 'Values', 'Status', 'When'],
-  entries(evs.codes).map(([name, e]) => [String(e.code), `\`${name}\``, String(e.bytes), entries(e.fields).map(([f, t]) => `${f}: ${t}`).join('; ') || '—', statusText(e), e.description])
+  documented(evs.codes).map(([name, e]) => [String(e.code), `\`${name}\``, String(e.bytes), entries(e.fields).map(([f, t]) => `${f}: ${t}`).join('; ') || '—', statusText(e), e.description])
 )}`);
 
   sections.push(`## When changes apply during a match
@@ -389,7 +392,7 @@ ${md.table(
 
 Permissions (which kinds of settings controllers may use):
 
-${md.table(['Permission', 'Label'], entries(s.permissions).map(([k, o]) => [`\`${k}\``, o.label]))}
+${md.table(['Permission', 'Label'], documented(s.permissions).map(([k, o]) => [`\`${k}\``, o.label]))}
 
 Policies (how two different rule requests are settled):
 

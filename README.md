@@ -7,7 +7,7 @@
 Students build a controller from any sensor they like (buttons, light, distance, tilt, sound, conductive fabric…),
 give it a number, and connect it to the game with one click. In 2026, controllers can also bring their own
 color, sounds, music, paddle size and speed, ask for the rules they'd like to play by, and (experimental)
-steer with a knob or send taunts.
+steer with a knob.
 
 ## Play
 
@@ -33,7 +33,7 @@ iPhones/iPads can still play with the keyboard, touch, or against the computer.
 
 | Controller | Works in the 2026 game | How to connect |
 |---|---|---|
-| **2026**: DFPongController library 2.x | ✓ with custom settings (2.3 adds knob steering and taunts) | Pick your number, press Connect |
+| **2026**: DFPongController library 2.x | ✓ with custom settings (2.3 adds knob steering) | Pick your number, press Connect |
 | **2025**: library 1.x or the raw `DEVICE_NUMBER` sketch | ✓ | Pick your number, press Connect |
 | **2024**: raw sketch with a custom name | ✓ | Choose **"2024 controller"**, then pick it by name in the browser's list |
 
@@ -137,21 +137,18 @@ void loop() {
 - Older games don't understand positions, so a position-only controller can't move there.
 
 Both come with the library as examples: **01_SimpleDigital** (two buttons) and **09_KnobSteering** (a knob, library
-2.3.1). More examples (click control, gravity, chorded buttons, live settings, a knob with a taunt button…) are under
+2.3.1). More examples (click control, gravity, chorded buttons, live settings…) are under
 *File → Examples → DFPongController*. Library repo:
 [df-pong-controller](https://github.com/DigitalFuturesOCADU/df-pong-controller).
 
 ### 2. Make it yours (optional)
 
-There are two kinds of customization. Both need the 2026 game; older games ignore them, and your controller still
-plays there.
+**Settings** describe your side: name, color, paddle, sounds, music, and the rules you'd like to play by. Set them
+once in `setup()` (before or after `controller.begin()`), or change them any time while you play. They need the 2026
+game; older games ignore them, and your controller still plays there.
 
-- **Settings** describe your side: name, color, paddle, sounds, music, and the rules you'd like to play by. Set them
-  once in `setup()` (before or after `controller.begin()`), or change them any time while you play.
-- **In Game Actions** are things you do during play, like taunting the other player. *(Experimental.)*
-
-You need the DFPongController library **2.0 or newer** for settings, **2.1** for music and **2.3** for In Game Actions
-(update it in the Library Manager).
+You need the DFPongController library **2.0 or newer** for settings and **2.1** for music (update it in the Library
+Manager).
 
 **Easiest start:** open the **[Settings Builder](https://digitalfuturesocadu.github.io/df-pong/game/cc26/builder/)**.
 It previews your paddle, plays the built-in sounds, tests your own sound links exactly the way the game loads them,
@@ -254,38 +251,18 @@ a match*):
 
 The game shows a short message when a change has to wait. Rule requests and music always wait for the next match.
 
-#### In Game Actions *(experimental, library 2.3)*
-
-```cpp
-controller.sendTaunt(2);   // "GG" pops up beside your paddle
-```
-
-`sendTaunt(n)` shows a word beside your paddle with a ring and a sound (your own hit sound, if you set one):
-
-| `n` | 0 | 1 | 2 | 3 | 4 | 5 |
-|---|---|---|---|---|---|---|
-| Word | HA! | NICE | GG | OOPS | COME ON | WOW |
-
-- The game shows at most **one taunt every 2 seconds** per player and ignores the rest (they don't queue up).
-- Nothing happens while the game is paused, and the host can turn taunts off with the **In Game Actions** switch.
-- `controller.actionsAvailable()` tells you whether the game is listening (older games don't).
-- The library's `08_PositionControl` example has a knob for steering and a button for taunts.
-
-Steering with a knob or sensor is one of the two ways to move your paddle: see
-[Two ways to move your paddle](#two-ways-to-move-your-paddle) above.
-
 #### What the host can turn off
 
 In Settings (and the admin panel) the host can turn off, for everyone: custom names, colors, sounds, music, paddle
-speed, paddle size, rule requests and **In Game Actions** (taunts; steering with a knob always works). All are on by default. When one is off, the game uses the default and
+speed, paddle size, and rule requests. All are on by default. When one is off, the game uses the default and
 your player card shows that setting crossed out.
 
 #### Checking what the game received
 
 - Your **player card** in the lobby lists what your controller asked for, crosses out anything the host turned off,
   and says when a sound or music link couldn't load.
-- **Controller details** (press `D`) shows the exact settings your controller sent, whether you're steering by
-  position, and the actions received.
+- **Controller details** (press `D`) shows the exact settings your controller sent, and whether you're steering by
+  position.
 - On the controller: `Serial.println(controller.getSettingsJSON());` prints what the game will receive. Values out of
   range are fixed for you, with a note in the Serial Monitor, e.g.
   `DFPong: setMoveSpeed(500) is out of range (1-100), using 100`.
@@ -351,7 +328,7 @@ automatically. No need to pick it again. If it can't come back, the pause screen
   - Another device (phone, tablet, a Wi-Fi microcontroller…): run the small relay server; see
     [server/README.md](server/README.md).
 - **Locked rules** ignore what players ask for. **Permissions** turn off custom names, colors, sounds, music,
-  speed, paddle size, rule requests or In Game Actions (taunts) for everyone.
+  speed, paddle size or rule requests for everyone.
 
 ---
 
@@ -385,7 +362,7 @@ they're picked by name.
 |---|---|---|
 | Movement `19b10011-…` | both ways | 1 byte: 0 stop, 1 up, 2 down, 3 hello. The game also reads it every 1.5 s to check the controller is still there |
 | Config `19b10012-…` (2026) | controller → game | JSON with the player's settings, read on connect and re-read when it changes |
-| Actions `19b10013-…` (2026, experimental) | controller → game | Small packets for things that happen during play: steer to a position, taunt |
+| Actions `19b10013-…` (2026, experimental) | controller → game | Small packets sent during play: steer to a position |
 
 A short handshake (both sides send `3`) confirms a game is listening before the controller sends movement.
 Every setting, name and packet is listed in [docs/API.md](docs/API.md).

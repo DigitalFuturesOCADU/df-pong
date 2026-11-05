@@ -213,9 +213,7 @@ UUID base `19b10013-…` + the controller's suffix, `NOTIFY`. Packet layouts, co
    `positionOff` (code 2). NEUTRAL doesn't end it, because the library sends one NEUTRAL by itself when a
    sketch stops calling `sendControl()`. After an UP/DOWN or a reconnect, the library sends the current
    position again.
-4. `taunt` (code 3): checked by the game against the `taunts` permission and a 2-second cooldown per player;
-   extra taunts are dropped, not queued. Nothing happens while the game is paused.
-5. Unknown codes and extra bytes are ignored (they show in the debug drawer), so later versions can add
+4. Unknown codes and extra bytes are ignored (they show in the debug drawer), so later versions can add
    actions and fields.
 
 ### Events characteristic (experimental, API 1.3)

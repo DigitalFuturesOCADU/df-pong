@@ -18,6 +18,7 @@ const DFPONG_API = Object.freeze({
       "Readers forgive. The game ignores settings it doesn't know (and lists them in its debug panel), uses the default for any value it can't use, and clamps numbers into range. Controllers and admin panels ignore fields they don't know.",
       "Experimental items can still change or disappear without a new major version. Try them; don't build a whole project on them yet.",
       "Deprecated items keep working for at least one more school year, and their replacement is named here.",
+      "Items marked \"docs\": false work, but are left out of the published docs while they're tried out.",
       "Breaking changes need a new major version (2.0) and a new configVersion. Avoid them: old controllers will still send configVersion 1 for years."
     ],
     "status": {
@@ -343,6 +344,7 @@ const DFPONG_API = Object.freeze({
     "taunts": {
       "label": "In Game Actions",
       "short": "In Game Actions",
+      "docs": false,
       "description": "Taunts (and later in-game actions such as power-ups). Steering with a knob is always allowed: it's a way to move, like buttons.",
       "status": "experimental",
       "since": "1.1"
@@ -382,6 +384,7 @@ const DFPONG_API = Object.freeze({
         "library": "sendTaunt",
         "permission": "taunts",
         "cooldownMs": 2000,
+        "docs": false,
         "emotes": [
           "HA!",
           "NICE",
@@ -497,6 +500,7 @@ const DFPONG_API = Object.freeze({
       "taunted": {
         "code": 11,
         "bytes": 2,
+        "docs": false,
         "fields": {
           "value": "which word (the taunt emote index)"
         },
@@ -805,7 +809,7 @@ const DFPONG_API = Object.freeze({
       "version": "1.3",
       "date": "2026-10-29",
       "changes": [
-        "Experimental: the events characteristic (19b10014-…), game → controller: matchStart, countdown, hit, scored, conceded, matchPoint, won, lost, paused, resumed, taunted. Library 2.5: setBuzzer(), onGameEvent(), readGameEvent()."
+        "Experimental: the events characteristic (19b10014-…), game → controller: matchStart, countdown, hit, scored, conceded, matchPoint, won, lost, paused, resumed. Library 2.5: setBuzzer(), onGameEvent(), readGameEvent()."
       ]
     },
     {
@@ -820,8 +824,7 @@ const DFPONG_API = Object.freeze({
       "version": "1.1",
       "date": "2026-10-13",
       "changes": [
-        "Experimental: the actions characteristic (19b10013-…), with position (move the paddle to a height, for knobs and sensors), positionOff and taunt.",
-        "Experimental: the taunts permission.",
+        "Experimental: the actions characteristic (19b10013-…), with position (move the paddle to a height, for knobs and sensors) and positionOff.",
         "Reserved: action code 4 for power-ups."
       ]
     },
