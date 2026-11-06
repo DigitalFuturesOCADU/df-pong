@@ -129,6 +129,16 @@ for (const [name, c] of entries(spec.bluetooth.characteristics)) {
   if (!hasOwn(spec.bluetooth.uuidBase, name)) problem(`bluetooth.${name}: no uuidBase`);
 }
 
+// Students pick from these lists, so the READMEs list every name
+const checkListed = (file) => {
+  const text = readFileSync(file, 'utf8');
+  for (const name of [...entries(spec.sounds), ...entries(spec.music)].map(([n]) => n)) {
+    if (!text.includes(`\`${name}\``)) problem(`${file} doesn't list "${name}"`);
+  }
+};
+checkListed(join(ROOT, 'README.md'));
+if (HAS_LIBRARY) checkListed(join(LIBRARY, 'README.md'));
+
 // ---------------------------------------------------------------------------
 // 2. Does the game folder have what the spec promises?
 // ---------------------------------------------------------------------------
