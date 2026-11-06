@@ -17,6 +17,7 @@ steer with a knob.
 | CC26 controller test · try your controller against the computer, see its settings | [Open](https://digitalfuturesocadu.github.io/df-pong/game/cc26/?test=1) | `game/cc26/` |
 | CC26 Settings Builder · design your custom settings, test sound addresses, get the code | [Open](https://digitalfuturesocadu.github.io/df-pong/game/cc26/builder/) | `game/cc26/builder/` |
 | CC26 admin panel · change rules and run the game from another window or device | [Open](https://digitalfuturesocadu.github.io/df-pong/game/cc26/admin/) | `game/cc26/admin/` |
+| **ITP 2026** | [Play](https://digitalfuturesocadu.github.io/df-pong/game/itp26/) · [Admin panel](https://digitalfuturesocadu.github.io/df-pong/game/itp26/admin/) | `game/itp26/` |
 | PhysComp26-501 · Physical Computing 2026, section 501 | [Play](https://digitalfuturesocadu.github.io/df-pong/game/physComp26-501/) | `game/physComp26-501/` |
 | PhysComp26-502 · Physical Computing 2026, section 502 | [Play](https://digitalfuturesocadu.github.io/df-pong/game/physComp26-502/) | `game/physComp26-502/` |
 | CC25 · Creation & Computation 2025 | [Play](https://digitalfuturesocadu.github.io/df-pong/game/cc25/) | `game/cc25/` |
@@ -385,6 +386,7 @@ game/
 │   ├── builder/        Settings Builder
 │   ├── admin/          admin panel
 │   └── tests/          engine tests with simulated controllers (open in a browser)
+├── itp26/              ITP 2026: its own copy of the 2026 game
 ├── physComp26-501/, physComp26-502/, cc25/   earlier versions, each self-contained
 ├── test/, _template/   the 2025 controller test page and template
 └── builder/, admin/    forward old links to cc26/builder/ and cc26/admin/

@@ -15,6 +15,7 @@ game/
 │   ├── builder/          Settings Builder (for students)
 │   ├── admin/            admin panel (for hosts)
 │   └── tests/            engine tests with simulated controllers
+├── itp26/                ITP 2026 (a copy of cc26)
 ├── physComp26-501/       Physical Computing 2026, section 501 (2025 game)
 ├── physComp26-502/       Physical Computing 2026, section 502 (2025 game)
 ├── cc25/                 Creation & Computation 2025 (2025 game)

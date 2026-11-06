@@ -1,0 +1,11 @@
+{
+  "about": "Recorded background music. Each name can be chosen in the lobby or set by a controller (setMusic(\"name\")). Sources and licences: CREDITS.md",
+  "tracks": {
+    "gymnopedie": { "file": "gymnopedie.mp3", "title": "Gymnopédie No. 1", "mood": "calm piano", "source": "Satie, played by Robin Alciatore (Musopen) via Wikimedia Commons", "licence": "Public domain" },
+    "smallsteps": { "file": "smallsteps.mp3", "title": "Small Steps", "mood": "calm ambient", "source": "Lee Rosevere via Free Music Archive", "licence": "CC BY 4.0" },
+    "bounce": { "file": "bounce.mp3", "title": "Once more with you", "mood": "minimal pulse", "source": "Loyalty Freak Music via Internet Archive", "licence": "CC0" },
+    "currents": { "file": "currents.mp3", "title": "Calm Currents", "mood": "lo-fi groove", "source": "HoliznaCC0 via Free Music Archive", "licence": "CC0" },
+    "palmleaf": { "file": "palmleaf.mp3", "title": "Palm Leaf Rag", "mood": "light ragtime", "source": "Scott Joplin, rendered by James Brigham, via Wikimedia Commons", "licence": "CC0" },
+    "spacemtv": { "file": "spacemtv.mp3", "title": "Space MTV", "mood": "light chiptune", "source": "Komiku via Internet Archive", "licence": "CC0" }
+  }
+}

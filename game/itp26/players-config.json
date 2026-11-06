@@ -1,0 +1,24 @@
+{
+  "players": [
+    { "deviceNumber": 1, "name": "Player 1", "controllerName": "" },
+    { "deviceNumber": 2, "name": "Player 2", "controllerName": "" },
+    { "deviceNumber": 3, "name": "Player 3", "controllerName": "" },
+    { "deviceNumber": 4, "name": "Player 4", "controllerName": "" },
+    { "deviceNumber": 5, "name": "Player 5", "controllerName": "" },
+    { "deviceNumber": 6, "name": "Player 6", "controllerName": "" },
+    { "deviceNumber": 7, "name": "Player 7", "controllerName": "" },
+    { "deviceNumber": 8, "name": "Player 8", "controllerName": "" },
+    { "deviceNumber": 9, "name": "Player 9", "controllerName": "" },
+    { "deviceNumber": 10, "name": "Player 10", "controllerName": "" },
+    { "deviceNumber": 11, "name": "Player 11", "controllerName": "" },
+    { "deviceNumber": 12, "name": "Player 12", "controllerName": "" },
+    { "deviceNumber": 13, "name": "Player 13", "controllerName": "" },
+    { "deviceNumber": 14, "name": "Player 14", "controllerName": "" },
+    { "deviceNumber": 15, "name": "Player 15", "controllerName": "" },
+    { "deviceNumber": 16, "name": "Player 16", "controllerName": "" },
+    { "deviceNumber": 17, "name": "Player 17", "controllerName": "" },
+    { "deviceNumber": 18, "name": "Player 18", "controllerName": "" },
+    { "deviceNumber": 19, "name": "Player 19", "controllerName": "" },
+    { "deviceNumber": 20, "name": "Player 20", "controllerName": "" }
+  ]
+}
