@@ -442,7 +442,7 @@ class Game {
     });
   }
 
-  /** A player taunts: a word over their paddle, a ring and a sound. The host can turn taunts off. */
+  /** A player taunts: a word over their paddle, a ring and a sound. Off for now: the taunts permission is hidden in the spec. */
   taunt(player, emote) {
     const spec = DFPONG_API.actions.codes.taunt;
     const now = performance.now();

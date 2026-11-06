@@ -312,7 +312,7 @@ const DFPONG_API = Object.freeze({
     }
   },
   "permissions": {
-    "$comment": "House setting: which kinds of settings controllers may use. Each setting names its permission.",
+    "$comment": "House setting: which kinds of settings controllers may use. Each setting names its permission. \"hidden\": true means no switch, and it stays off.",
     "name": {
       "label": "Custom names",
       "short": "Names"
@@ -345,6 +345,7 @@ const DFPONG_API = Object.freeze({
       "label": "In Game Actions",
       "short": "In Game Actions",
       "docs": false,
+      "hidden": true,
       "description": "Taunts (and later in-game actions such as power-ups). Steering with a knob is always allowed: it's a way to move, like buttons.",
       "status": "experimental",
       "since": "1.1"

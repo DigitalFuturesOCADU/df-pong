@@ -43,7 +43,7 @@ const STEPPER_STEPS = { pointsToWin: 1, puckSpeed: 0.5, speedIncrement: 0.05 };
 
 const POLICY_LABELS = Object.fromEntries(apiEntries(DFPONG_API.policies).map(([key, p]) => [key, p.short]));
 
-const PERMISSION_LABELS = Object.fromEntries(apiEntries(DFPONG_API.permissions).map(([key, p]) => [key, p.short]));
+const PERMISSION_LABELS = Object.fromEntries(Object.keys(PERMISSIONS).map((key) => [key, DFPONG_API.permissions[key].short]));
 
 class UI {
   constructor(game, { house, sound }) {

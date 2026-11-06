@@ -103,7 +103,7 @@ const PLAYER_SETTINGS = Object.fromEntries(
     .map(([key, s]) => [key, apiFields(s, ['type', 'label', 'maxLength', 'min', 'max', 'step', 'default', 'permission'])])
 );
 
-const PERMISSIONS = Object.fromEntries(apiEntries(DFPONG_API.permissions).map(([key, p]) => [key, p.label]));
+const PERMISSIONS = Object.fromEntries(apiEntries(DFPONG_API.permissions).filter(([, p]) => !p.hidden).map(([key, p]) => [key, p.label])); // hidden ones have no switch and stay off
 const POLICIES = Object.fromEntries(apiEntries(DFPONG_API.policies).map(([key, p]) => [key, p.label]));
 
 // When a controller's own changes take effect during a match (house.data.liveChanges).

@@ -90,7 +90,10 @@ for (const [kind, list] of [['sounds', spec.sounds], ['music', spec.music]]) {
 for (const [name] of entries(spec.music)) {
   if (hasOwn(spec.sounds, name)) problem(`"${name}" is both a sound and a music name; the game would refuse it as music`);
 }
-for (const [key, p] of entries(spec.permissions)) checkStatus(`permissions.${key}`, p);
+for (const [key, p] of entries(spec.permissions)) {
+  checkStatus(`permissions.${key}`, p);
+  if (hasOwn(p, 'hidden') && typeof p.hidden !== 'boolean') problem(`permissions.${key}: hidden should be true or false`);
+}
 
 const actionCodes = new Map();
 for (const [name, a] of entries(spec.actions.codes)) {

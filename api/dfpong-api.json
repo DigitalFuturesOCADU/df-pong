@@ -164,7 +164,7 @@
   },
 
   "permissions": {
-    "$comment": "House setting: which kinds of settings controllers may use. Each setting names its permission.",
+    "$comment": "House setting: which kinds of settings controllers may use. Each setting names its permission. \"hidden\": true means no switch, and it stays off.",
     "name": { "label": "Custom names", "short": "Names" },
     "color": { "label": "Custom colors", "short": "Colors" },
     "sounds": { "label": "Custom sounds", "short": "Sounds" },
@@ -172,7 +172,7 @@
     "moveSpeed": { "label": "Custom move speed", "short": "Paddle speed" },
     "paddleSize": { "label": "Custom paddle size", "short": "Paddle size" },
     "requests": { "label": "Rule requests", "short": "Rule requests" },
-    "taunts": { "label": "In Game Actions", "short": "In Game Actions", "docs": false, "description": "Taunts (and later in-game actions such as power-ups). Steering with a knob is always allowed: it's a way to move, like buttons.", "status": "experimental", "since": "1.1" }
+    "taunts": { "label": "In Game Actions", "short": "In Game Actions", "docs": false, "hidden": true, "description": "Taunts (and later in-game actions such as power-ups). Steering with a knob is always allowed: it's a way to move, like buttons.", "status": "experimental", "since": "1.1" }
   },
 
   "actions": {

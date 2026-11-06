@@ -688,6 +688,19 @@ async function run() {
     try { localStorage.removeItem(p.house?.storageKey); } catch (e) { /* ignore */ }
   }
 
+  group('Taunts stay off');
+  {
+    const key = 'dfpong:2026:tests-taunts-off';
+    try { localStorage.setItem(key, JSON.stringify({ permissions: { taunts: true, color: false } })); } catch (e) { /* ignore */ }
+    const house = new HouseRules('tests-taunts-off');
+    check('no switch for them', !hasOwn(PERMISSIONS, 'taunts'));
+    check('a browser that saved them on: still off', !house.permissions.taunts);
+    check('and its other saved permissions still load', house.permissions.color === false);
+    house.merge({ permissions: { taunts: true } });
+    check('an admin message can\'t turn them on', !house.permissions.taunts);
+    try { localStorage.removeItem(key); } catch (e) { /* ignore */ }
+  }
+
   group('Table names');
   {
     check('spaces tidied', cleanTableName('  Table   A ') === 'Table A');
