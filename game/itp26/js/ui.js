@@ -46,10 +46,11 @@ const POLICY_LABELS = Object.fromEntries(apiEntries(DFPONG_API.policies).map(([k
 const PERMISSION_LABELS = Object.fromEntries(Object.keys(PERMISSIONS).map((key) => [key, DFPONG_API.permissions[key].short]));
 
 class UI {
-  constructor(game, { house, sound, classList }) {
+  constructor(game, { house, sound, classList, publisher }) {
     this.game = game;
     this.house = house;
     this.classList = classList;
+    this.publisher = publisher;
     this.sound = sound;
     this.roster = [];
     this.adminStatus = null;
@@ -405,11 +406,29 @@ class UI {
           <h3>Keeping your changes</h3>
           <p class="set-note players-note"></p>
           <div class="players-actions">
+            ${this.publisher.available ? '<button type="button" class="btn primary" data-action="save-players">Save to GitHub</button>' : ''}
             <button type="button" class="btn" data-action="download-players">Download players-config.json</button>
             <button type="button" class="btn ghost" data-action="revert-players">Undo my changes</button>
           </div>
+          <p class="set-note players-status players-save-status" role="status"></p>
+          ${this.publisher.available ? this.githubTokenHTML() : ''}
         </section>
       </div>`;
+  }
+
+  githubTokenHTML() {
+    return `
+      <form class="github-token" hidden>
+        <p class="set-note">To save, paste in a GitHub access token. Under Repository access, choose only <b>${esc(this.publisher.config.repo)}</b>. The link fills in the rest. The token stays in this browser.</p>
+        <p class="set-note"><a href="${esc(this.publisher.tokenLink)}" target="_blank" rel="noopener">Create a token on GitHub</a></p>
+        <div class="github-token-row">
+          <input type="password" data-github-token aria-label="GitHub access token" placeholder="github_pat_…" autocomplete="off" spellcheck="false">
+          <button type="submit" class="btn primary">Save to GitHub</button>
+          <button type="button" class="btn ghost" data-action="cancel-token">Cancel</button>
+        </div>
+        <label class="github-token-keep"><input type="checkbox" data-github-remember> Remember on this computer (not on a shared one)</label>
+      </form>
+      <p class="set-note github-token-held" hidden><span></span> <button type="button" class="btn ghost" data-action="forget-token">Forget the token</button></p>`;
   }
 
   debugHTML() {
@@ -444,6 +463,9 @@ class UI {
         'reset-settings': () => this.house.reset(),
         'download-players': () => this.downloadPlayers(),
         'revert-players': () => this.revertPlayers(),
+        'save-players': () => this.savePlayers(),
+        'cancel-token': () => this.showTokenForm(false),
+        'forget-token': () => this.forgetToken(),
       };
       if (actions[action]) {
         if (action !== 'mute') this.sound.ui();
@@ -1187,7 +1209,7 @@ class UI {
       this.playersStatus(`Added ${number} · ${this.classList.get(number).name}`);
       this.sound.ui();
       this.rosterChanged();
-      this.renderPlayers();
+      this.renderPlayerList();
       value('name').value = '';
       value('controllerName').value = '';
       value('name').focus(); // ready for the next one
@@ -1229,7 +1251,21 @@ class UI {
       this.classList.remove(number);
       this.sound.ui();
       this.rosterChanged();
-      this.renderPlayers();
+      this.renderPlayerList();
+    });
+
+    panel.querySelector('.github-token')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = e.target.querySelector('[data-github-token]');
+      const remember = e.target.querySelector('[data-github-remember]').checked;
+      if (!this.publisher.setToken(input.value, remember)) {
+        this.saveStatus('That doesn\'t look like a GitHub token. Copy the whole thing, and only that.', 'warn');
+        input.focus();
+        return;
+      }
+      input.value = '';
+      this.showTokenForm(false);
+      this.savePlayers();
     });
   }
 
@@ -1239,16 +1275,22 @@ class UI {
     panel.querySelectorAll('[data-settings-tab]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.settingsTab === name)));
     panel.querySelector('[data-action="reset-settings"]').hidden = name !== 'game'; // it resets the game's settings, not the players
     panel.querySelector('.settings-sheet').scrollTop = 0;
-    if (name === 'players') this.renderPlayers();
+    if (name === 'players') this.renderPlayerList();
   }
 
-  playersStatus(text, tone = '') {
-    const status = this.app.querySelector('.players-status');
+  /** A message beside the Add form. */
+  playersStatus(text, tone = '', where = '.players-status') {
+    const status = this.app.querySelector(where);
     status.textContent = text;
     status.dataset.tone = tone;
   }
 
-  renderPlayers() {
+  /** A message beside the save buttons, further down the tab. */
+  saveStatus(text, tone = '') {
+    this.playersStatus(text, tone, '.players-save-status');
+  }
+
+  renderPlayerList() {
     const panel = this.app.querySelector('.settings-panel');
     const { name, controllerName, deviceNumber } = DFPONG_API.classList.fields;
     const players = this.classList.players;
@@ -1270,10 +1312,101 @@ class UI {
 
   renderPlayersNote() {
     const changes = this.classList.changeCount;
-    this.app.querySelector('.players-note').textContent = changes
-      ? `${changes} ${changes === 1 ? 'change is' : 'changes are'} saved in this browser only. To use them on other computers, download the file and replace ${DFP.roster} in this game's folder.`
-      : `This is the class list file, ${DFP.roster}. Changes you make are saved in this browser until you download a new file.`;
+    const changesAre = `${changes} ${changes === 1 ? 'change is' : 'changes are'}`;
+    let note;
+    if (this.publisher.available) {
+      note = changes
+        ? `${changesAre} in this browser only. Save to GitHub to give them to every computer. The repo is public and keeps old versions, so use first names only.`
+        : 'This is the class list every computer gets. Changes you make stay in this browser until you save them to GitHub.';
+      if (this.classList.waitingForSite) note = `Your last save is on GitHub, and the site is still updating. ${note}`;
+    } else {
+      note = changes
+        ? `${changesAre} saved in this browser only. To use them on other computers, download the file and replace ${DFP.roster} in this game's folder.`
+        : `This is the class list file, ${DFP.roster}. Changes you make are saved in this browser until you download a new file.`;
+    }
+    this.app.querySelector('.players-note').textContent = note;
     this.app.querySelector('[data-action="revert-players"]').disabled = !changes;
+    this.renderTokenHeld();
+    this.watchSite();
+  }
+
+  renderTokenHeld() {
+    const held = this.app.querySelector('.github-token-held');
+    if (!held) return;
+    held.hidden = !this.publisher.token;
+    held.querySelector('span').textContent = this.publisher.tokenRemembered
+      ? 'Your GitHub token is remembered on this computer.'
+      : 'Your GitHub token is kept until this tab closes.';
+  }
+
+  showTokenForm(show) {
+    const form = this.app.querySelector('.github-token');
+    form.hidden = !show;
+    if (show) form.querySelector('[data-github-token]').focus();
+  }
+
+  forgetToken() {
+    this.publisher.forgetToken();
+    this.saveStatus('Forgotten. This browser no longer has your token, but it still works until you delete it on GitHub.');
+    this.renderTokenHeld();
+  }
+
+  async savePlayers() {
+    if (this.savingPlayers) return;
+    if (!this.classList.changeCount) {
+      this.saveStatus('No changes to save.');
+      return;
+    }
+    if (!this.publisher.token) {
+      this.saveStatus('');
+      this.showTokenForm(true);
+      return;
+    }
+    const doubtful = this.classList.doubtfulNames();
+    if (doubtful.length && !confirm(`${doubtful.join(', ')}: this looks like more than a first name. The repo is public and keeps old versions, so a name can't be fully taken back. Save anyway?`)) return;
+
+    const repo = this.publisher.config.repo;
+    const button = this.app.querySelector('[data-action="save-players"]');
+    this.savingPlayers = true;
+    button.disabled = true;
+    this.saveStatus('Saving to GitHub…');
+    const { outcome, detail } = await this.publisher.save();
+    this.savingPlayers = false;
+    button.disabled = false;
+
+    const left = this.classList.changeCount;
+    const messages = {
+      saved: ['Saved to GitHub. Every computer gets the new list when the site updates, in about 2 minutes.'],
+      nothing: ['GitHub already has this list, so there was nothing to save.'],
+      changed: [left ? 'Someone else changed the list on GitHub. This is now their list with your changes on top. Check it, then save again.' : 'Someone else changed the list on GitHub. This is now their list, and your changes were already in it.', 'warn'],
+      conflict: ['The file on GitHub keeps changing. Your changes are still here. Try again in a moment.', 'warn'],
+      token: ['GitHub didn\'t accept that token. It may have expired. Paste in a new one. Your changes are still here.', 'warn'],
+      denied: [`This token can't change ${repo}. It needs access to that repo with Contents set to Read and write, and the organization may need to approve it. Your changes are still here.`, 'warn'],
+      missing: [`GitHub can't find the class list, or this token can't see ${repo}. Your changes are still here.`, 'warn'],
+      unreadable: ['The class list file on GitHub isn\'t valid, so saving would overwrite it. Fix the file first. Your changes are still here.', 'warn'],
+      offline: ['Couldn\'t reach GitHub. Your changes are still here.', 'warn'],
+      error: [`GitHub said: ${detail}. Your changes are still here.`, 'warn'],
+    };
+    this.saveStatus(...messages[outcome]);
+    if (outcome === 'token') this.showTokenForm(true);
+    this.rosterChanged();
+    this.renderPlayerList();
+  }
+
+  /** After a save: check the site every so often, to say when it has the new list. */
+  watchSite() {
+    if (this.siteTimer || !this.classList.waitingForSite) return;
+    this.siteTimer = setTimeout(async () => {
+      this.siteTimer = null;
+      const gaveUp = Date.now() - this.classList.savedAt > CLASS_LIST_SAVED_MS;
+      await readRoster().catch(() => {}); // out of date for now is fine: this tries again
+      if (this.classList.waitingForSite) {
+        this.watchSite();
+        return;
+      }
+      this.saveStatus(gaveUp ? 'The list is on GitHub, but the site still hasn\'t updated. Look at the Actions tab of the repo on GitHub.' : 'The site has the new list now. Other computers get it when they reload.', gaveUp ? 'warn' : '');
+      this.renderPlayersNote();
+    }, 15000);
   }
 
   downloadPlayers() {
@@ -1283,15 +1416,15 @@ class UI {
     link.download = 'players-config.json';
     link.click();
     URL.revokeObjectURL(url);
-    this.playersStatus(`Downloaded. Replace ${DFP.roster} in this game's folder with it.`);
+    this.saveStatus(`Downloaded. Replace ${DFP.roster} in this game's folder with it.`);
   }
 
   revertPlayers() {
     if (!confirm('Undo every change to the class list and go back to the file?')) return;
     this.classList.revert();
-    this.playersStatus('');
+    this.saveStatus('');
     this.rosterChanged();
-    this.renderPlayers();
+    this.renderPlayerList();
   }
 
   /** Name this game ("Table A"), from the settings panel or the admin panel. */

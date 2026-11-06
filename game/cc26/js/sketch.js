@@ -13,7 +13,7 @@
  * Written for p5.js 2.x.
  */
 
-let house, classList, sound, music, effects, game, ui, admin;
+let house, classList, publisher, sound, music, effects, game, ui, admin;
 let world; // 2D p5.Graphics the game is drawn into
 let postfx = null; // WebGL post-processing, when available
 let useWebGL = false;
@@ -21,11 +21,12 @@ let useWebGL = false;
 async function setup() {
   house = new HouseRules(DFP.instance, DFP.defaults);
   classList = new ClassList(DFP.instance);
+  publisher = new ClassListPublisher(classList, DFP.github);
   sound = new SoundEngine(DFP.engine);
   music = new MusicPlayer(sound);
   effects = new Effects();
   game = new Game({ house, sound, effects, music });
-  ui = new UI(game, { house, sound, classList });
+  ui = new UI(game, { house, sound, classList, publisher });
 
   // The canvas lives inside the arena element and follows its size.
   const { w, h } = arenaSize();
@@ -114,15 +115,17 @@ function applyHouseSettings() {
 // ---------------------------------------------------------------------------
 
 async function loadRoster() {
-  try {
-    const res = await fetch(`${DFP.roster}?v=${Date.now()}`);
-    const data = await res.json();
-    classList.setFile(data.players);
-  } catch (e) {
+  await readRoster().catch((e) => {
     console.warn('Could not load the players list:', e);
     game.toast('Could not load players-config.json — use "Another number…"', 'warn');
-  }
+  });
   ui.rosterChanged();
+}
+
+async function readRoster() {
+  const res = await fetch(`${DFP.roster}?v=${Date.now()}`);
+  const data = await res.json();
+  classList.setFile(data.players);
 }
 
 // ---------------------------------------------------------------------------

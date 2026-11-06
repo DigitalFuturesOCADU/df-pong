@@ -574,11 +574,12 @@ Rule requests and music always wait for the next match.
 ### The class list
 
 The dropdowns in the lobby come from `players-config.json` in the game's folder. To change it, use the **Players** tab
-in Settings: add, edit, renumber or remove people.
+in Settings: add, edit, renumber or remove people. Changes stay **in that browser** until you do one of these:
 
-A web page can't change a file on the server, so changes are saved **in that browser only**. To use them on other
-computers, press **Download players-config.json** and replace the file in the game's folder. **Undo my changes** goes
-back to the file. You can also edit the file directly:
+- **Save to GitHub** updates the file in this repo, so every computer gets the new list. See [Saving to GitHub](#saving-to-github).
+- **Download players-config.json** gives you a new file to put in the game's folder yourself.
+
+**Undo my changes** goes back to the last saved list. You can also edit the file directly:
 
 ```json
 {
@@ -591,6 +592,37 @@ back to the file. You can also edit the file directly:
 
 `name` is the person, so they can find themselves in the list. `controllerName` is what the game calls them, unless
 the board sets its own name. Use first names only: this file is public.
+
+#### Saving to GitHub
+
+**Save to GitHub** commits the new `players-config.json` to this repo. The site then updates by itself, usually in about
+2 minutes, and the panel says when it has. Computers with the game already open get the new list when they reload.
+
+The first time, you need an access token from a GitHub account that can change this repo:
+
+1. Press **Save to GitHub**, then **Create a token on GitHub**. The link fills in most of the form.
+2. Under **Repository access**, choose **Only select repositories**, then this repo. Check that **Contents** says **Read and write**.
+3. Press **Generate token**. If the organization has to approve it, an owner does that under the organization's
+   **Settings > Personal access tokens**.
+4. Copy the token, paste it into the panel, and press **Save to GitHub**.
+
+**Look after the token:**
+
+- It can change anything in this repo, not just the class list, so give one only to hosts and let it expire.
+- It stays in that browser and is sent only to GitHub. By default it's kept until the tab closes. Only choose
+  **Remember on this computer** on a computer that's yours.
+- **Forget the token** removes it from that browser. To stop a token working everywhere, delete it in your GitHub
+  settings under **Developer settings > Personal access tokens**.
+
+**Everything you save is public.** The repo keeps old versions, so removing a name from the list doesn't remove it from
+the history. Use first names only. The panel asks you to check any new name with a space or an `@` in it.
+
+**If two hosts edit at once,** nothing is silently overwritten. If someone else saved first, the panel shows their list
+with your changes on top and asks you to save again. If you both changed the same player, your change is the one
+showing, so check it before you save.
+
+If a save fails, your changes stay in the browser and the panel says why. Each game saves to the file set by `github`
+in its `index.html`. See [game/README.md](game/README.md).
 
 ### Admin panel
 

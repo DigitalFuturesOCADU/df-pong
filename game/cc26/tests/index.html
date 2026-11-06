@@ -739,6 +739,226 @@ async function run() {
     try { localStorage.removeItem(key); } catch (e) { /* ignore */ }
   }
 
+  group('Saving the class list to GitHub');
+  {
+    const instance = 'tests-publish';
+    const tokenKey = 'dfpong:2026:tests-token';
+    const config = { repo: 'someone/pong', path: 'game/my game/players-config.json' };
+    const clear = () => {
+      for (const key of [`dfpong:2026:${instance}:players`, `dfpong:2026:${instance}:players:saved`]) localStorage.removeItem(key);
+      localStorage.removeItem(tokenKey);
+      sessionStorage.removeItem(tokenKey);
+    };
+    const encode = (text) => btoa(Array.from(new TextEncoder().encode(text), (b) => String.fromCharCode(b)).join(''));
+    const decode = (text) => new TextDecoder().decode(Uint8Array.from(atob(text), (c) => c.charCodeAt(0)));
+    const asFile = (players) => JSON.stringify({ players });
+
+    // Answers the way GitHub's contents API does
+    const realFetch = window.fetch;
+    const github = {
+      text: '', sha: 1, requests: [], putFails: [], getFails: 0, offline: false, duringPut: null,
+      reset(players) { Object.assign(this, { text: asFile(players), sha: 1, requests: [], putFails: [], getFails: 0, offline: false, duringPut: null }); },
+      get puts() { return this.requests.filter((r) => r.method === 'PUT'); },
+      reply(status, body) { return new Response(JSON.stringify(body), { status }); },
+      async fetch(url, options) {
+        const body = options.body ? JSON.parse(options.body) : null;
+        this.requests.push({ url, method: options.method, headers: options.headers, cache: options.cache, body });
+        if (this.offline) throw new TypeError('Failed to fetch');
+        if (options.method === 'GET') {
+          if (this.getFails) return this.reply(this.getFails, { message: 'nope' });
+          const content = encode(this.text).replace(/(.{60})/g, '$1\n'); // GitHub breaks its base64 into lines
+          return this.reply(200, { sha: `sha${this.sha}`, content });
+        }
+        if (this.duringPut) this.duringPut();
+        const fail = this.putFails.shift();
+        if (fail) { if (fail.then) fail.then(); return this.reply(fail.status, { message: 'nope' }); }
+        if (body.sha !== `sha${this.sha}`) return this.reply(409, { message: 'does not match' });
+        this.text = decode(body.content);
+        this.sha++;
+        return this.reply(200, { content: {}, commit: {} });
+      },
+    };
+    window.fetch = (url, options) => github.fetch(url, options);
+
+    const fresh = (players) => {
+      const list = new ClassList(instance);
+      list.setFile(players);
+      return { list, publisher: new ClassListPublisher(list, config, tokenKey) };
+    };
+    const onGitHub = () => JSON.parse(github.text).players;
+    const start = [{ deviceNumber: 1, name: 'Kate', controllerName: '' }, { deviceNumber: 2, name: 'Nick', controllerName: 'Zap' }];
+
+    try {
+      clear();
+      github.reset(start);
+      let { list, publisher } = fresh(start);
+
+      check('off without a repo in the game\'s settings', !new ClassListPublisher(list, null, tokenKey).available && !new ClassListPublisher(list, { repo: 'a/b' }, tokenKey).available);
+      check('on with one, and main by default', publisher.available && publisher.config.branch === 'main');
+      check('the token link goes to GitHub, for the repo\'s owner, asking for contents', /^https:\/\/github\.com\/settings\/personal-access-tokens\/new\?/.test(publisher.tokenLink) && /target_name=someone/.test(publisher.tokenLink) && /contents=write/.test(publisher.tokenLink));
+
+      check('junk isn\'t a token', !publisher.setToken('not a token') && !publisher.setToken('') && !publisher.token);
+      check('a token: spaces from copying are trimmed', publisher.setToken('  test-token_1 \n') && publisher.token === 'test-token_1');
+      check('kept in this tab by default, not on the computer', sessionStorage.getItem(tokenKey) === 'test-token_1' && localStorage.getItem(tokenKey) === null && !publisher.tokenRemembered);
+      check('a new page in this tab finds it', new ClassListPublisher(list, config, tokenKey).token === 'test-token_1');
+      publisher.setToken('test-token_2', true);
+      check('remembered only when asked', localStorage.getItem(tokenKey) === 'test-token_2' && sessionStorage.getItem(tokenKey) === null && publisher.tokenRemembered);
+      publisher.forgetToken();
+      check('forgetting clears it everywhere', !publisher.token && localStorage.getItem(tokenKey) === null && sessionStorage.getItem(tokenKey) === null);
+      publisher.setToken('test-token');
+
+      list.add(3, { name: 'Zoë' });
+      list.update(2, { controllerName: 'Thunder' });
+      list.remove(1);
+      let result = await publisher.save();
+      const put = github.puts[0];
+      check('saved', result.outcome === 'saved', result.outcome);
+      check('it goes only to GitHub, with the path escaped', github.requests.every((r) => r.url.startsWith('https://api.github.com/repos/someone/pong/contents/game/my%20game/players-config.json')));
+      check('with the token, never from a cached answer', github.requests.every((r) => r.headers.Authorization === 'Bearer test-token' && r.cache === 'no-store'));
+      check('against the version it read, on the right branch', put.body.sha === 'sha1' && put.body.branch === 'main');
+      check('the commit message has no names in it', put.body.message === 'Class list: 3 changes from Settings > Players', put.body.message);
+      check('the file is right, accents and all', onGitHub().map((p) => `${p.deviceNumber}${p.name}${p.controllerName}`).join() === '2NickThunder,3Zoë', github.text);
+      check('the same format as a download', github.text === list.toFile());
+      check('nothing left to save', list.changeCount === 0);
+      check('waiting for the site', list.waitingForSite);
+
+      list.setFile(start);
+      check('the site still has the old file: the list doesn\'t jump back', list.get(3)?.name === 'Zoë' && !list.get(1) && list.get(2).controllerName === 'Thunder' && list.changeCount === 0);
+      ({ list, publisher } = fresh(start));
+      check('nor after a reload', list.get(3)?.name === 'Zoë' && !list.get(1) && list.waitingForSite);
+      list.update(3, { controllerName: 'Comet' });
+      list.update(3, { controllerName: '' });
+      check('edited back to what was saved: no longer a change', list.changeCount === 0);
+      list.remove(3);
+      list.add(3, { name: 'Zoë' });
+      check('removed and added back: the same', list.changeCount === 0);
+
+      list.update(2, { controllerName: 'Bolt' });
+      result = await publisher.save();
+      check('a second save before the site catches up works', result.outcome === 'saved' && onGitHub()[0].controllerName === 'Bolt', result.outcome);
+      list.setFile(onGitHub());
+      check('the site catches up: done waiting', !list.waitingForSite && list.changeCount === 0 && list.get(2).controllerName === 'Bolt');
+
+      list.add(9, { name: 'Sam' });
+      list.saved.set(9, list.get(9));
+      list.changes.clear();
+      list.savedAt = Date.now() - 16 * 60 * 1000;
+      list.setFile(onGitHub());
+      check('a save the site never shows is let go of in the end', !list.waitingForSite && !list.get(9));
+
+      // Editing while the save is on its way
+      github.reset(start);
+      ({ list, publisher } = fresh(start));
+      list.saved.clear();
+      list.add(4, { name: 'Ally' });
+      list.add(5, { name: 'Before' });
+      github.duringPut = () => {
+        list.add(6, { name: 'Late' });
+        list.update(5, { controllerName: 'Edited' });
+      };
+      result = await publisher.save();
+      check('edits made during a save are still changes', result.outcome === 'saved' && list.changes.has(6) && list.changes.get(5)?.controllerName === 'Edited' && !list.changes.has(4), [result.outcome, ...list.changes.keys()].join());
+      check('and they weren\'t sent', onGitHub().map((p) => p.name).join() === 'Kate,Nick,Ally,Before' && !onGitHub().some((p) => p.controllerName === 'Edited'), github.text);
+      list.revert();
+      list.adopt(onGitHub());
+
+      // Someone else saved first
+      github.reset(start);
+      ({ list, publisher } = fresh(start));
+      list.add(6, { name: 'Mine' });
+      list.update(2, { name: 'Nicky' });
+      github.text = asFile([...start, { deviceNumber: 7, name: 'Theirs', controllerName: '' }]);
+      github.sha++;
+      result = await publisher.save();
+      check('someone else saved first: asks again and writes nothing', result.outcome === 'changed' && github.puts.length === 0, result.outcome);
+      check('their list with my changes on top', list.get(7)?.name === 'Theirs' && list.get(6)?.name === 'Mine' && list.get(2).name === 'Nicky' && list.changeCount === 2);
+      result = await publisher.save();
+      check('saving again keeps both', result.outcome === 'saved' && onGitHub().map((p) => p.name).join() === 'Kate,Nicky,Mine,Theirs', github.text);
+      list.adopt(onGitHub());
+
+      github.reset(start);
+      ({ list, publisher } = fresh(start));
+      list.add(8, { name: 'Same' });
+      github.text = asFile([...start, { deviceNumber: 8, name: 'Same', controllerName: '' }]);
+      github.sha++;
+      result = await publisher.save();
+      check('they made the same change: changed, nothing left to save', result.outcome === 'changed' && list.changeCount === 0 && list.get(8)?.name === 'Same', result.outcome);
+      result = await publisher.save();
+      check('nothing to write', result.outcome === 'nothing' && github.puts.length === 0, result.outcome);
+
+      // The file changes between reading and writing
+      github.reset(start);
+      ({ list, publisher } = fresh(start));
+      list.add(10, { name: 'Retry' });
+      github.putFails = [{ status: 409 }];
+      result = await publisher.save();
+      check('GitHub says "just changed", but the list is the same: tries again', result.outcome === 'saved' && github.puts.length === 2 && list.changeCount === 0, result.outcome);
+      list.adopt(onGitHub());
+
+      github.reset(start);
+      ({ list, publisher } = fresh(start));
+      list.add(11, { name: 'Lost' });
+      github.putFails = [{ status: 409, then: () => { github.text = asFile([...start, { deviceNumber: 12, name: 'Faster', controllerName: '' }]); github.sha++; } }];
+      result = await publisher.save();
+      check('and if the list did change, asks', result.outcome === 'changed' && list.get(12)?.name === 'Faster' && list.get(11)?.name === 'Lost' && github.puts.length === 1, result.outcome);
+      list.revert();
+
+      github.reset(start);
+      ({ list, publisher } = fresh(start));
+      list.add(13, { name: 'Busy' });
+      github.putFails = [{ status: 409 }, { status: 409 }];
+      result = await publisher.save();
+      check('it only tries twice', result.outcome === 'conflict' && github.puts.length === 2 && list.changeCount === 1, result.outcome);
+
+      // What goes wrong
+      github.reset(start);
+      github.putFails = [{ status: 403 }];
+      result = await publisher.save();
+      check('a token without write access', result.outcome === 'denied' && list.get(13)?.name === 'Busy' && list.changeCount === 1 && !!publisher.token, result.outcome);
+      github.putFails = [{ status: 500 }];
+      result = await publisher.save();
+      check('anything else passes on what GitHub said', result.outcome === 'error' && result.detail === 'nope' && list.changeCount === 1, result.outcome);
+      github.getFails = 404;
+      result = await publisher.save();
+      check('no such file', result.outcome === 'missing' && list.changeCount === 1, result.outcome);
+      github.getFails = 0;
+      github.offline = true;
+      result = await publisher.save();
+      check('no network', result.outcome === 'offline' && list.changeCount === 1, result.outcome);
+      github.offline = false;
+      const puts = github.puts.length;
+      for (const broken of ['not json', '{"people":[]}', '{"players":"Kate"}']) {
+        github.text = broken;
+        result = await publisher.save();
+        check(`never writes over a file it can't read: ${broken}`, result.outcome === 'unreadable' && github.puts.length === puts, result.outcome);
+      }
+      github.reset(start);
+      github.getFails = 401;
+      result = await publisher.save();
+      check('a dead token is forgotten, and the changes stay', result.outcome === 'token' && !publisher.token && list.changeCount === 1, result.outcome);
+      list.revert();
+
+      // Names
+      list.add(20, { name: 'Mary Smith' });
+      list.add(21, { name: 'me@school.edu' });
+      list.add(22, { name: 'Ally' });
+      list.add(23, { name: '' });
+      list.remove(1);
+      check('names to double check before they go public', list.doubtfulNames().join() === 'Mary Smith,me@school.edu', list.doubtfulNames().join());
+    } finally {
+      window.fetch = realFetch;
+      clear();
+    }
+  }
+
+  group('The interface code');
+  {
+    const source = await (await fetch('../js/ui.js')).text();
+    const methods = [...source.matchAll(/^  (?:async )?([a-zA-Z]\w*)\([^)]*\) \{$/gm)].map((m) => m[1]).filter((name) => !['if', 'for', 'while', 'switch', 'catch'].includes(name));
+    const twice = methods.filter((name, i) => methods.indexOf(name) !== i);
+    check('no two methods share a name (the later one would silently replace the first)', methods.length > 20 && twice.length === 0, twice.join());
+  }
+
   group('Taunts stay off');
   {
     const key = 'dfpong:2026:tests-taunts-off';

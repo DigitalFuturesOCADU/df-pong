@@ -283,7 +283,7 @@
 
   "classList": {
     "file": "players-config.json",
-    "description": "The class list each game folder ships with: { \"players\": [ … ] }. Older games read the same file and ignore fields they don't know. In the 2026 game, Settings > Players edits the list in that browser and can download a new file.",
+    "description": "The class list each game folder ships with: { \"players\": [ … ] }. Older games read the same file and ignore fields they don't know. In the 2026 game, Settings > Players edits the list in that browser, and can save it to the game's GitHub repo or download a new file.",
     "fields": {
       "deviceNumber": { "type": "number", "min": 1, "max": 242, "required": true, "status": "stable", "since": "1.0", "description": "The controller's number." },
       "name": { "type": "text", "maxLength": 40, "status": "stable", "since": "1.0", "description": "The person. Shown in the lobby's list so people can find themselves, and under the controller's name." },

@@ -1978,6 +1978,48 @@ input[type='checkbox']:checked::after {
   margin-bottom: 10px;
 }
 
+.github-token {
+  margin-bottom: 10px;
+}
+
+.github-token[hidden],
+.github-token-held[hidden] {
+  display: none;
+}
+
+.github-token .set-note {
+  display: block;
+}
+
+.github-token a {
+  color: var(--ink);
+  text-underline-offset: 2px;
+}
+
+.github-token-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.github-token-row input {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.github-token-keep {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--dim);
+}
+
+.github-token-held {
+  flex-wrap: wrap;
+}
+
 .set-group {
   padding: 16px 0 6px;
   border-top: 1px solid var(--line);

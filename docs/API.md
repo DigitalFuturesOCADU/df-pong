@@ -216,7 +216,7 @@ For `music`. Any `https://` link to a music file works too.
 
 ## Class list
 
-The class list each game folder ships with: { "players": [ … ] }. Older games read the same file and ignore fields they don't know. In the 2026 game, Settings > Players edits the list in that browser and can download a new file. File: `players-config.json`.
+The class list each game folder ships with: { "players": [ … ] }. Older games read the same file and ignore fields they don't know. In the 2026 game, Settings > Players edits the list in that browser, and can save it to the game's GitHub repo or download a new file. File: `players-config.json`.
 
 | Field | Type | Limits | Status | Meaning |
 |---|---|---|---|---|

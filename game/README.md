@@ -29,7 +29,8 @@ game/
 Copy the most recent version's folder, then rename it with the course and year:
 
 1. Copy `cc26/` to, for example, `physComp27-501/`.
-2. In `index.html`, change `instance` (a short id, also used for saved settings and the admin room) and `title`.
+2. In `index.html`, change `instance` (a short id, also used for saved settings and the admin room), `title`, and the
+   folder in `github.path`. Otherwise **Save to GitHub** would overwrite the old class's list.
 3. Put the class list in `players-config.json`:
 
    ```json
@@ -59,6 +60,7 @@ Options in `index.html`:
 | `title` | Shown in the lobby and the browser tab. |
 | `engine` | Where the game files are, relative to the page (`'./'`: this folder). |
 | `roster` | The players file (default `players-config.json`). |
+| `github` | Where **Save to GitHub** in Settings > Players saves the class list: `{ repo: 'owner/name', path: 'game/my-class/players-config.json' }`, plus `branch` if it isn't `main`. Leave it out to hide the button. In a new copy, change `path` to the new folder. |
 | `relay` | Admin relay for other devices, e.g. `'wss://pong-relay.example.com'`, or `'same-origin'` when served by `server/relay.js`. |
 | `defaults` | Starting house rules: `pointsToWin`, `puckSpeed`, `speedIncrement`. |
 | `testMode` | Opens *Controller details* and makes player 2 the computer. |
