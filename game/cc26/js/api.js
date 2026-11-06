@@ -703,7 +703,7 @@ const DFPONG_API = Object.freeze({
   },
   "classList": {
     "file": "players-config.json",
-    "description": "The class list each game folder ships with: { \"players\": [ … ] }. Older games read the same file and ignore fields they don't know.",
+    "description": "The class list each game folder ships with: { \"players\": [ … ] }. Older games read the same file and ignore fields they don't know. In the 2026 game, Settings > Players edits the list in that browser and can download a new file.",
     "fields": {
       "deviceNumber": {
         "type": "number",

@@ -688,6 +688,57 @@ async function run() {
     try { localStorage.removeItem(p.house?.storageKey); } catch (e) { /* ignore */ }
   }
 
+  group('Class list: the file plus changes made in Settings');
+  {
+    const key = 'dfpong:2026:tests-list:players';
+    try { localStorage.removeItem(key); } catch (e) { /* ignore */ }
+    const file = [{ deviceNumber: 1, name: 'Kate', controllerName: '' }, { deviceNumber: 2, name: 'Nick', controllerName: 'Zap' }, { deviceNumber: 999, name: 'Too big' }, { name: 'No number' }];
+    let list = new ClassList('tests-list');
+    list.setFile(file);
+    check('only valid numbers', list.players.map((p) => p.deviceNumber).join() === '1,2');
+    check('nothing changed yet', list.changeCount === 0);
+    check('add', list.add(5, { name: ' Sarah ', controllerName: '' }) === null && list.get(5).name === 'Sarah' && list.get(5).controllerName === null);
+    check('a number already taken says who has it', list.add(1, { name: 'X' }) === 'Number 1 is already Kate');
+    check('a number out of range is refused', /from 1 to 242/.test(list.add(243, { name: 'X' })) && /from 1 to 242/.test(list.add(NaN, { name: 'X' })));
+    check('sorted by number', (list.add(3, { name: 'Ally' }), list.players.map((p) => p.deviceNumber).join()) === '1,2,3,5');
+    list.update(1, { controllerName: 'Thunder' });
+    check('edit', list.get(1).name === 'Kate' && list.get(1).controllerName === 'Thunder');
+    list.update(1, { controllerName: '' });
+    check('edited back to the file: no longer a change', !list.changes.has(1));
+    check('a blank name falls back', list.update(5, { name: '  ' }).name === 'Player 5');
+    list.update(5, { name: 'Sarah' });
+    check('renumber refuses a taken number', list.renumber(5, 2) === 'Number 2 is already Nick' && list.get(5).name === 'Sarah');
+    check('renumber', list.renumber(5, 6) === null && !list.get(5) && list.get(6).name === 'Sarah');
+    check('renumber a player in the file', list.renumber(2, 8) === null && list.get(8).controllerName === 'Zap' && !list.get(2));
+    list.remove(1);
+    check('remove a player in the file', !list.players.some((p) => p.deviceNumber === 1));
+    check('next number: the lowest free one', list.nextNumber() === 1, list.nextNumber());
+    list = new ClassList('tests-list');
+    list.setFile(file);
+    check('changes survive a reload', list.get(6)?.name === 'Sarah' && !list.get(1) && list.get(8)?.controllerName === 'Zap');
+    list.setFile([...file, { deviceNumber: 40, name: 'Newcomer' }]);
+    check('someone new in a newer file still shows up', list.get(40)?.name === 'Newcomer');
+    const text = list.toFile();
+    const parsed = JSON.parse(text);
+    check('the download is the same format as the file', Array.isArray(parsed.players) && parsed.players[0].controllerName !== undefined && /^\{\n  "players": \[\n    \{ "deviceNumber": /.test(text));
+    const quoted = new ClassList('tests-list-2');
+    quoted.setFile([]);
+    quoted.add(7, { name: 'A "B" \\ C' });
+    check('names with quotes survive the download', JSON.parse(quoted.toFile()).players[0].name === 'A "B" \\ C');
+    quoted.revert();
+    list.setFile(parsed.players);
+    check('once the file has the changes, nothing is left over', list.changeCount === 0, list.changeCount);
+    list.add(50, { name: 'X' });
+    list.revert();
+    check('undo: back to just the file', list.changeCount === 0 && !list.get(50));
+    try { localStorage.setItem(key, '{"oops": {"name": 1}, "__proto__": null, "7": "nonsense", "300": null}'); } catch (e) { /* ignore */ }
+    list = new ClassList('tests-list');
+    list.setFile([]);
+    check('junk in storage does no harm', list.players.length === 0);
+    list.revert();
+    try { localStorage.removeItem(key); } catch (e) { /* ignore */ }
+  }
+
   group('Taunts stay off');
   {
     const key = 'dfpong:2026:tests-taunts-off';

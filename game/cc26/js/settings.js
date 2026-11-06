@@ -460,6 +460,149 @@ class HouseRules {
   get permissions() { return this.data.permissions; }
 }
 
+/**
+ * The class list: players-config.json, plus changes made in Settings → Players.
+ * A web page can't write to the file, so the changes stay in this browser. Only
+ * the changes are kept, so a newer file still shows up, and download() gives a
+ * file to replace the old one with.
+ */
+class ClassList {
+  constructor(instance) {
+    this.storageKey = `dfpong:2026:${instance}:players`;
+    this.file = new Map();
+    this.changes = new Map(); // number → { deviceNumber, name, controllerName }, or null when removed
+    try {
+      const saved = JSON.parse(localStorage.getItem(this.storageKey) || 'null');
+      for (const [key, change] of Object.entries(saved || {})) {
+        const number = Number(key);
+        if (!this.validNumber(number) || typeof change !== 'object') continue;
+        this.changes.set(number, change === null ? null : this.clean(number, change));
+      }
+    } catch (e) {
+      /* storage blocked or corrupt: just the file, then */
+    }
+  }
+
+  validNumber(n) {
+    const { min, max } = DFPONG_API.classList.fields.deviceNumber;
+    return Number.isInteger(n) && n >= min && n <= max;
+  }
+
+  clean(deviceNumber, { name, controllerName } = {}) {
+    const fields = DFPONG_API.classList.fields;
+    const text = (value, max) => (typeof value === 'string' && value.trim() ? Array.from(value.trim()).slice(0, max).join('') : null);
+    // name: the person (helps find them in the list); controllerName: what the game calls them
+    return {
+      deviceNumber,
+      name: text(name, fields.name.maxLength) || `Player ${deviceNumber}`,
+      controllerName: text(controllerName, fields.controllerName.maxLength),
+    };
+  }
+
+  same(a, b) {
+    return !!a && !!b && a.name === b.name && a.controllerName === b.controllerName;
+  }
+
+  /** The players in the file. Changes the file has caught up with are dropped. */
+  setFile(players) {
+    this.file = new Map();
+    for (const p of Array.isArray(players) ? players : []) {
+      if (p && this.validNumber(p.deviceNumber) && !this.file.has(p.deviceNumber)) this.file.set(p.deviceNumber, this.clean(p.deviceNumber, p));
+    }
+    for (const [number, change] of this.changes) {
+      if (change ? this.same(change, this.file.get(number)) : !this.file.has(number)) this.changes.delete(number);
+    }
+    this.save();
+  }
+
+  save() {
+    try {
+      if (this.changes.size) localStorage.setItem(this.storageKey, JSON.stringify(Object.fromEntries(this.changes)));
+      else localStorage.removeItem(this.storageKey);
+    } catch (e) {
+      /* private mode: changes last until the page closes */
+    }
+  }
+
+  get players() {
+    const merged = new Map([...this.file, ...this.changes]);
+    return [...merged.values()].filter(Boolean).sort((a, b) => a.deviceNumber - b.deviceNumber);
+  }
+
+  get changeCount() {
+    return this.changes.size;
+  }
+
+  get(number) {
+    return this.changes.has(number) ? this.changes.get(number) : this.file.get(number) || null;
+  }
+
+  /** The lowest free number. */
+  nextNumber() {
+    let n = DFPONG_API.classList.fields.deviceNumber.min;
+    while (this.get(n)) n++;
+    return n;
+  }
+
+  /** Why this number can't be used, or null if it can. */
+  numberProblem(number) {
+    const { min, max } = DFPONG_API.classList.fields.deviceNumber;
+    if (!this.validNumber(number)) return `Numbers go from ${min} to ${max}`;
+    const holder = this.get(number);
+    return holder ? `Number ${number} is already ${holder.name}` : null;
+  }
+
+  set(number, fields) {
+    const entry = this.clean(number, fields);
+    if (this.same(entry, this.file.get(number))) this.changes.delete(number);
+    else this.changes.set(number, entry);
+    this.save();
+    return entry;
+  }
+
+  /** @returns why it couldn't be added, or null */
+  add(number, fields) {
+    const problem = this.numberProblem(number);
+    if (!problem) this.set(number, fields);
+    return problem;
+  }
+
+  update(number, fields) {
+    return this.set(number, { ...this.get(number), ...fields });
+  }
+
+  /** @returns why the number couldn't change, or null */
+  renumber(from, to) {
+    if (from === to) return null;
+    const problem = this.numberProblem(to);
+    if (problem) return problem;
+    const entry = this.get(from);
+    this.remove(from);
+    this.set(to, entry);
+    return null;
+  }
+
+  remove(number) {
+    if (this.file.has(number)) this.changes.set(number, null);
+    else this.changes.delete(number);
+    this.save();
+  }
+
+  /** Back to just the file. */
+  revert() {
+    this.changes.clear();
+    this.save();
+  }
+
+  /** The list as a players-config.json file. */
+  toFile() {
+    const lines = this.players.map(
+      (p) => `    { "deviceNumber": ${p.deviceNumber}, "name": ${JSON.stringify(p.name)}, "controllerName": ${JSON.stringify(p.controllerName || '')} }`
+    );
+    return `{\n  "players": [\n${lines.join(',\n')}\n  ]\n}\n`;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Resolving the two players' requests into one set of match rules
 // ---------------------------------------------------------------------------

@@ -1920,6 +1920,64 @@ input[type='checkbox']:checked::after {
   letter-spacing: -0.01em;
 }
 
+.settings-tabs {
+  margin: 0 auto 0 18px;
+}
+
+.settings-tab {
+  display: contents;
+}
+
+.settings-tab[hidden] {
+  display: none;
+}
+
+.player-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) minmax(0, 1fr) 72px;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-row input {
+  width: 100%;
+  min-width: 0;
+}
+
+.player-labels {
+  margin-bottom: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.player-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.player-list .tool {
+  justify-self: end;
+}
+
+.players-status:empty {
+  display: none;
+}
+
+.players-status[data-tone='warn'] {
+  color: var(--warn);
+}
+
+.players-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
 .set-group {
   padding: 16px 0 6px;
   border-top: 1px solid var(--line);
@@ -2129,6 +2187,20 @@ input[type='checkbox']:checked::after {
 
   .switches {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .player-row {
+    grid-template-columns: 58px minmax(0, 1fr) minmax(0, 1fr) 40px;
+    gap: 6px;
+  }
+
+  .player-add {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  .player-add input:nth-child(3),
+  .player-add .btn {
+    grid-column: 1 / -1;
   }
 
   .rule-pill {

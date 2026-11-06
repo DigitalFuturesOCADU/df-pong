@@ -320,6 +320,9 @@ automatically. No need to pick it again. If it can't come back, the pause screen
   disagreements are settled, paddle speed for each side, which customizations controllers may use, when their
   changes apply during a match, music and its volume, volume, room sound, reduced motion, and this game's table
   name. On phones it opens full screen.
+- **Players tab** (in the settings panel): add, edit, renumber or remove people in the class list. A web page can't
+  change a file on the server, so changes are saved in that browser. To use them on other computers, press
+  **Download players-config.json** and replace the file in the game's folder. **Undo my changes** goes back to the file.
 - **Admin panel**: house rules with locks, how disagreements are settled, music, permissions and when live
   changes apply, plus Start / Pause / Resume / Restart / Back to lobby, from another window or device, with a
   live view of who's connected and what settings they loaded. With several games in one room, send to all of

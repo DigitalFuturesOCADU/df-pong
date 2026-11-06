@@ -13,18 +13,19 @@
  * Written for p5.js 2.x.
  */
 
-let house, sound, music, effects, game, ui, admin;
+let house, classList, sound, music, effects, game, ui, admin;
 let world; // 2D p5.Graphics the game is drawn into
 let postfx = null; // WebGL post-processing, when available
 let useWebGL = false;
 
 async function setup() {
   house = new HouseRules(DFP.instance, DFP.defaults);
+  classList = new ClassList(DFP.instance);
   sound = new SoundEngine(DFP.engine);
   music = new MusicPlayer(sound);
   effects = new Effects();
   game = new Game({ house, sound, effects, music });
-  ui = new UI(game, { house, sound });
+  ui = new UI(game, { house, sound, classList });
 
   // The canvas lives inside the arena element and follows its size.
   const { w, h } = arenaSize();
@@ -55,7 +56,7 @@ async function setup() {
   // Wait for the display font so the first frames don't flash a fallback.
   document.fonts?.load(`700 100px "${DISPLAY_FONT}"`).catch(() => {});
   music.ready.then(() => ui.renderRulesPreview()); // recorded tracks join the music choices
-  ui.setRoster(await loadRoster());
+  await loadRoster();
 }
 
 function draw() {
@@ -116,22 +117,12 @@ async function loadRoster() {
   try {
     const res = await fetch(`${DFP.roster}?v=${Date.now()}`);
     const data = await res.json();
-    // name: the person (helps find them in the list); controllerName: what the game calls them
-    const text = (value, max) => (typeof value === 'string' && value.trim() ? Array.from(value.trim()).slice(0, max).join('') : null);
-    const fields = DFPONG_API.classList.fields;
-    const players = (data.players || [])
-      .filter((p) => p && Number.isInteger(p.deviceNumber) && p.deviceNumber >= fields.deviceNumber.min && p.deviceNumber <= fields.deviceNumber.max)
-      .map((p) => ({
-        deviceNumber: p.deviceNumber,
-        name: text(p.name, fields.name.maxLength) || `Player ${p.deviceNumber}`,
-        controllerName: text(p.controllerName, fields.controllerName.maxLength),
-      }));
-    return players;
+    classList.setFile(data.players);
   } catch (e) {
     console.warn('Could not load the players list:', e);
     game.toast('Could not load players-config.json — use "Another number…"', 'warn');
-    return [];
   }
+  ui.rosterChanged();
 }
 
 // ---------------------------------------------------------------------------

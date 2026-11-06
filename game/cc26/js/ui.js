@@ -46,9 +46,10 @@ const POLICY_LABELS = Object.fromEntries(apiEntries(DFPONG_API.policies).map(([k
 const PERMISSION_LABELS = Object.fromEntries(Object.keys(PERMISSIONS).map((key) => [key, DFPONG_API.permissions[key].short]));
 
 class UI {
-  constructor(game, { house, sound }) {
+  constructor(game, { house, sound, classList }) {
     this.game = game;
     this.house = house;
+    this.classList = classList;
     this.sound = sound;
     this.roster = [];
     this.adminStatus = null;
@@ -290,9 +291,16 @@ class UI {
         <div class="settings-sheet">
           <header class="settings-head">
             <h2 id="settings-title">Settings</h2>
+            <div class="segmented settings-tabs" role="group" aria-label="Settings pages">
+              <button type="button" data-settings-tab="game" aria-pressed="true">Game</button>
+              <button type="button" data-settings-tab="players" aria-pressed="false">Players</button>
+            </div>
             <button class="tool" data-action="settings" title="Close (Esc)">${icon('close')}</button>
           </header>
 
+          ${this.playersTabHTML()}
+
+          <div class="settings-tab" data-tab="game">
           <section class="set-group">
             <h3>Match</h3>
             ${rules}
@@ -363,6 +371,7 @@ class UI {
             <p class="set-note admin-status"></p>
             <a class="btn" target="_blank" rel="noopener" data-admin-link>Open admin panel</a>
           </section>
+          </div>
 
           <footer class="settings-foot">
             <span class="set-link">Credits: <a href="https://github.com/DigitalFuturesOCADU/df-pong/blob/main/game/cc26/assets/sounds/CREDITS.md" target="_blank" rel="noopener">sounds</a> · <a href="https://github.com/DigitalFuturesOCADU/df-pong/blob/main/game/cc26/assets/music/CREDITS.md" target="_blank" rel="noopener">music</a></span>
@@ -370,6 +379,36 @@ class UI {
             <button type="button" class="btn primary" data-action="settings">Done</button>
           </footer>
         </div>
+      </div>`;
+  }
+
+  playersTabHTML() {
+    const { deviceNumber, name, controllerName } = DFPONG_API.classList.fields;
+    return `
+      <div class="settings-tab players-tab" data-tab="players" hidden>
+        <section class="set-group wide">
+          <h3>Add a player</h3>
+          <form class="player-row player-add">
+            <input type="number" min="${deviceNumber.min}" max="${deviceNumber.max}" inputmode="numeric" data-add="deviceNumber" aria-label="Controller number">
+            <input type="text" maxlength="${name.maxLength}" placeholder="First name" data-add="name" aria-label="First name" autocomplete="off" spellcheck="false">
+            <input type="text" maxlength="${controllerName.maxLength}" placeholder="Controller name (optional)" data-add="controllerName" aria-label="Controller name" autocomplete="off" spellcheck="false">
+            <button type="submit" class="btn primary">Add</button>
+          </form>
+          <p class="set-note players-status" role="status"></p>
+        </section>
+        <section class="set-group wide">
+          <h3>Class list <span class="players-count"></span></h3>
+          <div class="player-row player-labels" aria-hidden="true"><span>#</span><span>Name</span><span>Controller name</span></div>
+          <ul class="player-list"></ul>
+        </section>
+        <section class="set-group wide">
+          <h3>Keeping your changes</h3>
+          <p class="set-note players-note"></p>
+          <div class="players-actions">
+            <button type="button" class="btn" data-action="download-players">Download players-config.json</button>
+            <button type="button" class="btn ghost" data-action="revert-players">Undo my changes</button>
+          </div>
+        </section>
       </div>`;
   }
 
@@ -403,6 +442,8 @@ class UI {
         debug: () => this.toggleDrawer('debug'),
         fullscreen: () => toggleFullscreen(),
         'reset-settings': () => this.house.reset(),
+        'download-players': () => this.downloadPlayers(),
+        'revert-players': () => this.revertPlayers(),
       };
       if (actions[action]) {
         if (action !== 'mute') this.sound.ui();
@@ -532,7 +573,10 @@ class UI {
       if (policy) this.house.merge({ policy: policy.dataset.policy });
       const live = e.target.closest('[data-live]');
       if (live) this.house.merge({ liveChanges: live.dataset.live });
+      const tab = e.target.closest('[data-settings-tab]');
+      if (tab) this.showSettingsTab(tab.dataset.settingsTab);
     });
+    this.bindPlayers(panel);
     panel.querySelectorAll('[data-permission]').forEach((box) =>
       box.addEventListener('change', () => this.house.merge({ permissions: { [box.dataset.permission]: box.checked } }))
     );
@@ -671,6 +715,22 @@ class UI {
       select.innerHTML = options;
       select.value = previous;
     });
+  }
+
+  /** The class list changed: update the lobby's lists, and anyone already chosen in them. */
+  rosterChanged() {
+    this.setRoster(this.classList.players);
+    this.cards.forEach((card, i) => {
+      const player = this.game.players[i];
+      if (!Number.isInteger(player.target)) return;
+      const entry = this.rosterEntry(player.target);
+      const number = card.querySelector('.device-number');
+      card.querySelector('.device-select').value = entry ? String(player.target) : 'number';
+      number.hidden = !!entry;
+      if (!entry) number.value = player.target;
+      player.selectController(player.target, entry);
+    });
+    this.renderPlayersNote();
   }
 
   /** The class list entry for controller n ({deviceNumber, name, controllerName}), or null. */
@@ -1099,6 +1159,139 @@ class UI {
     panel.querySelector('[data-house="ambience"]').checked = data.ambience;
     panel.querySelector('[data-house="reduced"]').checked = data.effects === 'reduced';
     this.app.querySelector('[data-action="mute"]').innerHTML = icon(data.muted ? 'mute' : 'volume');
+  }
+
+  // -------------------------------------------------------------------------
+  // Settings → Players
+  // -------------------------------------------------------------------------
+
+  bindPlayers(panel) {
+    const list = panel.querySelector('.player-list');
+    const form = panel.querySelector('.player-add');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const value = (field) => form.querySelector(`[data-add="${field}"]`);
+      const number = parseInt(value('deviceNumber').value, 10);
+      if (!value('name').value.trim()) {
+        this.playersStatus('Add a first name so people can find themselves in the list', 'warn');
+        value('name').focus();
+        return;
+      }
+      const problem = this.classList.add(number, { name: value('name').value, controllerName: value('controllerName').value });
+      if (problem) {
+        this.playersStatus(problem, 'warn');
+        value('deviceNumber').focus();
+        return;
+      }
+      this.playersStatus(`Added ${number} · ${this.classList.get(number).name}`);
+      this.sound.ui();
+      this.rosterChanged();
+      this.renderPlayers();
+      value('name').value = '';
+      value('controllerName').value = '';
+      value('name').focus(); // ready for the next one
+    });
+
+    // A change applies when you leave the field, so the list isn't redrawn under your cursor
+    list.addEventListener('change', (e) => {
+      const row = e.target.closest('[data-number]');
+      const field = e.target.dataset.field;
+      if (!row || !field) return;
+      const number = Number(row.dataset.number);
+      if (field === 'deviceNumber') {
+        const next = parseInt(e.target.value, 10);
+        const problem = this.classList.renumber(number, next);
+        if (problem) {
+          this.playersStatus(problem, 'warn');
+          e.target.value = number;
+          return;
+        }
+        // Whoever picked this number in the lobby follows it, unless that board is connected: it keeps its number
+        this.game.players.forEach((p) => {
+          if (p.target === number && p.kind !== 'controller') p.selectController(next, null);
+        });
+        row.dataset.number = next;
+        row.querySelector('[data-remove-player]').setAttribute('aria-label', `Remove ${next}`);
+      } else {
+        const entry = this.classList.update(number, { [field]: e.target.value });
+        e.target.value = entry[field] || '';
+      }
+      this.playersStatus('');
+      this.rosterChanged();
+    });
+
+    list.addEventListener('click', (e) => {
+      const button = e.target.closest('[data-remove-player]');
+      if (!button) return;
+      const number = Number(button.closest('[data-number]').dataset.number);
+      this.playersStatus(`Removed ${number} · ${this.classList.get(number).name}`);
+      this.classList.remove(number);
+      this.sound.ui();
+      this.rosterChanged();
+      this.renderPlayers();
+    });
+  }
+
+  showSettingsTab(name) {
+    const panel = this.app.querySelector('.settings-panel');
+    panel.querySelectorAll('[data-tab]').forEach((tab) => (tab.hidden = tab.dataset.tab !== name));
+    panel.querySelectorAll('[data-settings-tab]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.settingsTab === name)));
+    panel.querySelector('[data-action="reset-settings"]').hidden = name !== 'game'; // it resets the game's settings, not the players
+    panel.querySelector('.settings-sheet').scrollTop = 0;
+    if (name === 'players') this.renderPlayers();
+  }
+
+  playersStatus(text, tone = '') {
+    const status = this.app.querySelector('.players-status');
+    status.textContent = text;
+    status.dataset.tone = tone;
+  }
+
+  renderPlayers() {
+    const panel = this.app.querySelector('.settings-panel');
+    const { name, controllerName, deviceNumber } = DFPONG_API.classList.fields;
+    const players = this.classList.players;
+    panel.querySelector('.players-count').textContent = `· ${players.length}`;
+    panel.querySelector('[data-add="deviceNumber"]').value = this.classList.nextNumber();
+    panel.querySelector('.player-list').innerHTML = players
+      .map(
+        (p) => `
+        <li class="player-row" data-number="${p.deviceNumber}">
+          <input type="number" min="${deviceNumber.min}" max="${deviceNumber.max}" inputmode="numeric" value="${p.deviceNumber}" data-field="deviceNumber" aria-label="Controller number">
+          <input type="text" maxlength="${name.maxLength}" value="${esc(p.name)}" data-field="name" aria-label="Name" autocomplete="off" spellcheck="false">
+          <input type="text" maxlength="${controllerName.maxLength}" value="${esc(p.controllerName || '')}" placeholder="Uses their name" data-field="controllerName" aria-label="Controller name" autocomplete="off" spellcheck="false">
+          <button type="button" class="tool" data-remove-player aria-label="Remove ${p.deviceNumber}" title="Remove">${icon('close')}</button>
+        </li>`
+      )
+      .join('');
+    this.renderPlayersNote();
+  }
+
+  renderPlayersNote() {
+    const changes = this.classList.changeCount;
+    this.app.querySelector('.players-note').textContent = changes
+      ? `${changes} ${changes === 1 ? 'change is' : 'changes are'} saved in this browser only. To use them on other computers, download the file and replace ${DFP.roster} in this game's folder.`
+      : `This is the class list file, ${DFP.roster}. Changes you make are saved in this browser until you download a new file.`;
+    this.app.querySelector('[data-action="revert-players"]').disabled = !changes;
+  }
+
+  downloadPlayers() {
+    const url = URL.createObjectURL(new Blob([this.classList.toFile()], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'players-config.json';
+    link.click();
+    URL.revokeObjectURL(url);
+    this.playersStatus(`Downloaded. Replace ${DFP.roster} in this game's folder with it.`);
+  }
+
+  revertPlayers() {
+    if (!confirm('Undo every change to the class list and go back to the file?')) return;
+    this.classList.revert();
+    this.playersStatus('');
+    this.rosterChanged();
+    this.renderPlayers();
   }
 
   /** Name this game ("Table A"), from the settings panel or the admin panel. */
