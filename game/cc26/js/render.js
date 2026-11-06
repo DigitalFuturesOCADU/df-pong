@@ -67,11 +67,11 @@ function drawScoreWatermarks(g, game, fx) {
   g.textAlign(CENTER, CENTER);
   game.players.forEach((player, i) => {
     const pop = fx.scorePop[i];
-    const c = mixColor(player.rgb, INK, 0.2);
+    const c = mixColor(player.rgb, INK, 0.6); // dark paddle colors still have to read on a projector
     const matchPoint = game.matchPointFor === i;
-    const pulse = matchPoint ? 0.03 * (1 + Math.sin(fx.time * 5)) : 0;
+    const pulse = matchPoint ? 0.1 * (1 + Math.sin(fx.time * 5)) : 0;
     const fade = game.state === 'won' ? 0.35 : 1; // step back for the winner's name
-    g.fill(c.r, c.g, c.b, 255 * (0.07 + pop * 0.35 + pulse) * fade);
+    g.fill(c.r, c.g, c.b, 255 * (0.5 + pop * 0.35 + pulse) * fade);
     g.textSize(300 * (1 + pop * 0.18));
     g.text(game.score[i], WORLD.w * (i === 0 ? 0.25 : 0.75), WORLD.h * 0.47);
   });
