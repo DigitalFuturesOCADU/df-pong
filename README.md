@@ -12,7 +12,8 @@ steer with a knob.
 **Contents**
 
 - **Playing:** [Play](#play) · [Build a controller](#build-a-controller) · [Connect and play](#connect-and-play)
-- **Customizing:** [Your settings](#customize-your-controller) · [Colors](#colors) · [Built-in sounds](#built-in-sounds) · [Make your own sound](#make-your-own-sound-file) · [Music](#music) · [Rule requests](#rule-requests) · [Buzzer and game events](#a-buzzer-and-game-events-on-your-board)
+- **Customizing:** [Your settings](#customize-your-controller) · [Colors](#colors) · [Sound and music functions](#sound-and-music-functions) · [Built-in sounds](#built-in-sounds) · [Make your own sound](#make-your-own-sound-file) · [Music](#music) · [Rule requests](#rule-requests)
+- **Your board reacting to the game:** [Game events and a buzzer](#game-events-and-a-buzzer) · [Event functions](#event-functions) · [The events](#the-events) · [Buzzer sounds](#buzzer-sounds)
 - **When something's wrong:** [Troubleshooting](#troubleshooting)
 - **Running a session:** [For hosts](#for-hosts)
 - **Under the hood:** [Older controllers](#controllers-every-year-still-works) · [How it works](#how-it-works) · [Repository](#repository)
@@ -261,6 +262,48 @@ See them as colors on [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/nam
 
 </details>
 
+### Sound and music functions
+
+Four functions choose what the game plays **on the computer's speakers** for you. (For sounds on your board itself,
+see [Game events and a buzzer](#game-events-and-a-buzzer).)
+
+| Function | Plays | Give it | Default | Library |
+|---|---|---|---|---|
+| `controller.setHitSound(sound)` | When your paddle hits the puck | A [built-in sound](#built-in-sounds) name, or a link to [your own file](#make-your-own-sound-file) | `pingpong` | 2.0 |
+| `controller.setScoreSound(sound)` | When you score | The same | `bell` | 2.0 |
+| `controller.setWinSound(sound)` | When you win | The same | `flourish`, then applause | 2.0 |
+| `controller.setMusic(track)` | Under your matches, looping | A [music track](#music) name, or a link to your own music file | What the room plays | 2.1 |
+
+```cpp
+controller.setHitSound("pluck");                                                     // a built-in sound
+controller.setScoreSound("https://raw.githubusercontent.com/you/repo/main/yay.mp3");  // your own file
+controller.setWinSound("");                                                          // back to the default
+controller.setMusic("nightbus");                                                     // a music track
+```
+
+**All four work the same way:**
+
+- **A name or a link.** Names ignore upper and lower case. Links must start with `https://` and be **200 characters
+  or fewer**. A longer link isn't sent: you keep the sound you had, and the Serial Monitor says why.
+- **Text or a `String`.** `setHitSound("pluck")` and `setHitSound(mySoundName)` both work.
+- **`""` goes back to the default.**
+- **A name the library doesn't know** is still sent, in case a newer game has it. The Serial Monitor lists the
+  built-in names, and if the game doesn't have it either, your player card says so and the default plays.
+- **In `setup()` or any time after.** Calling one again changes the sound. Calling it every `loop()` with the same
+  name is fine: the library only sends real changes, at most 4 times a second. During a match, sounds change at once
+  by default and music waits for the next match. See [Changing settings while you play](#changing-settings-while-you-play).
+- **The host can turn them off**: the **Sounds** switch covers the three sounds and **Music** covers `setMusic()`.
+  See [What the host can turn off](#what-the-host-can-turn-off).
+- **What was sent:** `Serial.println(controller.getSettingsJSON());` shows them as `hitSound`, `scoreSound`, `winSound`
+  and `music`.
+
+For example, a different hit sound while a button is held:
+
+```cpp
+// in loop()
+controller.setHitSound(digitalRead(boostPin) == LOW ? "laser" : "pluck");
+```
+
 ### Built-in sounds
 
 These ship with the game, so they always work. Use any of them for any of the three sounds, and hear them all in
@@ -466,20 +509,160 @@ music always wait for the next match. The game shows a short message when a chan
   position.
 - On the controller, `Serial.println(controller.getSettingsJSON());` prints what the game will receive.
 
-### A buzzer and game events on your board
+## Game events and a buzzer
 
-*Experimental, library 2.5.* The game also tells your controller what just happened, so your board can react itself.
-Add a piezo buzzer and one line, and it plays its own sounds for each event, without stopping your `loop()`:
+*Experimental: library 2.5 or newer, and the 2026 game. These may still change.*
+
+While you play, the game tells your controller what just happened: a match is starting, your paddle hit the puck,
+you scored, it's match point, you won. Your board can react on its own: play sounds on a piezo buzzer, light an LED,
+buzz a motor, move a servo. The game itself doesn't change.
+
+There are three ways to use events. The buzzer works with either of the other two.
+
+| Way | Code | Good for |
+|---|---|---|
+| **Built-in buzzer sounds** | `controller.setBuzzer(11);` in `setup()` | Sound for every event, with no other code |
+| **Your own function** | `controller.onGameEvent(gameEvent);` in `setup()` | Reacting the moment something happens |
+| **Ask in `loop()`** | `int event = controller.readGameEvent();` | Code that already checks things in `loop()` |
+
+Use **either** your own function **or** `readGameEvent()`. Once `onGameEvent()` is set, events go to your function,
+and `readGameEvent()` always returns `NO_EVENT`.
+
+**When events arrive:** only while your controller is connected and playing. A player on the keyboard or the computer
+gets none. Events are from **your** point of view: when you score you get `EVENT_SCORED`, and the other player gets
+`EVENT_CONCEDED`. An event the game can't send within 0.3 s is dropped rather than arriving late. Older games send
+no events, and everything else still works. The host can't turn events off, because they only change your board.
+
+### Event functions
+
+| Function | What it does | Returns |
+|---|---|---|
+| `setBuzzer(pin)` | Plays the [built-in buzzer sounds](#buzzer-sounds) on a piezo buzzer on that pin. Plays three notes right away, so you know it's wired up. Call it in `setup()` | — |
+| `setBuzzer(pin, false)` | The same buzzer, but only the start, connected and dropped sounds and your own `playTone()` notes: no sounds for game events | — |
+| `setBuzzer(-1)` | No buzzer (the default) | — |
+| `playTone(frequency, ms)` | Plays one note: `frequency` in Hz (0 = silence, up to 20000), for `ms` milliseconds (up to 10000), e.g. `playTone(880, 100)`. Doesn't wait for the note to end. Needs `setBuzzer()` first | — |
+| `onGameEvent(function)` | Runs your function for every event. It must look like `void gameEvent(int event, int value)`. Call it in `setup()` | — |
+| `readGameEvent()` | The oldest event you haven't read yet, or `NO_EVENT` | `int` |
+| `gameEventValue()` | The `value` of the event `readGameEvent()` last returned | `int` |
+| `myScore()` | Your score, as the game last told it. 0 when a match starts | `int` |
+| `theirScore()` | The other player's score, the same way | `int` |
+
+All of them do their work inside `controller.update()`, so keep calling it every `loop()`.
+
+### The events
+
+| Event | Number | When it arrives | `value` | [Buzzer sound](#buzzer-sounds) |
+|---|---|---|---|---|
+| `EVENT_MATCH_START` | 1 | A match is starting (the NAME vs NAME screen) | — | Three rising notes |
+| `EVENT_COUNTDOWN` | 2 | Each beat of the countdown before the first serve (again after a pause during it) | 3, 2, 1, then 0 for GO | A short beep; higher and longer on GO |
+| `EVENT_HIT` | 3 | Your paddle hit the puck | How fast the puck was going: 0 (slow) to 255 (top speed) | A tick, higher as the puck speeds up |
+| `EVENT_SCORED` | 4 | You scored | Your score now | Three rising notes |
+| `EVENT_CONCEDED` | 5 | The other player scored | Their score now | Two falling notes |
+| `EVENT_MATCH_POINT` | 6 | The next point can end the match (the MATCH POINT announcement, before the serve) | 1: you can win, 0: they can, 2: whoever scores next wins | Four notes: high if you can win, low if they can, high and low for both |
+| `EVENT_WON` | 7 | You won the match | — | A fanfare |
+| `EVENT_LOST` | 8 | You lost the match | — | Four falling notes |
+| `EVENT_PAUSED` | 9 | The game paused | — | One note |
+| `EVENT_RESUMED` | 10 | The game resumed | — | Two rising notes |
+
+`NO_EVENT` is 0. `value` is 0 for events that don't have one. Use the names in your code. The numbers are what
+travels over Bluetooth; see [docs/API.md](docs/API.md#game-events) if you're writing your own controller code
+without the library.
+
+### Buzzer sounds
+
+`setBuzzer()` plays the sounds in the table above for each event, plus these three:
+
+| Sound | When |
+|---|---|
+| Three rising notes (C E G) | When `setBuzzer()` is called: the controller is on |
+| Two rising notes | The game has connected and is ready |
+| Two falling notes | The connection dropped |
+
+**One sound at a time.** A new sound never cuts off a more important one. From least to most important:
+
+1. Hits, and your `playTone()` notes
+2. The start sound, countdown, match start, pause and resume
+3. Connected, dropped, scored and conceded
+4. Match point
+5. Won and lost
+
+A sound of the same or higher importance replaces the one playing. So a `playTone()` during the winning fanfare is
+skipped.
+
+**Wiring:** a **passive** piezo from any digital pin to GND (the 2025 Nano controllers use pin 11). It plays any note.
+An **active** buzzer (it beeps by itself when powered) can only make one sound: leave out `setBuzzer()`, and switch it
+with `digitalWrite()` from your own function instead.
+
+### Your own reactions
+
+Your function runs inside `controller.update()`, so **keep it quick**: no `delay()`. To do something for a while,
+note when to stop and stop it in `loop()`, like the motor here:
 
 ```cpp
-controller.setBuzzer(11);   // in setup(): the buzzer's pin
+#include <DFPongController.h>
+
+DFPongController controller;
+
+const int ledPin = 12;
+const int motorPin = 5;        // a vibration motor, through a transistor
+unsigned long motorOffAt = 0;  // when to stop the motor (0: it's off)
+
+void gameEvent(int event, int value) {
+  if (event == EVENT_HIT) {
+    analogWrite(motorPin, 100 + value / 2);  // stronger for a faster puck
+    motorOffAt = millis() + 80;              // stopped in loop(): no delay() in here
+  } else if (event == EVENT_SCORED) {
+    digitalWrite(ledPin, HIGH);
+  } else if (event == EVENT_MATCH_START) {
+    digitalWrite(ledPin, LOW);
+  }
+}
+
+void setup() {
+  pinMode(ledPin, OUTPUT);
+  pinMode(motorPin, OUTPUT);
+  controller.setControllerNumber(1);
+  controller.setBuzzer(11);           // optional: built-in sounds too
+  controller.onGameEvent(gameEvent);
+  controller.begin();
+}
+
+void loop() {
+  controller.update();
+
+  if (motorOffAt != 0 && millis() >= motorOffAt) {
+    analogWrite(motorPin, 0);
+    motorOffAt = 0;
+  }
+
+  int direction = NEUTRAL;
+  // read your buttons or sensor into direction (UP, DOWN or NEUTRAL)
+  controller.sendControl(direction);
+}
 ```
 
-Or react yourself with `controller.onGameEvent(yourFunction)`: light an LED, buzz a motor, move a servo. The events
-are match start, countdown, your hit, you scored, they scored, match point, won, lost, paused and resumed.
+**Or ask in `loop()`,** reading every event that has arrived:
 
-The library's README has the [full list](https://github.com/DigitalFuturesOCADU/df-pong-controller#game-events-and-a-buzzer-experimental-25),
-and the **dfPongGameEvents** example shows it all.
+```cpp
+void loop() {
+  controller.update();
+
+  int event = controller.readGameEvent();
+  while (event != NO_EVENT) {
+    int value = controller.gameEventValue();
+    if (event == EVENT_COUNTDOWN && value == 0) Serial.println("GO!");
+    if (event == EVENT_SCORED) Serial.println(controller.myScore());
+    event = controller.readGameEvent();
+  }
+
+  // ... read your buttons and send them as usual
+}
+```
+
+Up to 7 events wait to be read. If more arrive first, the oldest are dropped.
+
+The library's **dfPongGameEvents** example puts it all together: a buzzer, and a message in the Serial Monitor for every
+event.
 
 ---
 
@@ -548,7 +731,8 @@ All are on by default. When one is off, the game uses the default for everyone, 
 | **Paddle size** | `setPaddleSize()` |
 | **Rule requests** | All three `request…()` functions |
 
-Steering with a knob or sensor can't be turned off: it's a way to move, not a customization.
+Steering with a knob or sensor can't be turned off: it's a way to move, not a customization. Nor can
+[game events](#game-events-and-a-buzzer): they only change the player's own board.
 
 #### When live changes apply
 
