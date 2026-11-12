@@ -589,7 +589,8 @@ without the library.
 A sound of the same or higher importance replaces the one playing. So a `playTone()` during the winning fanfare is
 skipped.
 
-**Wiring:** a **passive** piezo from any digital pin to GND (the 2025 Nano controllers use pin 11). It plays any note.
+**Wiring:** a **passive** piezo from a digital pin to GND. The 2025 Nano controllers use pin 11. The library's
+examples for the Feather ESP32 V2 use pin 27, because that board has no pin 11. It plays any note.
 An **active** buzzer (it beeps by itself when powered) can only make one sound: leave out `setBuzzer()`, and switch it
 with `digitalWrite()` from your own function instead.
 
@@ -622,7 +623,7 @@ void setup() {
   pinMode(ledPin, OUTPUT);
   pinMode(motorPin, OUTPUT);
   controller.setControllerNumber(1);
-  controller.setBuzzer(11);           // optional: built-in sounds too
+  controller.setBuzzer(11);           // optional: built-in sounds too (pin 27 on a Feather ESP32 V2)
   controller.onGameEvent(gameEvent);
   controller.begin();
 }
@@ -661,8 +662,20 @@ void loop() {
 
 Up to 7 events wait to be read. If more arrive first, the oldest are dropped.
 
-The library's **dfPongGameEvents** example puts it all together: a buzzer, and a message in the Serial Monitor for every
-event.
+**Working examples** come with the library (2.5.1 or newer), in **File > Examples > DFPongController > Game Events**.
+Each one has two buttons and one way to react:
+
+| Example | What it shows |
+|---|---|
+| **01_BuzzerSounds** | `setBuzzer()`: a sound for every event, with one line |
+| **02_EventLight** | An LED that flashes on hits, blinks when you score, stays on at match point and celebrates a win, timed without `delay()` |
+| **03_Vibration** | A vibration motor that buzzes harder for a faster puck, using the event's `value` |
+| **04_ReadEvents** | `readGameEvent()` in `loop()`: every event and the score in the Serial Monitor |
+| **05_OwnSounds** | Your own tunes for each event, with `setBuzzer(pin, false)` and `playTone()` |
+
+They're written for the Feather ESP32 V2 (buttons on pins 32 and 33). On a 2025 Nano controller, use pins 2 and 3 for
+the buttons and pin 11 for the buzzer. The older **dfPongGameEvents** example (in Pong 2026) has a buzzer and every
+event in one sketch.
 
 ---
 
